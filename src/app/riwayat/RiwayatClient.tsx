@@ -21,8 +21,8 @@ interface Transaksi {
 
 interface RiwayatClientProps {
   session: {
-    warungNama: string
-    warungKode: string
+    warungNama: string | null
+    warungKode: string | null
     namaLengkap?: string | null
     username: string
   }

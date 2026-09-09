@@ -20,7 +20,7 @@ export default async function RiwayatPage() {
 
   const transaksis = await prisma.transaksi.findMany({
     where: {
-      warungId: session.warungId,
+      warungId: session.warungId ?? undefined,
       tanggal: { gte: today, lt: tomorrow },
       status: 'SELESAI',
     },
@@ -36,7 +36,7 @@ export default async function RiwayatPage() {
     total: t.total,
     tanggal: t.tanggal.toISOString(),
     createdAt: t.createdAt.toISOString(),
-    items: t.items.map((i) => ({
+    items: t.items.map((i: { id: string; namaMenu: string; hargaSatuan: number; qty: number; subtotal: number }) => ({
       id: i.id,
       namaMenu: i.namaMenu,
       hargaSatuan: i.hargaSatuan,
