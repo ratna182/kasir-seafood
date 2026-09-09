@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Warung {
+  id         String      @id @default(uuid())
+  nama       String      @unique
+  kode       String      @unique
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  users      User[]
+  menus      Menu[]
+  transaksis Transaksi[]
+  kasirSesis KasirSesi[]
+
+  @@map("warungs")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  warungId     String?     @map("warung_id")
+  username     String      @unique
+  passwordHash String      @map("password_hash")
+  namaLengkap  String?     @map("nama_lengkap")
+  role         RoleUser    @default(KASIR)
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  warung       Warung?     @relation(fields: [warungId], references: [id])
+  kasirSesis   KasirSesi[]
+
+  @@map("users")
+}
+
+model Menu {
+  id        String          @id @default(uuid())
+  warungId  String          @map("warung_id")
+  nama      String
+  kategori  KategoriMenu
+  harga     Int
+  isAktif   Boolean         @default(true) @map("is_aktif")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  warung         Warung          @relation(fields: [warungId], references: [id])
+  transaksiItems TransaksiItem[]
+
+  @@unique([warungId, nama])
+  @@map("menus")
+}
+
+model Transaksi {
+  id          String          @id @default(uuid())
+  warungId    String          @map("warung_id")
+  nomorMeja   String          @map("nomor_meja")
+  status      StatusTransaksi @default(SELESAI)
+  total       Int
+  tanggal     DateTime        @default(now()) @map("tanggal") @db.Date
+  createdAt   DateTime        @default(now()) @map("created_at")
+  printedAt   DateTime?       @map("printed_at")
+
+  warung  Warung          @relation(fields: [warungId], references: [id])
+  items   TransaksiItem[]
+
+  @@map("transaksis")
+}
+
+model TransaksiItem {
+  id          String    @id @default(uuid())
+  transaksiId String    @map("transaksi_id")
+  menuId      String    @map("menu_id")
+  namaMenu    String    @map("nama_menu")
+  hargaSatuan Int       @map("harga_satuan")
+  qty         Int
+  subtotal    Int
+
+  transaksi   Transaksi @relation(fields: [transaksiId], references: [id], onDelete: Cascade)
+  menu        Menu      @relation(fields: [menuId], references: [id])
+
+  @@map("transaksi_items")
+}
+
+model KasirSesi {
+  id               String   @id @default(uuid())
+  warungId         String   @map("warung_id")
+  tanggal          DateTime @map("tanggal") @db.Date
+  ditutupOleh      String   @map("ditutup_oleh")
+  ditutupPada      DateTime @default(now()) @map("ditutup_pada")
+  totalTransaksi   Int      @map("total_transaksi")
+  totalPendapatan  Int      @map("total_pendapatan")
+
+  warung Warung @relation(fields: [warungId], references: [id])
+  user   User   @relation(fields: [ditutupOleh], references: [id])
+
+  @@unique([warungId, tanggal])
+  @@map("kasir_sesis")
+}
+
+enum RoleUser {
+  OWNER
+  KASIR
+}
+
+enum KategoriMenu {
+  MAKANAN
+  MINUMAN
+}
+
+enum StatusTransaksi {
+  SELESAI
+  BATAL
+}
