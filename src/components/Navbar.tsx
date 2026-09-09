@@ -87,12 +87,16 @@ export default function Navbar({ session, activePage }: NavbarProps) {
         </div>
 
         <div className="navbar-actions" style={{ marginLeft: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span className="navbar-user text-sm text-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+          <Link
+            href="/profil"
+            className="navbar-user text-sm text-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', textDecoration: 'none', cursor: 'pointer' }}
+          >
             <span>👤</span>
             <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {session.namaLengkap || session.username}
             </span>
-          </span>
+          </Link>
           <LogoutButton />
         </div>
       </div>
