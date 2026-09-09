@@ -222,10 +222,12 @@ export default async function DashboardPage() {
   }
 
   // Dashboard untuk KASIR
+  const warungId = session.warungId as string
+
   const kasirSesi = await prisma.kasirSesi.findUnique({
     where: {
       warungId_tanggal: {
-        warungId: session.warungId!,
+        warungId: warungId,
         tanggal: today,
       },
     },
@@ -233,7 +235,7 @@ export default async function DashboardPage() {
 
   const jumlahTransaksiHariIni = await prisma.transaksi.count({
     where: {
-      warungId: session.warungId!,
+      warungId: warungId,
       tanggal: { gte: today, lt: tomorrow },
       status: 'SELESAI',
     },
@@ -241,7 +243,7 @@ export default async function DashboardPage() {
 
   const totalPendapatanHariIni = await prisma.transaksi.aggregate({
     where: {
-      warungId: session.warungId!,
+      warungId: warungId,
       tanggal: { gte: today, lt: tomorrow },
       status: 'SELESAI',
     },

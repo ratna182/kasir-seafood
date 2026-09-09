@@ -25,19 +25,26 @@ export default async function LaporanPage() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const kasirSesi = await prisma.kasirSesi.findUnique({
-    where: {
-      warungId_tanggal: {
-        warungId: session.warungId,
-        tanggal: today,
-      },
-    },
-    include: {
-      user: {
-        select: { namaLengkap: true, username: true },
-      },
-    },
-  })
+  const kasirSesiRaw = await prisma.$queryRawUnsafe<
+    Array<{
+      ditutup_pada: Date
+      total_transaksi: number
+      total_pendapatan: number
+      nama_lengkap: string | null
+      username: string
+    }>
+  >(
+    `SELECT ks.ditutup_pada, ks.total_transaksi, ks.total_pendapatan,
+            u.nama_lengkap, u.username
+     FROM kasir_sesis ks
+     JOIN users u ON u.id = ks.ditutup_oleh
+     WHERE ks.warung_id = $1 AND ks.tanggal = $2
+     LIMIT 1`,
+    session.warungId,
+    today
+  )
+
+  const kasirSesi = kasirSesiRaw[0] ?? null
 
   return (
     <div className="app-container">
@@ -48,11 +55,11 @@ export default async function LaporanPage() {
           initialKasirSesi={
             kasirSesi
               ? {
-                  ditutupPada: kasirSesi.ditutupPada.toISOString(),
+                  ditutupPada: kasirSesi.ditutup_pada.toISOString(),
                   ditutupOleh:
-                    kasirSesi.user.namaLengkap || kasirSesi.user.username,
-                  totalTransaksi: kasirSesi.totalTransaksi,
-                  totalPendapatan: kasirSesi.totalPendapatan,
+                    kasirSesi.nama_lengkap || kasirSesi.username,
+                  totalTransaksi: kasirSesi.total_transaksi,
+                  totalPendapatan: kasirSesi.total_pendapatan,
                 }
               : null
           }
