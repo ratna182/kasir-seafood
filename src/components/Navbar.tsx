@@ -11,7 +11,7 @@ interface NavbarProps {
     username: string
     role: string
   }
-  activePage?: 'dashboard' | 'transaksi' | 'menu' | 'laporan' | 'riwayat'
+  activePage?: 'dashboard' | 'transaksi' | 'menu' | 'laporan' | 'riwayat' | 'kasir'
 }
 
 export default function Navbar({ session, activePage }: NavbarProps) {
@@ -54,6 +54,13 @@ export default function Navbar({ session, activePage }: NavbarProps) {
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
               >
                 🍽️ Menu
+              </Link>
+              <Link
+                href="/kasir"
+                className={`btn btn-sm ${activePage === 'kasir' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+              >
+                👥 Kasir
               </Link>
             </>
           )}

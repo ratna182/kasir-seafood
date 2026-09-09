@@ -103,6 +103,46 @@ export default function LaporanClient({ session, initialKasirSesi }: LaporanClie
     window.print()
   }
 
+  async function handleExportExcel() {
+    try {
+      const res = await fetch('/api/laporan/export')
+      if (!res.ok) throw new Error('Gagal export')
+      
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `laporan-${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      setFeedback({ type: 'success', message: 'Berhasil download laporan Excel!' })
+    } catch {
+      setFeedback({ type: 'error', message: 'Gagal export laporan Excel' })
+    }
+  }
+
+  async function handleExportPDF() {
+    try {
+      const res = await fetch('/api/laporan/export/pdf')
+      if (!res.ok) throw new Error('Gagal export')
+      
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `laporan-${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      setFeedback({ type: 'success', message: 'Berhasil download laporan PDF!' })
+    } catch {
+      setFeedback({ type: 'error', message: 'Gagal export laporan PDF' })
+    }
+  }
+
   const now = new Date()
   const todayStr = now.toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -135,6 +175,30 @@ export default function LaporanClient({ session, initialKasirSesi }: LaporanClie
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            id="btn-export-excel"
+            onClick={handleExportExcel}
+            disabled={loading || !data || data.rekap.length === 0}
+            className="btn btn-outline"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <span>📊</span>
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            type="button"
+            id="btn-export-pdf"
+            onClick={handleExportPDF}
+            disabled={loading || !data || data.rekap.length === 0}
+            className="btn btn-outline"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <span>📄</span>
+            <span>Export PDF</span>
+          </button>
+
           <button
             type="button"
             id="btn-cetak-laporan"
