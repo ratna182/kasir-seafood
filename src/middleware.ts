@@ -62,8 +62,10 @@ export function middleware(request: NextRequest) {
 
   // Owner dapat memakai kasir default (Kasir 1).
   if (activeSession.role === 'OWNER' && isKasirRoute) {
-    activeSession = kasirSession || ownerSession
+    activeSession = kasirSession || activeSession
   }
+
+  if (!activeSession) return NextResponse.redirect(new URL('/login', request.url))
 
   // Kasir tidak boleh akses owner-only routes
   if (activeSession.role === 'KASIR' && isOwnerRoute) {
