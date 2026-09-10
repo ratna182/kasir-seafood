@@ -9,6 +9,9 @@ export const metadata = {
   description: 'Daftar transaksi hari ini dan cetak ulang struk.',
 }
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function RiwayatPage() {
   const session = await getSession()
   if (!session) redirect('/login')
@@ -18,67 +21,29 @@ export default async function RiwayatPage() {
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const warungFilter = session.warungId || undefined
+  const transaksis = await prisma.transaksi.findMany({
+    where: {
+      warungId: session.warungId ?? undefined,
+      tanggal: { gte: today, lt: tomorrow },
+      status: 'SELESAI',
+    },
+    include: { items: { orderBy: { createdAt: 'asc' } } },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  })
 
-  const raw = await prisma.$queryRawUnsafe<
-    Array<{
-      id: string
-      nomor_meja: string
-      total: number
-      tanggal: Date
-      created_at: Date
-    }>
-  >(
-    `SELECT id, nomor_meja, total, tanggal, created_at
-     FROM transaksis
-     WHERE ($1::text IS NULL OR warung_id = $1)
-       AND tanggal >= $2 AND tanggal < $3
-       AND status = 'SELESAI'
-     ORDER BY created_at DESC`,
-    warungFilter ?? null,
-    today,
-    tomorrow
-  )
-
-  const transaksiIds = raw.map((r) => r.id)
-
-  const rawItems = transaksiIds.length > 0
-    ? await prisma.$queryRawUnsafe<
-        Array<{
-          id: string
-          transaksi_id: string
-          nama_menu: string
-          harga_satuan: number
-          qty: number
-          subtotal: number
-        }>
-      >(
-        `SELECT id, transaksi_id, nama_menu, harga_satuan, qty, subtotal
-         FROM transaksi_items
-         WHERE transaksi_id = ANY($1::text[])`,
-        transaksiIds
-      )
-    : []
-
-  const itemsByTransaksi = new Map<string, typeof rawItems>()
-  for (const item of rawItems) {
-    const list = itemsByTransaksi.get(item.transaksi_id) || []
-    list.push(item)
-    itemsByTransaksi.set(item.transaksi_id, list)
-  }
-
-  const serialized = raw.map((t) => ({
-    id: t.id,
-    nomorMeja: t.nomor_meja,
-    total: t.total,
-    tanggal: t.tanggal.toISOString(),
-    createdAt: t.created_at.toISOString(),
-    items: (itemsByTransaksi.get(t.id) || []).map((i) => ({
-      id: i.id,
-      namaMenu: i.nama_menu,
-      hargaSatuan: i.harga_satuan,
-      qty: i.qty,
-      subtotal: i.subtotal,
+  const serialized = transaksis.map((transaksi) => ({
+    id: transaksi.id,
+    nomorMeja: transaksi.nomorMeja,
+    total: transaksi.total,
+    tanggal: transaksi.tanggal.toISOString(),
+    createdAt: transaksi.createdAt.toISOString(),
+    items: transaksi.items.map((item) => ({
+      id: item.id,
+      namaMenu: item.namaMenu,
+      hargaSatuan: item.hargaSatuan,
+      qty: item.qty,
+      subtotal: item.subtotal,
     })),
   }))
 
