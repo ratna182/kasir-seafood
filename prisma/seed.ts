@@ -28,7 +28,7 @@ async function main() {
   console.log('✅ 3 warung dibuat')
 
   // Buat akun owner (tanpa warung spesifik, bisa akses semua)
-  const ownerPasswordHash = await bcrypt.hash('owner123', 12)
+  const ownerPasswordHash = await bcrypt.hash('owner123', 8)
   const owner = await prisma.user.create({
     data: {
       username: 'owner',
@@ -41,7 +41,7 @@ async function main() {
   console.log('✅ Akun owner dibuat (username=owner, password=owner123)')
 
   // Buat 3 akun kasir (1 per warung)
-  const kasirPasswordHash = await bcrypt.hash('kasir123', 12)
+  const kasirPasswordHash = await bcrypt.hash('kasir123', 8)
 
   await prisma.user.createMany({
     data: [

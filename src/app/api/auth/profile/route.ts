@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
         }, { status: 422 })
       }
 
-      updateData.passwordHash = await bcrypt.hash(newPassword, 12)
+      updateData.passwordHash = await bcrypt.hash(newPassword, 8)
     }
 
     // Update user
