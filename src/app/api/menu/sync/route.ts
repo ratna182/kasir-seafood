@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, requireRole } from '@/lib/auth'
+import { decodeSessionToken, COOKIE_OWNER } from '@/lib/session'
 
 // POST /api/menu/sync — sync menu dari warung pertama ke semua warung lain (owner only)
 export async function POST(request: NextRequest) {
   try {
-    const context = getAuthContext(request)
-    const authError = requireRole(context, 'OWNER')
-    if (authError) return authError
+    // Decode session langsung dari cookie
+    const token = request.cookies.get(COOKIE_OWNER)?.value
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: tidak ada session owner.' }, { status: 401 })
+    }
+
+    const session = decodeSessionToken(token)
+    if (!session || session.role !== 'OWNER') {
+      return NextResponse.json({ success: false, message: 'Unauthorized: hanya owner yang bisa sync.' }, { status: 401 })
+    }
 
     const warungs = await prisma.warung.findMany({ orderBy: { kode: 'asc' } })
     if (warungs.length === 0) {
