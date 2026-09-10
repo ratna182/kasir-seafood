@@ -2,23 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { encodeSessionToken, SessionUser, getSessionCookieName } from '@/lib/session'
-import { loginRateLimiter } from '@/lib/rate-limiter'
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const ip = request.headers.get('x-forwarded-for') || 
-                request.headers.get('x-real-ip') || 
-                '127.0.0.1'
-    
-    const rateLimitResult = loginRateLimiter.check(ip)
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { success: false, message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },
-        { status: 429 }
-      )
-    }
-
     const body = await request.json()
     const { username, password } = body
 
