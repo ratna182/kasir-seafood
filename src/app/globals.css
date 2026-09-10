@@ -1,45 +1,40 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ============================================
-   CSS VARIABLES — Design Tokens
+   CSS VARIABLES — Design Tokens (Warm Charcoal)
    ============================================ */
 :root {
-  /* Colors */
-  --color-bg: #07111F;
-  --color-surface: #101B2B;
-  --color-surface-2: #17263A;
-  --color-surface-3: #22344D;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-hover: rgba(255, 255, 255, 0.15);
+  /* Colors — Warm base, not navy */
+  --color-base: #181310;
+  --color-surface: #231C17;
+  --color-surface-raised: #2E2620;
+  --color-border: rgba(243, 236, 227, 0.08);
+  --color-border-hover: rgba(243, 236, 227, 0.15);
 
-  /* Brand */
-  --color-primary: #B91C1C;
-  --color-primary-hover: #991B1B;
-  --color-primary-light: rgba(185, 28, 28, 0.16);
-  --color-primary-glow: rgba(185, 28, 28, 0.28);
-
-  /* Accent */
-  --color-accent: #06b6d4;
-  --color-accent-light: rgba(6, 182, 212, 0.12);
+  /* Brand — Merah dari logo */
+  --color-brand: #B4222B;
+  --color-brand-hover: #9A1C24;
+  --color-brand-light: rgba(180, 34, 43, 0.16);
+  --color-brand-glow: rgba(180, 34, 43, 0.28);
 
   /* Status */
-  --color-success: #16A34A;
-  --color-success-light: rgba(22, 163, 74, 0.12);
-  --color-warning: #f59e0b;
-  --color-warning-light: rgba(245, 158, 11, 0.12);
+  --color-success: #4C7A5C;
+  --color-success-light: rgba(76, 122, 92, 0.12);
+  --color-pending: #C1893E;
+  --color-pending-light: rgba(193, 137, 62, 0.12);
   --color-danger: #DC2626;
   --color-danger-light: rgba(220, 38, 38, 0.12);
 
-  /* Text */
-  --color-text: #F7FAFC;
-  --color-text-secondary: #A6B3C4;
-  --color-text-muted: #748499;
+  /* Text — Warm off-white */
+  --color-text-primary: #F3ECE3;
+  --color-text-secondary: #9C9086;
+  --color-text-muted: #6B6158;
 
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-primary: 0 4px 20px rgba(185, 28, 28, 0.3);
+  --shadow-brand: 0 4px 20px rgba(180, 34, 43, 0.3);
 
   /* Radius */
   --radius-sm: 6px;
@@ -48,8 +43,8 @@
   --radius-xl: 24px;
 
   /* Transitions */
-  --transition: all 0.2s ease;
-  --transition-slow: all 0.3s ease;
+  --transition: all 0.15s ease-out;
+  --transition-slow: all 0.25s ease-out;
 }
 
 /* ============================================
@@ -68,8 +63,8 @@ html {
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  background-color: var(--color-base);
+  color: var(--color-text-primary);
   min-height: 100vh;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -77,22 +72,23 @@ body {
 }
 
 /* ============================================
-   TYPOGRAPHY
+   TYPOGRAPHY — Fraunces (display) + Inter (UI)
    ============================================ */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Fraunces', Georgia, serif;
   font-weight: 700;
   line-height: 1.2;
+  color: var(--color-text-primary);
 }
 
 h1 { font-size: 2rem; }
 h2 { font-size: 1.5rem; }
-h3 { font-size: 1.25rem; }
+h3 { font-size: 1.125rem; }
 
 p { color: var(--color-text-secondary); }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-brand);
   text-decoration: none;
   transition: var(--transition);
 }
@@ -122,10 +118,10 @@ a:hover { opacity: 0.85; }
 }
 
 /* ============================================
-   NAVBAR
+   NAVBAR — Premium, no emoji
    ============================================ */
 .navbar {
-  background: rgba(17, 24, 39, 0.95);
+  background: rgba(24, 19, 16, 0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--color-border);
   padding: 0 2rem;
@@ -147,22 +143,22 @@ a:hover { opacity: 0.85; }
 .navbar-logo {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--color-primary), #7f1d1d);
-  border-radius: var(--radius-md);
+  background: var(--color-brand);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: white;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Fraunces', serif;
 }
 
 .navbar-title {
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Outfit', sans-serif;
-  color: var(--color-text);
+  font-family: 'Fraunces', serif;
+  color: var(--color-text-primary);
 }
 
 .navbar-subtitle {
@@ -183,7 +179,7 @@ a:hover { opacity: 0.85; }
 }
 
 /* ============================================
-   CARDS
+   CARDS — Warm surface
    ============================================ */
 .card {
   background: var(--color-surface);
@@ -209,12 +205,12 @@ a:hover { opacity: 0.85; }
 .card-title {
   font-size: 1.1rem;
   font-weight: 600;
-  font-family: 'Outfit', sans-serif;
-  color: var(--color-text);
+  font-family: 'Fraunces', serif;
+  color: var(--color-text-primary);
 }
 
 /* ============================================
-   BUTTONS
+   BUTTONS — Brand red accent
    ============================================ */
 .btn {
   display: inline-flex;
@@ -232,6 +228,7 @@ a:hover { opacity: 0.85; }
   outline: none;
   white-space: nowrap;
   text-decoration: none;
+  min-height: 44px;
 }
 
 .btn:disabled {
@@ -240,35 +237,34 @@ a:hover { opacity: 0.85; }
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), #7f1d1d);
+  background: var(--color-brand);
   color: white;
-  box-shadow: var(--shadow-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(185, 28, 28, 0.4);
+  background: var(--color-brand-hover);
+  box-shadow: var(--shadow-brand);
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
 .btn-secondary {
-  background: var(--color-surface-2);
-  color: var(--color-text);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--color-surface-3);
+  background: var(--color-surface-raised);
   border-color: var(--color-border-hover);
 }
 
 .btn-danger {
   background: var(--color-danger-light);
   color: var(--color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -277,14 +273,12 @@ a:hover { opacity: 0.85; }
 }
 
 .btn-success {
-  background: var(--color-success-light);
-  color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: var(--color-success);
+  color: white;
 }
 
 .btn-success:hover:not(:disabled) {
-  background: var(--color-success);
-  color: white;
+  background: #3D6A4D;
 }
 
 .btn-ghost {
@@ -294,13 +288,14 @@ a:hover { opacity: 0.85; }
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--color-surface-2);
-  color: var(--color-text);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
 }
 
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.8rem;
+  min-height: 32px;
 }
 
 .btn-lg {
@@ -332,30 +327,30 @@ a:hover { opacity: 0.85; }
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
 }
 
 .form-input,
 .form-select,
 .form-textarea {
-  background: var(--color-surface-2);
+  background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  color: var(--color-text);
+  color: var(--color-text-primary);
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
   padding: 0.625rem 0.875rem;
   transition: var(--transition);
   outline: none;
   width: 100%;
+  min-height: 44px;
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-light);
 }
 
 .form-input::placeholder {
@@ -365,7 +360,7 @@ a:hover { opacity: 0.85; }
 .form-select {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%239C9086' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 16px;
@@ -402,16 +397,14 @@ a:hover { opacity: 0.85; }
 }
 
 .table thead {
-  background: var(--color-surface-2);
+  background: var(--color-surface-raised);
 }
 
 .table th {
   padding: 0.875rem 1rem;
   text-align: left;
   font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 600;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
@@ -433,13 +426,13 @@ a:hover { opacity: 0.85; }
 }
 
 .table tbody tr:hover {
-  background: var(--color-surface-2);
+  background: var(--color-surface-raised);
 }
 
 .table tfoot td {
   font-weight: 700;
-  color: var(--color-text);
-  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
   border-top: 2px solid var(--color-border-hover);
 }
 
@@ -467,18 +460,13 @@ a:hover { opacity: 0.85; }
 }
 
 .badge-warning {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
+  background: var(--color-pending-light);
+  color: var(--color-pending);
 }
 
-.badge-makanan {
-  background: rgba(249, 115, 22, 0.12);
-  color: var(--color-primary);
-}
-
-.badge-minuman {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
+.badge-brand {
+  background: var(--color-brand-light);
+  color: var(--color-brand);
 }
 
 /* ============================================
@@ -497,25 +485,19 @@ a:hover { opacity: 0.85; }
 .alert-error {
   background: var(--color-danger-light);
   color: var(--color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 .alert-success {
   background: var(--color-success-light);
   color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(76, 122, 92, 0.2);
 }
 
 .alert-warning {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-}
-
-.alert-info {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-  border: 1px solid rgba(6, 182, 212, 0.2);
+  background: var(--color-pending-light);
+  color: var(--color-pending);
+  border: 1px solid rgba(193, 137, 62, 0.2);
 }
 
 /* ============================================
@@ -532,7 +514,6 @@ a:hover { opacity: 0.85; }
 }
 
 .empty-state-icon {
-  font-size: 3rem;
   opacity: 0.4;
 }
 
@@ -584,7 +565,7 @@ a:hover { opacity: 0.85; }
   justify-content: center;
   z-index: 200;
   padding: 1rem;
-  animation: fadeIn 0.15s ease;
+  animation: fadeIn 0.15s ease-out;
 }
 
 .modal {
@@ -594,13 +575,13 @@ a:hover { opacity: 0.85; }
   padding: 2rem;
   max-width: 480px;
   width: 100%;
-  animation: slideUp 0.2s ease;
+  animation: slideUp 0.2s ease-out;
 }
 
 .modal-title {
   font-size: 1.25rem;
   font-weight: 700;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Fraunces', serif;
   margin-bottom: 0.75rem;
 }
 
@@ -628,7 +609,7 @@ a:hover { opacity: 0.85; }
 }
 
 /* ============================================
-   DASHBOARD CARDS
+   DASHBOARD CARDS — Hierarki, bukan seragam
    ============================================ */
 .stat-card {
   background: var(--color-surface);
@@ -645,18 +626,10 @@ a:hover { opacity: 0.85; }
   overflow: hidden;
 }
 
-.stat-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.02));
-  pointer-events: none;
-}
-
 .stat-card:hover {
-  border-color: var(--color-primary);
+  border-color: var(--color-brand);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-primary);
+  box-shadow: var(--shadow-brand);
 }
 
 .stat-card-icon {
@@ -666,16 +639,15 @@ a:hover { opacity: 0.85; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
   flex-shrink: 0;
 }
 
 .stat-card-info h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   margin-bottom: 4px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .stat-card-info p {
@@ -724,16 +696,16 @@ a:hover { opacity: 0.85; }
   gap: 0.75rem;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: var(--color-surface-2);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   margin-bottom: 0.5rem;
-  animation: slideUp 0.15s ease;
+  animation: slideUp 0.15s ease-out;
 }
 
 .order-item-name {
   font-weight: 500;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   font-size: 0.9rem;
 }
 
@@ -751,12 +723,12 @@ a:hover { opacity: 0.85; }
 }
 
 .qty-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-3);
-  color: var(--color-text);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -767,8 +739,8 @@ a:hover { opacity: 0.85; }
 }
 
 .qty-btn:hover {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: var(--color-brand);
+  border-color: var(--color-brand);
 }
 
 .qty-display {
@@ -776,12 +748,12 @@ a:hover { opacity: 0.85; }
   font-size: 0.9rem;
   min-width: 24px;
   text-align: center;
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .order-item-subtotal {
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-brand);
   text-align: right;
   font-size: 0.9rem;
   white-space: nowrap;
@@ -800,7 +772,7 @@ a:hover { opacity: 0.85; }
 }
 
 .menu-item-btn {
-  background: var(--color-surface-2);
+  background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 0.75rem;
@@ -813,20 +785,20 @@ a:hover { opacity: 0.85; }
 }
 
 .menu-item-btn:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
+  border-color: var(--color-brand);
+  background: var(--color-brand-light);
 }
 
 .menu-item-btn .nama {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   line-height: 1.3;
 }
 
 .menu-item-btn .harga {
   font-size: 0.8rem;
-  color: var(--color-primary);
+  color: var(--color-brand);
   font-weight: 700;
 }
 
@@ -834,7 +806,7 @@ a:hover { opacity: 0.85; }
    TOTAL SUMMARY
    ============================================ */
 .total-summary {
-  background: var(--color-surface-2);
+  background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1.25rem 1.5rem;
@@ -854,8 +826,16 @@ a:hover { opacity: 0.85; }
   margin-top: 0.4rem;
   font-size: 1.1rem;
   font-weight: 800;
-  color: var(--color-primary);
-  font-family: 'Outfit', sans-serif;
+  color: var(--color-brand);
+  font-family: 'Fraunces', serif;
+}
+
+/* ============================================
+   FOCUS STATE — Accessibility
+   ============================================ */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
 }
 
 /* ============================================
@@ -882,9 +862,8 @@ a:hover { opacity: 0.85; }
     display: block !important;
   }
 
-  /* Struk/Laporan container */
   .print-receipt {
-    width: 72mm !important; /* 80mm kertas minus margin */
+    width: 72mm !important;
     max-width: 72mm !important;
     margin: 0 auto !important;
     padding: 4mm !important;
@@ -972,15 +951,14 @@ a:hover { opacity: 0.85; }
     color: black !important;
   }
 
-  /* Sembunyikan elemen UI saat print */
-  nav, header, .navbar, .btn, button, 
-  .modal-overlay, input, select, 
+  nav, header, .navbar, .btn, button,
+  .modal-overlay, input, select,
   .page-header .btn-group,
   .sidebar { display: none !important; }
 }
 
 /* ============================================
-   ANIMATIONS
+   ANIMATIONS — Micro-interactions
    ============================================ */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -988,6 +966,17 @@ a:hover { opacity: 0.85; }
 }
 
 .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes checkmark {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
 
 /* ============================================
    RESPONSIVE
@@ -1057,7 +1046,7 @@ a:hover { opacity: 0.85; }
 .text-xs { font-size: 0.75rem; }
 .text-muted { color: var(--color-text-muted); }
 .text-secondary { color: var(--color-text-secondary); }
-.text-primary { color: var(--color-primary); }
+.text-brand { color: var(--color-brand); }
 .text-success { color: var(--color-success); }
 .text-danger { color: var(--color-danger); }
 .font-bold { font-weight: 700; }

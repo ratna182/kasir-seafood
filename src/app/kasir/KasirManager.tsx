@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Plus, Pencil, UserCheck, UserX, Trash2 } from 'lucide-react'
 
 interface Warung {
   id: string
@@ -88,8 +89,7 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
 
     try {
       if (editingUser) {
-        // Update user
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           namaLengkap: formData.namaLengkap || null,
         }
         if (formData.password) {
@@ -111,7 +111,6 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
           setErrors(result.errors || { message: result.message })
         }
       } else {
-        // Create user
         const res = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -184,10 +183,9 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
 
   return (
     <div>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Manajemen Kasir 👥</h1>
+          <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Manajemen Kasir</h1>
           <p className="text-secondary text-sm">Kelola akun kasir untuk setiap outlet</p>
         </div>
         <button
@@ -195,18 +193,17 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
           onClick={() => handleOpenForm()}
           className="btn btn-primary"
         >
-          + Tambah Kasir
+          <Plus size={16} />
+          Tambah Kasir
         </button>
       </div>
 
-      {/* Feedback */}
       {feedback && (
-        <div className={`alert ${feedback.type === 'success' ? 'alert-success' : 'alert-danger'}`} style={{ marginBottom: '1rem' }}>
+        <div className={`alert ${feedback.type === 'success' ? 'alert-success' : 'alert-error'}`} style={{ marginBottom: '1rem' }}>
           {feedback.message}
         </div>
       )}
 
-      {/* Filter Warung */}
       <div style={{ marginBottom: '1.5rem' }}>
         <label className="form-label">Pilih Warung</label>
         <select
@@ -223,7 +220,6 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
         </select>
       </div>
 
-      {/* Table Kasir */}
       <div className="table-container">
         <table className="table">
           <thead>
@@ -260,23 +256,23 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
                       <button
                         type="button"
                         onClick={() => handleOpenForm(user)}
-                        className="btn btn-sm btn-outline"
+                        className="btn btn-sm btn-ghost"
                       >
-                        Edit
+                        <Pencil size={14} />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleToggleActive(user)}
-                        className={`btn btn-sm ${user.isActive ? 'btn-warning' : 'btn-success'}`}
+                        className={`btn btn-sm ${user.isActive ? 'btn-ghost' : 'btn-success'}`}
                       >
-                        {user.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                        {user.isActive ? <UserX size={14} /> : <UserCheck size={14} />}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(user)}
                         className="btn btn-sm btn-danger"
                       >
-                        Hapus
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
@@ -287,14 +283,13 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
         </table>
       </div>
 
-      {/* Modal Form */}
       {showForm && (
         <div className="modal-overlay" onClick={handleCloseForm}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{editingUser ? 'Edit Kasir' : 'Tambah Kasir Baru'}</h2>
+            <h2 className="modal-title">{editingUser ? 'Edit Kasir' : 'Tambah Kasir Baru'}</h2>
             
             {errors.message && (
-              <div className="alert alert-danger">{errors.message}</div>
+              <div className="alert alert-error">{errors.message}</div>
             )}
 
             <form onSubmit={handleSubmit}>
@@ -341,7 +336,7 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button type="button" onClick={handleCloseForm} className="btn btn-outline">
+                <button type="button" onClick={handleCloseForm} className="btn btn-ghost">
                   Batal
                 </button>
                 <button type="submit" disabled={submitting} className="btn btn-primary">

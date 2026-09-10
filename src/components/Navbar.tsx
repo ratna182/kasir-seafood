@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { LayoutDashboard, BarChart3, UtensilsCrossed, Users, Plus, History, User } from 'lucide-react'
 import LogoutButton from './LogoutButton'
 
 interface NavbarProps {
@@ -31,7 +32,6 @@ export default function Navbar({ session, activePage }: NavbarProps) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <div className="navbar-links" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          {/* Owner only links */}
           {session.role === 'OWNER' && (
             <>
               <Link
@@ -39,33 +39,36 @@ export default function Navbar({ session, activePage }: NavbarProps) {
                 className={`btn btn-sm ${activePage === 'dashboard' ? 'btn-primary' : 'btn-ghost'}`}
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
               >
-                🏠 Dashboard
+                <LayoutDashboard size={14} />
+                Dashboard
               </Link>
               <Link
                 href="/laporan"
                 className={`btn btn-sm ${activePage === 'laporan' ? 'btn-primary' : 'btn-ghost'}`}
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
               >
-                📊 Laporan
+                <BarChart3 size={14} />
+                Laporan
               </Link>
               <Link
                 href="/menu"
                 className={`btn btn-sm ${activePage === 'menu' ? 'btn-primary' : 'btn-ghost'}`}
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
               >
-                🍽️ Menu
+                <UtensilsCrossed size={14} />
+                Menu
               </Link>
               <Link
                 href="/kasir"
                 className={`btn btn-sm ${activePage === 'kasir' ? 'btn-primary' : 'btn-ghost'}`}
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
               >
-                👥 Kasir
+                <Users size={14} />
+                Kasir
               </Link>
             </>
           )}
           
-          {/* Kasir only links */}
           {session.role === 'KASIR' && (
             <>
               <Link
@@ -73,14 +76,16 @@ export default function Navbar({ session, activePage }: NavbarProps) {
                 className={`btn btn-sm ${activePage === 'transaksi' ? 'btn-primary' : 'btn-ghost'}`}
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
               >
-                ➕ Transaksi
+                <Plus size={14} />
+                Transaksi
               </Link>
               <Link
                 href="/riwayat"
                 className={`btn btn-sm ${activePage === 'riwayat' ? 'btn-primary' : 'btn-ghost'}`}
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
               >
-                📋 Riwayat
+                <History size={14} />
+                Riwayat
               </Link>
             </>
           )}
@@ -92,7 +97,7 @@ export default function Navbar({ session, activePage }: NavbarProps) {
             className="navbar-user text-sm text-secondary"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', textDecoration: 'none', cursor: 'pointer' }}
           >
-            <span>👤</span>
+            <User size={14} />
             <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {session.namaLengkap || session.username}
             </span>
