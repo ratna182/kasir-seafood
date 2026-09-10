@@ -1,40 +1,42 @@
 import { prisma } from '@/lib/prisma'
 
-/**
- * Auto-sync: pastikan semua warung punya menu yang sama.
- * Dipanggil setelah menu ditambah/diubah/dihapus.
- */
-export async function syncMenusAcrossWarungs() {
-  const warungs = await prisma.warung.findMany()
-  if (warungs.length === 0) return
+type SharedMenu = {
+  nama: string
+  kategori: 'MAKANAN' | 'MINUMAN'
+  harga: number
+  isAktif: boolean
+}
 
-  // Ambil semua menu dari semua warung
-  const allMenus = await prisma.menu.findMany()
+async function getSharedMenus(): Promise<SharedMenu[]> {
+  const allMenus = await prisma.menu.findMany({ orderBy: { createdAt: 'asc' } })
+  const menuMap = new Map<string, SharedMenu>()
 
-  // Deduplicate by nama — ambil yang aktif jika ada
-  const menuMap = new Map<string, { nama: string; kategori: 'MAKANAN' | 'MINUMAN'; harga: number; isAktif: boolean }>()
-  for (const m of allMenus) {
-    const existing = menuMap.get(m.nama)
-    if (!existing || (!existing.isAktif && m.isAktif)) {
-      menuMap.set(m.nama, { nama: m.nama, kategori: m.kategori, harga: m.harga, isAktif: m.isAktif })
-    }
-  }
-
-  const uniqueMenus = Array.from(menuMap.values())
-
-  // Sync ke semua warung
-  for (const warung of warungs) {
-    await prisma.menu.deleteMany({ where: { warungId: warung.id } })
-    if (uniqueMenus.length > 0) {
-      await prisma.menu.createMany({
-        data: uniqueMenus.map((m) => ({
-          warungId: warung.id,
-          nama: m.nama,
-          kategori: m.kategori,
-          harga: m.harga,
-          isAktif: m.isAktif,
-        })),
+  for (const menu of allMenus) {
+    const existing = menuMap.get(menu.nama)
+    if (!existing || (!existing.isAktif && menu.isAktif)) {
+      menuMap.set(menu.nama, {
+        nama: menu.nama,
+        kategori: menu.kategori,
+        harga: menu.harga,
+        isAktif: menu.isAktif,
       })
     }
   }
+
+  return [...menuMap.values()]
+}
+
+// Tidak menghapus menu agar riwayat transaksi yang mereferensikannya tetap aman.
+export async function syncWarungMenus(warungId: string) {
+  const menus = await getSharedMenus()
+  await Promise.all(menus.map((menu) => prisma.menu.upsert({
+    where: { warungId_nama: { warungId, nama: menu.nama } },
+    update: { kategori: menu.kategori, harga: menu.harga, isAktif: menu.isAktif },
+    create: { warungId, ...menu },
+  })))
+}
+
+export async function syncMenusAcrossWarungs() {
+  const warungs = await prisma.warung.findMany({ select: { id: true } })
+  await Promise.all(warungs.map((warung) => syncWarungMenus(warung.id)))
 }
