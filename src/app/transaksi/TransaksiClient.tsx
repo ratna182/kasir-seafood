@@ -55,7 +55,7 @@ interface TransaksiClientProps {
 
 const QUICK_TABLES = ['Meja 1', 'Meja 2', 'Meja 3', 'Meja 4', 'Meja 5', 'Meja 6', 'Meja 7', 'Meja 8', 'Meja 9', 'Meja 10', 'Meja 11', 'Meja 12', 'Meja 13', 'Meja 14', 'Meja 15', 'Meja 16', 'Meja 17', 'Meja 18', 'Meja 19', 'Meja 20', 'Meja 21', 'Meja 22', 'Meja 23', 'Meja 24', 'Meja 25', 'Bungkus']
 
-export default function TransaksiClient({ session, menus, initialActiveOrders, isKasirClosed }: TransaksiClientProps) {
+export default function TransaksiClient({ session, menus: initialMenus, initialActiveOrders, isKasirClosed }: TransaksiClientProps) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [nomorMeja, setNomorMeja] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'MAKANAN' | 'MINUMAN'>('ALL')
@@ -69,6 +69,7 @@ export default function TransaksiClient({ session, menus, initialActiveOrders, i
   const [metodePembayaran, setMetodePembayaran] = useState<'CASH' | 'QRIS'>('CASH')
   const [completedTransaksi, setCompletedTransaksi] = useState<CompletedTransaksi | null>(null)
   const [showReceiptModal, setShowReceiptModal] = useState(false)
+  const [menus, setMenus] = useState<Menu[]>(initialMenus)
 
   const filteredMenus = useMemo(() => {
     return menus.filter((menu) => {
@@ -261,7 +262,12 @@ export default function TransaksiClient({ session, menus, initialActiveOrders, i
 
       {/* Meja Aktif */}
       <div className="card no-print" style={{ padding: '1rem', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Meja Aktif</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h2 style={{ fontSize: '1rem', margin: 0 }}>Meja Aktif</h2>
+          <button onClick={() => window.location.reload()} className="btn btn-ghost btn-sm" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+            Refresh
+          </button>
+        </div>
         {activeOrders.length === 0 ? (
           <p className="text-secondary" style={{ margin: 0, fontSize: '0.875rem' }}>Belum ada order sementara.</p>
         ) : (
@@ -327,7 +333,14 @@ export default function TransaksiClient({ session, menus, initialActiveOrders, i
           {filteredMenus.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
               <ShoppingCart size={40} style={{ color: 'var(--color-text-muted)', marginBottom: '0.5rem' }} />
-              <p className="text-secondary">Tidak ada menu yang cocok dengan filter saat ini.</p>
+              {menus.length === 0 ? (
+                <>
+                  <p className="text-secondary" style={{ marginBottom: '0.75rem' }}>Belum ada menu. Minta owner sync menu dulu.</p>
+                  <button onClick={() => window.location.reload()} className="btn btn-primary btn-sm">Refresh Halaman</button>
+                </>
+              ) : (
+                <p className="text-secondary">Tidak ada menu yang cocok dengan filter saat ini.</p>
+              )}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.85rem' }}>

@@ -103,8 +103,11 @@ export default function MenuManager() {
     try {
       const res = await fetch('/api/menu/sync', { method: 'POST' })
       const data = await res.json()
-      if (data.success) showFeedback('success', data.message)
-      else showFeedback('error', data.message || 'Gagal sync menu.')
+      if (data.success) {
+        showFeedback('success', data.message + ' — Refresh halaman kasir untuk melihat perubahan.')
+      } else {
+        showFeedback('error', data.message || 'Gagal sync menu.')
+      }
     } catch { showFeedback('error', 'Terjadi kesalahan saat sync menu.') }
     finally { setSyncing(false) }
   }
