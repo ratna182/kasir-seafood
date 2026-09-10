@@ -71,54 +71,42 @@ async function main() {
 
   console.log('✅ 3 akun kasir dibuat (password: kasir123)')
 
-  // Seed menu untuk warung 1 sebagai contoh
-  await prisma.menu.createMany({
-    data: [
-      // Makanan
-      { warungId: warung1.id, nama: 'Nasi Uduk', kategori: 'MAKANAN', harga: 15000 },
-      { warungId: warung1.id, nama: 'Nasi Putih', kategori: 'MAKANAN', harga: 5000 },
-      { warungId: warung1.id, nama: 'Cumi Goreng', kategori: 'MAKANAN', harga: 35000 },
-      { warungId: warung1.id, nama: 'Udang Goreng', kategori: 'MAKANAN', harga: 40000 },
-      { warungId: warung1.id, nama: 'Ikan Bakar', kategori: 'MAKANAN', harga: 45000 },
-      { warungId: warung1.id, nama: 'Kepiting Rebus', kategori: 'MAKANAN', harga: 75000 },
-      { warungId: warung1.id, nama: 'Kerang Rebus', kategori: 'MAKANAN', harga: 30000 },
-      { warungId: warung1.id, nama: 'Ayam Goreng', kategori: 'MAKANAN', harga: 25000 },
-      { warungId: warung1.id, nama: 'Tempe Goreng', kategori: 'MAKANAN', harga: 8000 },
-      { warungId: warung1.id, nama: 'Tahu Goreng', kategori: 'MAKANAN', harga: 8000 },
-      // Minuman
-      { warungId: warung1.id, nama: 'Es Teh Manis', kategori: 'MINUMAN', harga: 5000 },
-      { warungId: warung1.id, nama: 'Es Jeruk', kategori: 'MINUMAN', harga: 8000 },
-      { warungId: warung1.id, nama: 'Es Kelapa Muda', kategori: 'MINUMAN', harga: 15000 },
-      { warungId: warung1.id, nama: 'Air Mineral', kategori: 'MINUMAN', harga: 5000 },
-      { warungId: warung1.id, nama: 'Teh Hangat', kategori: 'MINUMAN', harga: 5000 },
-      { warungId: warung1.id, nama: 'Jus Alpukat', kategori: 'MINUMAN', harga: 15000 },
-    ],
-  })
+  // Menu lengkap — sama untuk semua warung
+  const menuData = [
+    // Makanan
+    { nama: 'Nasi Uduk', kategori: 'MAKANAN' as const, harga: 15000 },
+    { nama: 'Nasi Putih', kategori: 'MAKANAN' as const, harga: 5000 },
+    { nama: 'Cumi Goreng', kategori: 'MAKANAN' as const, harga: 35000 },
+    { nama: 'Udang Goreng', kategori: 'MAKANAN' as const, harga: 40000 },
+    { nama: 'Ikan Bakar', kategori: 'MAKANAN' as const, harga: 45000 },
+    { nama: 'Kepiting Rebus', kategori: 'MAKANAN' as const, harga: 75000 },
+    { nama: 'Kerang Rebus', kategori: 'MAKANAN' as const, harga: 30000 },
+    { nama: 'Ayam Goreng', kategori: 'MAKANAN' as const, harga: 25000 },
+    { nama: 'Tempe Goreng', kategori: 'MAKANAN' as const, harga: 8000 },
+    { nama: 'Tahu Goreng', kategori: 'MAKANAN' as const, harga: 8000 },
+    // Minuman
+    { nama: 'Es Teh Manis', kategori: 'MINUMAN' as const, harga: 5000 },
+    { nama: 'Es Jeruk', kategori: 'MINUMAN' as const, harga: 8000 },
+    { nama: 'Es Kelapa Muda', kategori: 'MINUMAN' as const, harga: 15000 },
+    { nama: 'Air Mineral', kategori: 'MINUMAN' as const, harga: 5000 },
+    { nama: 'Teh Hangat', kategori: 'MINUMAN' as const, harga: 5000 },
+    { nama: 'Jus Alpukat', kategori: 'MINUMAN' as const, harga: 15000 },
+  ]
 
-  // Seed menu untuk warung 2
-  await prisma.menu.createMany({
-    data: [
-      { warungId: warung2.id, nama: 'Nasi Uduk', kategori: 'MAKANAN', harga: 15000 },
-      { warungId: warung2.id, nama: 'Nasi Putih', kategori: 'MAKANAN', harga: 5000 },
-      { warungId: warung2.id, nama: 'Cumi Goreng', kategori: 'MAKANAN', harga: 35000 },
-      { warungId: warung2.id, nama: 'Udang Goreng', kategori: 'MAKANAN', harga: 40000 },
-      { warungId: warung2.id, nama: 'Es Teh Manis', kategori: 'MINUMAN', harga: 5000 },
-      { warungId: warung2.id, nama: 'Air Mineral', kategori: 'MINUMAN', harga: 5000 },
-    ],
-  })
+  // Seed menu yang sama untuk semua warung
+  for (const warung of [warung1, warung2, warung3]) {
+    await prisma.menu.createMany({
+      data: menuData.map((m) => ({
+        warungId: warung.id,
+        nama: m.nama,
+        kategori: m.kategori,
+        harga: m.harga,
+        isAktif: true,
+      })),
+    })
+  }
 
-  // Seed menu untuk warung 3
-  await prisma.menu.createMany({
-    data: [
-      { warungId: warung3.id, nama: 'Nasi Uduk', kategori: 'MAKANAN', harga: 15000 },
-      { warungId: warung3.id, nama: 'Nasi Putih', kategori: 'MAKANAN', harga: 5000 },
-      { warungId: warung3.id, nama: 'Ikan Bakar', kategori: 'MAKANAN', harga: 45000 },
-      { warungId: warung3.id, nama: 'Es Teh Manis', kategori: 'MINUMAN', harga: 5000 },
-      { warungId: warung3.id, nama: 'Air Mineral', kategori: 'MINUMAN', harga: 5000 },
-    ],
-  })
-
-  console.log('✅ Menu di-seed untuk semua warung')
+  console.log('✅ Menu yang sama di-seed untuk semua 3 warung')
   console.log('')
   console.log('📋 Akun login:')
   console.log('  Owner:    username=owner    password=owner123')
