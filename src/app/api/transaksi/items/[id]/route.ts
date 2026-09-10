@@ -1,26 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, requireRole } from '@/lib/auth'
-import { apiRateLimiter } from '@/lib/rate-limiter'
-
-function checkRateLimit(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
-  const result = apiRateLimiter.check(`transaksi-item:${ip}`)
-
-  if (!result.allowed) {
-    return NextResponse.json(
-      { success: false, message: 'Terlalu banyak request. Coba lagi sebentar.' },
-      { status: 429 }
-    )
-  }
-
-  return null
-}
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const rateLimitError = checkRateLimit(request)
-  if (rateLimitError) return rateLimitError
-
   try {
     const context = getAuthContext(request)
     const authError = requireRole(context, 'KASIR')
@@ -75,9 +57,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const rateLimitError = checkRateLimit(request)
-  if (rateLimitError) return rateLimitError
-
   try {
     const context = getAuthContext(request)
     const authError = requireRole(context, 'KASIR')

@@ -56,7 +56,15 @@ export async function GET(request: NextRequest) {
       select: { id: true, nama: true, kode: true },
     })
 
-    // Rekap per menu
+    // Rekap per menu - batch fetch semua kategori sekaligus (anti N+1)
+    const uniqueMenuIds = [...new Set(transaksis.flatMap(t => t.items.map(i => i.menuId)))]
+
+    const menuCategories = await prisma.menu.findMany({
+      where: { id: { in: uniqueMenuIds }, warungId },
+      select: { id: true, kategori: true },
+    })
+    const kategoriMap = new Map(menuCategories.map(m => [m.id, m.kategori]))
+
     const rekapMap = new Map<string, {
       namaMenu: string
       kategori: string
@@ -77,14 +85,9 @@ export async function GET(request: NextRequest) {
           existing.qtyTotal += item.qty
           existing.pendapatanTotal += item.subtotal
         } else {
-          // Ambil kategori dari menu (dengan fallback)
-          const menuData = await prisma.menu.findFirst({
-            where: { id: item.menuId, warungId },
-            select: { kategori: true },
-          })
           rekapMap.set(item.namaMenu, {
             namaMenu: item.namaMenu,
-            kategori: menuData?.kategori || 'MAKANAN',
+            kategori: kategoriMap.get(item.menuId) || 'MAKANAN',
             qtyTotal: item.qty,
             pendapatanTotal: item.subtotal,
           })

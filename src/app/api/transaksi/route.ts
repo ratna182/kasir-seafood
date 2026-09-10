@@ -2,25 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, requireRole } from '@/lib/auth'
-import { apiRateLimiter } from '@/lib/rate-limiter'
 
 type IncomingItem = {
   menuId: string
   qty: number
-}
-
-function checkRateLimit(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
-  const result = apiRateLimiter.check(`transaksi:${ip}`)
-
-  if (!result.allowed) {
-    return NextResponse.json(
-      { success: false, message: 'Terlalu banyak request. Coba lagi sebentar.' },
-      { status: 429 }
-    )
-  }
-
-  return null
 }
 
 function todayRange() {
@@ -37,9 +22,6 @@ function isUniqueOpenOrderError(error: unknown) {
 
 // POST /api/transaksi - buat/append order sementara (kasir only)
 export async function POST(request: NextRequest) {
-  const rateLimitError = checkRateLimit(request)
-  if (rateLimitError) return rateLimitError
-
   try {
     const context = getAuthContext(request)
     const authError = requireRole(context, 'KASIR')
@@ -156,9 +138,6 @@ export async function POST(request: NextRequest) {
 
 // GET /api/transaksi - daftar transaksi selesai hari ini (kasir only)
 export async function GET(request: NextRequest) {
-  const rateLimitError = checkRateLimit(request)
-  if (rateLimitError) return rateLimitError
-
   try {
     const context = getAuthContext(request)
     const authError = requireRole(context, 'KASIR')

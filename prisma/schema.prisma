@@ -89,6 +89,8 @@ model TransaksiItem {
   transaksi   Transaksi @relation(fields: [transaksiId], references: [id], onDelete: Cascade)
   menu        Menu      @relation(fields: [menuId], references: [id])
 
+  @@index([transaksiId])
+  @@index([menuId])
   @@map("transaksi_items")
 }
 
