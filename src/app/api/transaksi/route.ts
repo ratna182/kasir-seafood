@@ -1,13 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, requireRole, requireWarungAccess } from '@/lib/auth'
+import { getAuthContext, requireRole } from '@/lib/auth'
+import { apiRateLimiter } from '@/lib/rate-limiter'
 
-// POST /api/transaksi — buat transaksi baru (kasir only)
+type IncomingItem = {
+  menuId: string
+  qty: number
+}
+
+function checkRateLimit(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
+  const result = apiRateLimiter.check(`transaksi:${ip}`)
+
+  if (!result.allowed) {
+    return NextResponse.json(
+      { success: false, message: 'Terlalu banyak request. Coba lagi sebentar.' },
+      { status: 429 }
+    )
+  }
+
+  return null
+}
+
+function todayRange() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  return { today, tomorrow }
+}
+
+function isUniqueOpenOrderError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
+}
+
+// POST /api/transaksi - buat/append order sementara (kasir only)
 export async function POST(request: NextRequest) {
+  const rateLimitError = checkRateLimit(request)
+  if (rateLimitError) return rateLimitError
+
   try {
     const context = getAuthContext(request)
-    
-    // Hanya kasir yang boleh buat transaksi
     const authError = requireRole(context, 'KASIR')
     if (authError) return authError
 
@@ -16,17 +50,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
 
-    // Cek apakah kasir sudah ditutup hari ini
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
+    const { today } = todayRange()
     const kasirSesiTutup = await prisma.kasirSesi.findUnique({
-      where: {
-        warungId_tanggal: {
-          warungId,
-          tanggal: today,
-        },
-      },
+      where: { warungId_tanggal: { warungId, tanggal: today } },
     })
 
     if (kasirSesiTutup) {
@@ -37,24 +63,29 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { nomorMeja, items } = body
+    const nomorMeja = body.nomorMeja?.toString().trim()
+    const items = body.items as IncomingItem[] | undefined
 
-    // Validasi
-    if (!nomorMeja || !nomorMeja.toString().trim()) {
+    if (!nomorMeja) {
       return NextResponse.json({ success: false, message: 'Nomor meja wajib diisi.' }, { status: 422 })
     }
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ success: false, message: 'Tambahkan minimal 1 item pesanan.' }, { status: 422 })
     }
 
-    // Validasi dan ambil data menu (pastikan milik warung ini)
-    const menuIds = items.map((item: { menuId: string }) => item.menuId)
+    const qtyByMenuId = new Map<string, number>()
+    for (const item of items) {
+      const qty = Number(item.qty)
+      if (!item.menuId || !Number.isInteger(qty) || qty < 1) {
+        return NextResponse.json({ success: false, message: 'Qty harus minimal 1.' }, { status: 422 })
+      }
+      qtyByMenuId.set(item.menuId, (qtyByMenuId.get(item.menuId) || 0) + qty)
+    }
+
+    const menuIds = [...qtyByMenuId.keys()]
     const menus = await prisma.menu.findMany({
-      where: {
-        id: { in: menuIds },
-        warungId,
-        isAktif: true,
-      },
+      where: { id: { in: menuIds }, warungId, isAktif: true },
     })
 
     if (menus.length !== menuIds.length) {
@@ -64,59 +95,57 @@ export async function POST(request: NextRequest) {
       }, { status: 422 })
     }
 
-    // Hitung total dan siapkan items dengan snapshot harga
-    const menuMap = new Map(menus.map((m: { id: string; nama: string; harga: number }) => [m.id, m]))
-    let total = 0
-    const processedItems: {
-      menuId: string
-      namaMenu: string
-      hargaSatuan: number
-      qty: number
-      subtotal: number
-    }[] = []
+    const processedItems = menus.map((menu) => {
+      const qty = qtyByMenuId.get(menu.id) || 0
+      return {
+        menuId: menu.id,
+        namaMenu: menu.nama,
+        hargaSatuan: menu.harga,
+        qty,
+        subtotal: menu.harga * qty,
+      }
+    })
+    const addedTotal = processedItems.reduce((sum, item) => sum + item.subtotal, 0)
 
-    for (const item of items) {
-      const qty = Number(item.qty)
-      if (!qty || qty < 1) {
-        return NextResponse.json({ success: false, message: 'Qty harus minimal 1.' }, { status: 422 })
+    const transaksi = await prisma.$transaction(async (tx) => {
+      const existing = await tx.transaksi.findFirst({
+        where: { warungId, nomorMeja, status: 'OPEN' },
+      })
+
+      if (!existing) {
+        return tx.transaksi.create({
+          data: {
+            warungId,
+            nomorMeja,
+            status: 'OPEN',
+            total: addedTotal,
+            tanggal: today,
+            items: { create: processedItems },
+          },
+          include: { items: { orderBy: { createdAt: 'asc' } } },
+        })
       }
 
-      const menu = menuMap.get(item.menuId)
-      if (!menu) continue
-
-      const subtotal = menu.harga * qty
-      total += subtotal
-
-      processedItems.push({
-        menuId: menu.id,
-        namaMenu: menu.nama,        // Snapshot nama
-        hargaSatuan: menu.harga,    // Snapshot harga
-        qty,
-        subtotal,
+      await tx.transaksiItem.createMany({
+        data: processedItems.map((item) => ({ ...item, transaksiId: existing.id })),
       })
-    }
 
-    // Buat transaksi dalam satu transaction database
-    const transaksi = await prisma.$transaction(async (tx: any) => {
-      const newTransaksi = await tx.transaksi.create({
-        data: {
-          warungId,
-          nomorMeja: nomorMeja.toString().trim(),
-          status: 'SELESAI',
-          total,
-          tanggal: today,
-          printedAt: new Date(),
-          items: {
-            create: processedItems,
-          },
-        },
-        include: { items: true },
+      return tx.transaksi.update({
+        where: { id: existing.id },
+        data: { total: existing.total + addedTotal },
+        include: { items: { orderBy: { createdAt: 'asc' } } },
       })
-      return newTransaksi
     })
 
     return NextResponse.json({ success: true, data: transaksi }, { status: 201 })
   } catch (error) {
+    if (isUniqueOpenOrderError(error)) {
+      return NextResponse.json({
+        success: false,
+        message: 'Meja ini sudah ada order aktif, refresh dan lanjutkan order yang sudah ada.',
+      }, { status: 409 })
+    }
+
     console.error('[POST /api/transaksi]', error)
     return NextResponse.json({
       success: false,
@@ -125,12 +154,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/transaksi — daftar transaksi hari ini (kasir only)
+// GET /api/transaksi - daftar transaksi selesai hari ini (kasir only)
 export async function GET(request: NextRequest) {
+  const rateLimitError = checkRateLimit(request)
+  if (rateLimitError) return rateLimitError
+
   try {
     const context = getAuthContext(request)
-    
-    // Hanya kasir yang boleh lihat transaksi hari ini
     const authError = requireRole(context, 'KASIR')
     if (authError) return authError
 
@@ -139,18 +169,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
+    const { today, tomorrow } = todayRange()
     const transaksis = await prisma.transaksi.findMany({
-      where: {
-        warungId,
-        tanggal: { gte: today, lt: tomorrow },
-        status: 'SELESAI',
-      },
-      include: { items: true },
+      where: { warungId, tanggal: { gte: today, lt: tomorrow }, status: 'SELESAI' },
+      include: { items: { orderBy: { createdAt: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     })
 

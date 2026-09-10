@@ -52,6 +52,30 @@ export default async function TransaksiPage() {
     isAktif: m.isAktif,
   }))
 
+  const activeOrders = await prisma.transaksi.findMany({
+    where: { warungId: session.warungId, status: 'OPEN' },
+    include: { items: { orderBy: { createdAt: 'asc' } } },
+    orderBy: { updatedAt: 'desc' },
+  })
+
+  const serializedActiveOrders = activeOrders.map((order) => ({
+    id: order.id,
+    nomorMeja: order.nomorMeja,
+    total: order.total,
+    metodePembayaran: order.metodePembayaran,
+    tanggal: order.tanggal.toISOString(),
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
+    minutesOpen: 0,
+    items: order.items.map((item) => ({
+      id: item.id,
+      namaMenu: item.namaMenu,
+      hargaSatuan: item.hargaSatuan,
+      qty: item.qty,
+      subtotal: item.subtotal,
+    })),
+  }))
+
   return (
     <div className="app-container">
       <Navbar session={session} activePage="transaksi" />
@@ -59,6 +83,7 @@ export default async function TransaksiPage() {
         <TransaksiClient
           session={session}
           menus={serializedMenus}
+          initialActiveOrders={serializedActiveOrders}
           isKasirClosed={!!kasirSesi}
         />
       </div>

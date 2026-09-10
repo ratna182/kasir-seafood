@@ -58,18 +58,21 @@ model Menu {
 }
 
 model Transaksi {
-  id          String          @id @default(uuid())
-  warungId    String          @map("warung_id")
-  nomorMeja   String          @map("nomor_meja")
-  status      StatusTransaksi @default(SELESAI)
-  total       Int
-  tanggal     DateTime        @default(now()) @map("tanggal") @db.Date
-  createdAt   DateTime        @default(now()) @map("created_at")
-  printedAt   DateTime?       @map("printed_at")
+  id               String             @id @default(uuid())
+  warungId         String             @map("warung_id")
+  nomorMeja        String             @map("nomor_meja")
+  status           StatusTransaksi    @default(OPEN)
+  metodePembayaran MetodePembayaran?  @map("metode_pembayaran")
+  total            Int                @default(0)
+  tanggal          DateTime           @default(now()) @map("tanggal") @db.Date
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  printedAt        DateTime?          @map("printed_at")
 
   warung  Warung          @relation(fields: [warungId], references: [id])
   items   TransaksiItem[]
 
+  @@index([warungId, nomorMeja, status])
   @@map("transaksis")
 }
 
@@ -81,6 +84,7 @@ model TransaksiItem {
   hargaSatuan Int       @map("harga_satuan")
   qty         Int
   subtotal    Int
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   transaksi   Transaksi @relation(fields: [transaksiId], references: [id], onDelete: Cascade)
   menu        Menu      @relation(fields: [menuId], references: [id])
@@ -115,6 +119,12 @@ enum KategoriMenu {
 }
 
 enum StatusTransaksi {
+  OPEN
   SELESAI
   BATAL
+}
+
+enum MetodePembayaran {
+  CASH
+  QRIS
 }

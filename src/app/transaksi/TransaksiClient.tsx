@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 interface Menu {
@@ -22,14 +22,21 @@ interface CompletedTransaksi {
   id: string
   nomorMeja: string
   total: number
+  metodePembayaran?: string | null
   tanggal: string
   createdAt: string
   items: Array<{
+    id?: string
     namaMenu: string
     hargaSatuan: number
     qty: number
     subtotal: number
   }>
+}
+
+type ActiveOrder = CompletedTransaksi & {
+  updatedAt: string
+  minutesOpen: number
 }
 
 interface TransaksiClientProps {
@@ -41,18 +48,24 @@ interface TransaksiClientProps {
     role: string
   }
   menus: Menu[]
+  initialActiveOrders: ActiveOrder[]
   isKasirClosed: boolean
 }
 
 const QUICK_TABLES = ['Meja 1', 'Meja 2', 'Meja 3', 'Meja 4', 'Meja 5', 'Meja 6', 'Meja 7', 'Meja 8', 'Bungkus']
 
-export default function TransaksiClient({ session, menus, isKasirClosed }: TransaksiClientProps) {
+export default function TransaksiClient({ session, menus, initialActiveOrders, isKasirClosed }: TransaksiClientProps) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [nomorMeja, setNomorMeja] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'MAKANAN' | 'MINUMAN'>('ALL')
   const [search, setSearch] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [paying, setPaying] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>(initialActiveOrders)
+  const [selectedOrder, setSelectedOrder] = useState<ActiveOrder | null>(null)
+  const [metodePembayaran, setMetodePembayaran] = useState<'CASH' | 'QRIS'>('CASH')
 
   // Receipt Modal State
   const [completedTransaksi, setCompletedTransaksi] = useState<CompletedTransaksi | null>(null)
@@ -67,6 +80,25 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
       return matchesSearch && matchesCategory
     })
   }, [menus, search, categoryFilter])
+
+  const loadActiveOrders = useCallback(async () => {
+    const res = await fetch('/api/transaksi/open')
+    const data = await res.json()
+    if (data.success) {
+      const now = Date.now()
+      setActiveOrders(data.data.map((order: ActiveOrder) => ({
+        ...order,
+        minutesOpen: Math.max(0, Math.floor((now - new Date(order.createdAt).getTime()) / 60000)),
+      })))
+    }
+  }, [])
+
+  function selectOrder(order: ActiveOrder) {
+    setSelectedOrder(order)
+    setNomorMeja(order.nomorMeja)
+    setError('')
+    setSuccess('')
+  }
 
   // Cart operations
   function addToCart(menu: Menu) {
@@ -108,10 +140,12 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
     setCart((prev) => prev.filter((item) => item.menuId !== menuId))
   }
 
-  function clearCart() {
+  function resetOrderInput() {
     setCart([])
     setNomorMeja('')
+    setSelectedOrder(null)
     setError('')
+    setSuccess('')
   }
 
   // Total
@@ -123,9 +157,14 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
     return cart.reduce((sum, item) => sum + item.qty, 0)
   }, [cart])
 
+  const selectedItemCount = useMemo(() => {
+    return selectedOrder?.items.reduce((sum, item) => sum + item.qty, 0) || 0
+  }, [selectedOrder])
+
   // Submit order
   async function handleCheckout() {
     setError('')
+    setSuccess('')
 
     if (isKasirClosed) {
       setError('Kasir sudah ditutup. Tidak dapat membuat transaksi baru hari ini.')
@@ -160,9 +199,10 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
       const data = await res.json()
 
       if (data.success) {
-        setCompletedTransaksi(data.data)
-        setShowReceiptModal(true)
-        clearCart()
+        setSelectedOrder(data.data)
+        setSuccess('Order sementara tersimpan. Cetak struk dilakukan saat pembayaran final.')
+        setCart([])
+        await loadActiveOrders()
       } else {
         setError(data.message || 'Gagal menyimpan transaksi.')
       }
@@ -177,12 +217,72 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
     window.print()
   }
 
+  async function handleUpdateSavedItem(itemId: string, qty: number) {
+    if (qty < 1) return
+    setError('')
+    const res = await fetch(`/api/transaksi/items/${itemId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qty }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setSelectedOrder(data.data)
+      await loadActiveOrders()
+    } else {
+      setError(data.message || 'Gagal mengubah item order.')
+    }
+  }
+
+  async function handleDeleteSavedItem(itemId: string) {
+    setError('')
+    const res = await fetch(`/api/transaksi/items/${itemId}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.success) {
+      setSelectedOrder(data.data)
+      await loadActiveOrders()
+    } else {
+      setError(data.message || 'Gagal menghapus item order.')
+    }
+  }
+
+  async function handlePayOrder() {
+    if (!selectedOrder) return
+    if (cart.length > 0) {
+      setError('Simpan tambahan item dulu sebelum bayar.')
+      return
+    }
+
+    setError('')
+    setSuccess('')
+    setPaying(true)
+
+    try {
+      const res = await fetch(`/api/transaksi/${selectedOrder.id}/bayar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metodePembayaran }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setCompletedTransaksi(data.data)
+        setShowReceiptModal(true)
+        resetOrderInput()
+        await loadActiveOrders()
+      } else {
+        setError(data.message || 'Gagal memproses pembayaran.')
+      }
+    } catch {
+      setError('Koneksi internet bermasalah. Gagal memproses pembayaran.')
+    } finally {
+      setPaying(false)
+    }
+  }
+
   function handleNewOrder() {
     setShowReceiptModal(false)
     setCompletedTransaksi(null)
   }
-
-  const shortWarungName = session.warungNama?.split(' - ')[0] ?? 'Tanpa Nama'
 
   return (
     <div>
@@ -204,6 +304,29 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
       )}
 
       {/* POS Two-Column Grid */}
+      <div className="card no-print" style={{ padding: '1rem', marginBottom: '1rem' }}>
+        <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Meja Aktif</h2>
+        {activeOrders.length === 0 ? (
+          <p className="text-secondary" style={{ margin: 0, fontSize: '0.875rem' }}>Belum ada order sementara.</p>
+        ) : (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {activeOrders.map((order) => {
+              const count = order.items.reduce((sum, item) => sum + item.qty, 0)
+              return (
+                <button
+                  key={order.id}
+                  type="button"
+                  onClick={() => selectOrder(order)}
+                  className={`btn btn-sm ${selectedOrder?.id === order.id ? 'btn-primary' : 'btn-outline'}`}
+                >
+                  {order.nomorMeja} · {count} item · Rp {order.total.toLocaleString('id-ID')} · {order.minutesOpen}m
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       <div
         className="no-print"
         style={{
@@ -413,16 +536,16 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
             }}
           >
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>
-              Pesanan ({totalItemCount} item)
+              Pesanan ({selectedItemCount + totalItemCount} item)
             </h2>
             {cart.length > 0 && (
               <button
                 type="button"
-                onClick={clearCart}
+                onClick={resetOrderInput}
                 className="btn btn-ghost btn-sm"
                 style={{ fontSize: '0.75rem', color: 'var(--color-danger)' }}
               >
-                Kosongkan
+                Reset
               </button>
             )}
           </div>
@@ -455,7 +578,14 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
                 <button
                   key={table}
                   type="button"
-                  onClick={() => setNomorMeja(table)}
+                  onClick={() => {
+                    const order = activeOrders.find((active) => active.nomorMeja === table)
+                    if (order) selectOrder(order)
+                    else {
+                      setSelectedOrder(null)
+                      setNomorMeja(table)
+                    }
+                  }}
                   disabled={isKasirClosed}
                   className="btn btn-ghost btn-sm"
                   style={{
@@ -472,6 +602,37 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
               ))}
             </div>
           </div>
+
+          {selectedOrder && (
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                Order tersimpan: {selectedOrder.nomorMeja}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {selectedOrder.items.map((item) => (
+                  <div key={item.id} style={{ padding: '0.65rem', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{item.namaMenu}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                        Rp {item.hargaSatuan.toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => item.id && handleUpdateSavedItem(item.id, item.qty - 1)}>-</button>
+                      <strong>{item.qty}</strong>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => item.id && handleUpdateSavedItem(item.id, item.qty + 1)}>+</button>
+                    </div>
+                    <div style={{ textAlign: 'right', minWidth: '75px' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.8rem' }}>Rp {item.subtotal.toLocaleString('id-ID')}</div>
+                      <button type="button" onClick={() => item.id && handleDeleteSavedItem(item.id)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}>
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Item List */}
           <div
@@ -619,7 +780,7 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
               }}
             >
               <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
-                Total Pembayaran:
+                Total Tambahan:
               </span>
               <span
                 style={{
@@ -644,23 +805,56 @@ export default function TransaksiClient({ session, menus, isKasirClosed }: Trans
             </div>
           )}
 
+          {success && (
+            <div className="alert alert-success" style={{ fontSize: '0.8rem', padding: '0.5rem 0.75rem', marginBottom: '1rem' }}>
+              {success}
+            </div>
+          )}
+
           {/* Action Buttons */}
-          <button
-            type="button"
-            id="btn-simpan-transaksi"
-            onClick={handleCheckout}
-            disabled={isKasirClosed || submitting || cart.length === 0}
-            className="btn btn-primary w-full"
-            style={{
-              padding: '0.875rem',
-              fontSize: '1rem',
-              fontWeight: 700,
-              justifyContent: 'center',
-              boxShadow: 'var(--shadow-primary)',
-            }}
-          >
-            {submitting ? 'Menyimpan Transaksi...' : '🖨️ Simpan & Cetak Struk'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <button
+              type="button"
+              id="btn-simpan-transaksi"
+              onClick={handleCheckout}
+              disabled={isKasirClosed || submitting || cart.length === 0}
+              className="btn btn-primary w-full"
+              style={{ padding: '0.875rem', fontSize: '1rem', fontWeight: 700, justifyContent: 'center', boxShadow: 'var(--shadow-primary)' }}
+            >
+              {submitting ? 'Menyimpan Order...' : 'Simpan Order Sementara'}
+            </button>
+
+            {selectedOrder && (
+              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <strong>Total Order</strong>
+                  <strong>Rp {selectedOrder.total.toLocaleString('id-ID')}</strong>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  {(['CASH', 'QRIS'] as const).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setMetodePembayaran(method)}
+                      className={`btn btn-sm ${metodePembayaran === method ? 'btn-primary' : 'btn-outline'}`}
+                      style={{ flex: 1, justifyContent: 'center' }}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePayOrder}
+                  disabled={paying || cart.length > 0 || selectedOrder.items.length === 0}
+                  className="btn btn-success w-full"
+                  style={{ justifyContent: 'center', fontWeight: 700 }}
+                >
+                  {paying ? 'Memproses...' : 'Bayar & Cetak Struk'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
