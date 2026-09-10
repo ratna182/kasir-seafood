@@ -177,7 +177,7 @@ export default function MenuManager() {
                         {menu.kategori === 'MAKANAN' ? 'Makanan' : 'Minuman'}
                       </span>
                     </td>
-                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 700, fontFamily: "'Fraunces', serif", fontVariantNumeric: 'tabular-nums' }}>
+                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 700, fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
                       Rp {menu.harga.toLocaleString('id-ID')}
                     </td>
                     <td style={{ padding: '1rem', textAlign: 'center' }}>

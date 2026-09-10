@@ -105,7 +105,7 @@ export default function RiwayatClient({ session, initialTransaksis }: RiwayatCli
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', justifyContent: 'flex-end' }}>
                     <div style={{ textAlign: 'right' }}>
                       <div className="text-xs text-muted">Total Pembayaran</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "'Fraunces', serif", fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
                         Rp {trx.total.toLocaleString('id-ID')}
                       </div>
                     </div>

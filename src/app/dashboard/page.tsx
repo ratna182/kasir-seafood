@@ -23,7 +23,7 @@ export default async function DashboardPage() {
   })
 
   if (session.role === 'OWNER') {
-    const [totalPenjualan, totalTransaksi, jumlahKasir, jumlahWarung, penjualanPerWarung, topMenu] = await Promise.all([
+    const [totalPenjualan, totalTransaksi, jumlahKasir, jumlahWarung, penjualanPerWarung, topMenu, warungs, menus] = await Promise.all([
       prisma.transaksi.aggregate({
         where: { createdAt: { gte: today, lt: tomorrow }, status: 'SELESAI' },
         _sum: { total: true },
@@ -46,14 +46,8 @@ export default async function DashboardPage() {
         orderBy: { _sum: { subtotal: 'desc' } },
         take: 5,
       }),
-    ])
-
-    const warungIds = penjualanPerWarung.map((w) => w.warungId)
-    const menuIds = topMenu.map((m) => m.menuId)
-
-    const [warungs, menus] = await Promise.all([
-      prisma.warung.findMany({ where: { id: { in: warungIds } } }),
-      prisma.menu.findMany({ where: { id: { in: menuIds } } }),
+      prisma.warung.findMany({ select: { id: true, nama: true } }),
+      prisma.menu.findMany({ where: { isAktif: true }, select: { id: true, nama: true } }),
     ])
 
     const warungMap = new Map(warungs.map((w) => [w.id, w.nama]))
@@ -84,18 +78,18 @@ export default async function DashboardPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
             <div className="card" style={{ padding: '1.5rem' }}>
               <div className="text-muted text-xs" style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Total Penjualan Hari Ini</div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "'Fraunces', serif", lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif", lineHeight: 1 }}>
                 Rp {(totalPenjualan._sum?.total || 0).toLocaleString('id-ID')}
               </div>
             </div>
             <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "'Fraunces', serif" }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif" }}>
                 {totalTransaksi}
               </div>
               <div className="text-muted text-xs">Transaksi</div>
             </div>
             <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "'Fraunces', serif" }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif" }}>
                 {jumlahKasir}
               </div>
               <div className="text-muted text-xs">Kasir Aktif</div>
@@ -112,7 +106,7 @@ export default async function DashboardPage() {
                 {penjualanWarung.map((item, index) => (
                   <div key={index} className="card">
                     <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>{item.warungNama}</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-brand)', fontFamily: "'Fraunces', serif" }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-brand)', fontFamily: "var(--font-fraunces), serif" }}>
                       Rp {item.totalBayar.toLocaleString('id-ID')}
                     </div>
                     <div className="text-sm text-muted">{item.jumlahTransaksi} transaksi</div>
@@ -240,13 +234,13 @@ export default async function DashboardPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
           <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "'Fraunces', serif" }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif" }}>
               {jumlahTransaksiHariIni}
             </div>
             <div className="text-muted text-xs">Transaksi Hari Ini</div>
           </div>
           <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "'Fraunces', serif" }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif" }}>
               Rp {totalPendapatan.toLocaleString('id-ID')}
             </div>
             <div className="text-muted text-xs">Pendapatan Hari Ini</div>

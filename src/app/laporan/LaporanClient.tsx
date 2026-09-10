@@ -204,19 +204,19 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
 
       <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
         <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-brand)', fontFamily: "'Fraunces', serif" }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-brand)', fontFamily: "var(--font-fraunces), serif" }}>
             {data ? data.jumlahTransaksi : '...'}
           </div>
           <div className="text-sm text-muted">Jumlah Transaksi</div>
         </div>
         <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "'Fraunces', serif" }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif" }}>
             {data ? data.grandTotalQty : '...'}
           </div>
           <div className="text-sm text-muted">Total Porsi / Item Terjual</div>
         </div>
         <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "'Fraunces', serif", fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
             {data ? `Rp ${data.grandTotalPendapatan.toLocaleString('id-ID')}` : '...'}
           </div>
           <div className="text-sm text-muted">Total Pendapatan Hari Ini</div>
@@ -262,7 +262,7 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
                         </span>
                       </td>
                       <td style={{ padding: '0.9rem 1rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{item.qtyTotal}</td>
-                      <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right', fontWeight: 700, color: 'var(--color-text-primary)', fontFamily: "'Fraunces', serif", fontVariantNumeric: 'tabular-nums' }}>
+                      <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right', fontWeight: 700, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
                         Rp {item.pendapatanTotal.toLocaleString('id-ID')}
                       </td>
                     </tr>
@@ -272,7 +272,7 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
                   <tr style={{ background: 'var(--color-surface-raised)', borderTop: '2px solid var(--color-border)', fontWeight: 800 }}>
                     <td colSpan={2} style={{ padding: '1rem 1.25rem', fontSize: '0.95rem' }}>GRAND TOTAL</td>
                     <td style={{ padding: '1rem', textAlign: 'right', fontSize: '1.1rem', color: 'var(--color-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{data.grandTotalQty}</td>
-                    <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontSize: '1.25rem', color: 'var(--color-success)', fontFamily: "'Fraunces', serif", fontVariantNumeric: 'tabular-nums' }}>
+                    <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontSize: '1.25rem', color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
                       Rp {data.grandTotalPendapatan.toLocaleString('id-ID')}
                     </td>
                   </tr>

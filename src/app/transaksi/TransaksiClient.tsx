@@ -537,7 +537,7 @@ export default function TransaksiClient({ session, menus, initialActiveOrders, i
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Total Tambahan:</span>
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "'Fraunces', serif", fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
                 Rp {grandTotal.toLocaleString('id-ID')}
               </span>
             </div>
