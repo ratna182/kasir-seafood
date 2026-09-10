@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Save, Key } from 'lucide-react'
+import { User, Save, Key, Eye, EyeOff } from 'lucide-react'
 
 interface UserProfile {
   id: string
@@ -25,6 +25,7 @@ export default function ProfilClient({ session }: ProfilClientProps) {
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile')
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => { fetchProfile() }, [])
 
@@ -121,7 +122,12 @@ export default function ProfilClient({ session }: ProfilClientProps) {
           <form onSubmit={handleChangePassword}>
             <div className="form-group">
               <label className="form-label">Password Lama *</label>
-              <input type="password" className="form-input" value={formData.currentPassword} onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })} placeholder="Masukkan password lama" required />
+              <div style={{ position: 'relative' }}>
+                <input type={showPassword ? 'text' : 'password'} className="form-input" value={formData.currentPassword} onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })} placeholder="Masukkan password lama" required style={{ paddingRight: '44px' }} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }} tabIndex={-1}>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {errors.currentPassword && <span className="text-danger text-sm">{errors.currentPassword}</span>}
             </div>
             <div className="form-group">

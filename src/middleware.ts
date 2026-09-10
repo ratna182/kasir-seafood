@@ -6,7 +6,10 @@ import { decodeSessionToken } from '@/lib/session'
 const publicRoutes = ['/login', '/api/auth/login']
 
 // Routes khusus owner
-const ownerOnlyRoutes = ['/menu', '/api/menu', '/laporan', '/api/laporan']
+const ownerOnlyRoutes = ['/menu', '/api/menu']
+
+// Routes yang bisa diakses owner + kasir (kasir terbatas warung sendiri)
+const sharedRoutes = ['/laporan', '/api/laporan']
 
 // Routes khusus kasir
 const kasirOnlyRoutes = ['/transaksi', '/api/transaksi', '/riwayat']
@@ -63,8 +66,8 @@ export function middleware(request: NextRequest) {
 
   // Check role-based access
   const isOwnerRoute = ownerOnlyRoutes.some(route => pathname.startsWith(route))
+  const isSharedRoute = sharedRoutes.some(route => pathname.startsWith(route))
   const isKasirRoute = kasirOnlyRoutes.some(route => pathname.startsWith(route))
-  const isOutletSpecific = outletSpecificRoutes.some(route => pathname.startsWith(route))
 
   // Owner tidak boleh akses kasir-only routes
   if (session.role === 'OWNER' && isKasirRoute) {
@@ -77,7 +80,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Kasir tidak boleh akses owner-only routes
+  // Kasir tidak boleh akses owner-only routes (bukan shared routes)
   if (session.role === 'KASIR' && isOwnerRoute) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(

@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Search, ShoppingCart, X, Minus, Plus, Printer, CreditCard, Banknote, CheckCircle } from 'lucide-react'
+import { Search, ShoppingCart, X, Minus, Plus, Printer, CreditCard, Banknote, CheckCircle, Trash2 } from 'lucide-react'
 
 interface Menu {
   id: string
@@ -196,6 +196,19 @@ export default function TransaksiClient({ session, menus, initialActiveOrders, i
     else { setError(data.message || 'Gagal menghapus item order.') }
   }
 
+  async function handleDeleteOrder(orderId: string) {
+    if (!confirm('Hapus pesanan ini?')) return
+    setError('')
+    const res = await fetch(`/api/transaksi/${orderId}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.success) {
+      if (selectedOrder?.id === orderId) { setSelectedOrder(null); setNomorMeja('') }
+      await loadActiveOrders()
+    } else {
+      setError(data.message || 'Gagal menghapus pesanan.')
+    }
+  }
+
   async function handlePayOrder() {
     if (!selectedOrder) return
     if (cart.length > 0) { setError('Simpan tambahan item dulu sebelum bayar.'); return }
@@ -256,14 +269,26 @@ export default function TransaksiClient({ session, menus, initialActiveOrders, i
             {activeOrders.map((order) => {
               const count = order.items.reduce((sum, item) => sum + item.qty, 0)
               return (
-                <button
-                  key={order.id}
-                  type="button"
-                  onClick={() => selectOrder(order)}
-                  className={`btn btn-sm ${selectedOrder?.id === order.id ? 'btn-primary' : 'btn-ghost'}`}
-                >
-                  {order.nomorMeja} · {count} item · Rp {order.total.toLocaleString('id-ID')} · {order.minutesOpen}m
-                </button>
+                <div key={order.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => selectOrder(order)}
+                    className={`btn btn-sm ${selectedOrder?.id === order.id ? 'btn-primary' : 'btn-ghost'}`}
+                  >
+                    {order.nomorMeja} · {count} item · Rp {order.total.toLocaleString('id-ID')} · {order.minutesOpen}m
+                  </button>
+                  {session.role === 'OWNER' && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrder(order.id)}
+                      className="btn btn-sm btn-danger"
+                      style={{ padding: '4px', minWidth: 'auto' }}
+                      title="Hapus pesanan"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
               )
             })}
           </div>

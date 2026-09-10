@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, UserCheck, UserX, Trash2 } from 'lucide-react'
+import { Plus, Pencil, UserCheck, UserX, Trash2, Eye, EyeOff } from 'lucide-react'
 
 interface Warung {
   id: string
@@ -35,6 +35,7 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     if (selectedWarung) {
@@ -312,15 +313,26 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
                 <label className="form-label">
                   Password {editingUser ? '(Kosongkan jika tidak diubah)' : '*'}
                 </label>
-                <input
-                  type="password"
-                  className="form-input"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder={editingUser ? 'Masukkan password baru' : 'Masukkan password'}
-                  required={!editingUser}
-                  minLength={6}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-input"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={editingUser ? 'Masukkan password baru' : 'Masukkan password'}
+                    required={!editingUser}
+                    minLength={6}
+                    style={{ paddingRight: '44px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {errors.password && <span className="text-danger text-sm">{errors.password}</span>}
               </div>
 

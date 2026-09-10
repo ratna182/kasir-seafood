@@ -12,11 +12,6 @@ export const metadata = {
 export default async function LaporanPage() {
   const session = await getSession()
   if (!session) redirect('/login')
-  
-  // Hanya owner yang boleh akses halaman ini
-  if (session.role !== 'OWNER') {
-    redirect('/transaksi')
-  }
 
   const isOwner = session.role === 'OWNER'
   const today = new Date()

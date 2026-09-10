@@ -95,7 +95,11 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
 
   async function handleExportExcel() {
     try {
-      const res = await fetch('/api/laporan/export')
+      const params = new URLSearchParams()
+      if (isOwner && selectedWarungId) params.set('warung_id', selectedWarungId)
+      else if (session.warungId) params.set('warung_id', session.warungId)
+      const qs = params.toString()
+      const res = await fetch(`/api/laporan/export${qs ? '?' + qs : ''}`)
       if (!res.ok) throw new Error('Gagal export')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
@@ -112,7 +116,11 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
 
   async function handleExportPDF() {
     try {
-      const res = await fetch('/api/laporan/export/pdf')
+      const params = new URLSearchParams()
+      if (isOwner && selectedWarungId) params.set('warung_id', selectedWarungId)
+      else if (session.warungId) params.set('warung_id', session.warungId)
+      const qs = params.toString()
+      const res = await fetch(`/api/laporan/export/pdf${qs ? '?' + qs : ''}`)
       if (!res.ok) throw new Error('Gagal export')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)

@@ -24,8 +24,8 @@ export default function Navbar({ session, activePage }: NavbarProps) {
         <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit' }}>
           <div className="navbar-logo">VJ</div>
           <div>
-            <div className="navbar-title">{shortWarungName}</div>
-            <div className="navbar-subtitle">Kode Cabang: {session.warungKode}</div>
+            <div className="navbar-title">Vian Jaya</div>
+            <div className="navbar-subtitle">{shortWarungName}</div>
           </div>
         </Link>
       </div>
