@@ -33,23 +33,20 @@ export default async function TransaksiPage() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const kasirSesi = await prisma.kasirSesi.findUnique({
-    where: {
-      warungId_tanggal: {
-        warungId: session.warungId,
-        tanggal: today,
-      },
-    },
-  })
-
-  // Ambil menu aktif untuk warung ini
-  const menus = await prisma.menu.findMany({
-    where: {
-      warungId: session.warungId,
-      isAktif: true,
-    },
-    orderBy: [{ kategori: 'asc' }, { nama: 'asc' }],
-  })
+  const [kasirSesi, menus, activeOrders] = await Promise.all([
+    prisma.kasirSesi.findUnique({
+      where: { warungId_tanggal: { warungId: session.warungId, tanggal: today } },
+    }),
+    prisma.menu.findMany({
+      where: { warungId: session.warungId, isAktif: true },
+      orderBy: [{ kategori: 'asc' }, { nama: 'asc' }],
+    }),
+    prisma.transaksi.findMany({
+      where: { warungId: session.warungId, status: 'OPEN' },
+      include: { items: { orderBy: { createdAt: 'asc' } } },
+      orderBy: { updatedAt: 'desc' },
+    }),
+  ])
 
   const serializedMenus = menus.map((m) => ({
     id: m.id,
@@ -58,12 +55,6 @@ export default async function TransaksiPage() {
     harga: m.harga,
     isAktif: m.isAktif,
   }))
-
-  const activeOrders = await prisma.transaksi.findMany({
-    where: { warungId: session.warungId, status: 'OPEN' },
-    include: { items: { orderBy: { createdAt: 'asc' } } },
-    orderBy: { updatedAt: 'desc' },
-  })
 
   const serializedActiveOrders = activeOrders.map((order) => ({
     id: order.id,

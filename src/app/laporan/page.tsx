@@ -17,9 +17,9 @@ export default async function LaporanPage() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  let kasirSesi = null
-  if (session.warungId) {
-    const kasirSesiRaw = await prisma.$queryRawUnsafe<
+  const [kasirSesiRaw, warungs] = await Promise.all([
+    session.warungId
+      ? prisma.$queryRawUnsafe<
       Array<{
         ditutup_pada: Date
         total_transaksi: number
@@ -34,11 +34,15 @@ export default async function LaporanPage() {
        JOIN users u ON u.id = ks.ditutup_oleh
        WHERE ks.warung_id = $1 AND ks.tanggal = $2
        LIMIT 1`,
-      session.warungId,
-      today
-    )
-    kasirSesi = kasirSesiRaw[0] ?? null
-  }
+          session.warungId,
+          today
+        )
+      : Promise.resolve([]),
+    isOwner
+      ? prisma.warung.findMany({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } })
+      : Promise.resolve([]),
+  ])
+  const kasirSesi = kasirSesiRaw[0] ?? null
 
   return (
     <div className="app-container">
@@ -46,11 +50,7 @@ export default async function LaporanPage() {
       <div className="content-area">
         <LaporanClient
           session={session}
-          warungs={
-            isOwner
-              ? await prisma.warung.findMany({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } })
-              : []
-          }
+          warungs={warungs}
           initialKasirSesi={
             kasirSesi
               ? {
