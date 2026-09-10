@@ -28,7 +28,6 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (data.success) {
-        // Redirect berdasarkan role
         const role = data.user?.role
         if (role === 'OWNER') {
           router.push('/dashboard')
@@ -48,100 +47,46 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      position: 'relative',
-      minHeight: '100vh',
-      width: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1rem',
-    }}>
-      {/* Full-screen cover image as background */}
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 0,
-      }}>
+    <div className="login-page">
+      {/* Background image */}
+      <div className="login-bg">
         <Image
           src="/cover-seafood.webp"
           alt="Vian Jaya 08 Seafood dan Nasi Uduk"
           fill
           priority
+          sizes="100vw"
           style={{ objectFit: 'cover', objectPosition: 'center' }}
         />
-        {/* Dark overlay for contrast */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(0,0,0,0.45)',
-        }} />
+        <div className="login-bg-overlay" />
       </div>
 
-      {/* Login card centered on top */}
-      <div style={{
-        position: 'relative',
-        zIndex: 1,
-        width: '100%',
-        maxWidth: '400px',
-        marginTop: '3rem',
-        animation: 'slideUp 0.4s ease',
-      }}>
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '2rem',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-            <h1 style={{
-              fontSize: '1.6rem',
-              fontFamily: "'Outfit', sans-serif",
-              fontWeight: 800,
-              color: 'var(--color-text)',
-              marginBottom: '0.25rem',
-              lineHeight: 1.2,
-            }}>
-              Seafood & Nasi Uduk
-            </h1>
-            <p style={{
-              fontSize: '1.15rem',
-              color: 'var(--color-primary)',
-              fontWeight: 700,
-              fontFamily: "'Outfit', sans-serif",
-              marginBottom: '0.25rem',
-            }}>
-              Vian Jaya 08
-            </p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-              Sistem Kasir Digital
-            </p>
+      {/* Login card */}
+      <div className="login-wrapper">
+        <div className="login-card">
+          {/* Logo & branding */}
+          <div className="login-header">
+            <div className="login-logo">VJ</div>
+            <h1 className="login-title">Vian Jaya 08</h1>
+            <p className="login-subtitle">Seafood & Nasi Uduk</p>
+            <p className="login-desc">Sistem Kasir Digital</p>
           </div>
 
-          <h2 style={{
-            fontSize: '1.1rem',
-            marginBottom: '1.25rem',
-            fontFamily: "'Outfit', sans-serif",
-            fontWeight: 600,
-          }}>
-            Masuk ke Kasir
-          </h2>
+          <h2 className="login-form-title">Masuk ke Kasir</h2>
 
           {error && (
-            <div className="alert alert-error" style={{ marginBottom: '1.25rem' }}>
-              <span>⚠️</span>
+            <div className="alert alert-error login-alert">
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} className="login-form">
             <div className="form-group">
               <label className="form-label" htmlFor="username">Username</label>
               <input
                 id="username"
                 type="text"
-                className="form-input"
+                className="form-input login-input"
                 placeholder="Masukkan username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -151,24 +96,23 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <div className="form-group">
               <label className="form-label" htmlFor="password">Password</label>
-              <div style={{ position: 'relative' }}>
+              <div className="login-password-wrap">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  className="form-input"
+                  className="form-input login-input"
                   placeholder="Masukkan password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   disabled={loading}
-                  style={{ paddingRight: '44px' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}
+                  className="login-eye-btn"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -179,9 +123,8 @@ export default function LoginPage() {
             <button
               type="submit"
               id="btn-login"
-              className="btn btn-primary btn-lg btn-full"
+              className="btn btn-primary btn-full login-submit"
               disabled={loading || !username || !password}
-              style={{ minHeight: '48px' }}
             >
               {loading ? (
                 <>
@@ -194,13 +137,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p style={{
-            textAlign: 'center',
-            marginTop: '1.5rem',
-            fontSize: '0.75rem',
-            color: 'var(--color-text-muted)',
-          }}>
-            Kasir Vian Jaya 08 — Sistem Kasir Digital v1.0
+          <p className="login-footer">
+            Kasir Vian Jaya 08 — v1.0
           </p>
         </div>
       </div>
