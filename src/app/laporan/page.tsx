@@ -17,34 +17,33 @@ export default async function LaporanPage() {
   if (session.role !== 'OWNER') {
     redirect('/transaksi')
   }
-  
-  if (!session.warungId) {
-    redirect('/login')
-  }
 
+  const isOwner = session.role === 'OWNER'
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const kasirSesiRaw = await prisma.$queryRawUnsafe<
-    Array<{
-      ditutup_pada: Date
-      total_transaksi: number
-      total_pendapatan: number
-      nama_lengkap: string | null
-      username: string
-    }>
-  >(
-    `SELECT ks.ditutup_pada, ks.total_transaksi, ks.total_pendapatan,
-            u.nama_lengkap, u.username
-     FROM kasir_sesis ks
-     JOIN users u ON u.id = ks.ditutup_oleh
-     WHERE ks.warung_id = $1 AND ks.tanggal = $2
-     LIMIT 1`,
-    session.warungId,
-    today
-  )
-
-  const kasirSesi = kasirSesiRaw[0] ?? null
+  let kasirSesi = null
+  if (session.warungId) {
+    const kasirSesiRaw = await prisma.$queryRawUnsafe<
+      Array<{
+        ditutup_pada: Date
+        total_transaksi: number
+        total_pendapatan: number
+        nama_lengkap: string | null
+        username: string
+      }>
+    >(
+      `SELECT ks.ditutup_pada, ks.total_transaksi, ks.total_pendapatan,
+              u.nama_lengkap, u.username
+       FROM kasir_sesis ks
+       JOIN users u ON u.id = ks.ditutup_oleh
+       WHERE ks.warung_id = $1 AND ks.tanggal = $2
+       LIMIT 1`,
+      session.warungId,
+      today
+    )
+    kasirSesi = kasirSesiRaw[0] ?? null
+  }
 
   return (
     <div className="app-container">
@@ -52,6 +51,11 @@ export default async function LaporanPage() {
       <div className="content-area">
         <LaporanClient
           session={session}
+          warungs={
+            isOwner
+              ? await prisma.warung.findMany({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } })
+              : []
+          }
           initialKasirSesi={
             kasirSesi
               ? {

@@ -31,31 +31,47 @@ interface KasirSesiInfo {
 
 interface LaporanClientProps {
   session: {
+    warungId?: string | null
     warungNama: string | null
     warungKode: string | null
     namaLengkap?: string | null
     username: string
     role: string
   }
+  warungs: WarungOption[]
   initialKasirSesi: KasirSesiInfo | null
 }
 
-export default function LaporanClient({ session, initialKasirSesi }: LaporanClientProps) {
+interface WarungOption {
+  id: string
+  nama: string
+  kode: string
+}
+
+export default function LaporanClient({ session, warungs, initialKasirSesi }: LaporanClientProps) {
   const [data, setData] = useState<LaporanData | null>(null)
   const [loading, setLoading] = useState(true)
   const [kasirSesi, setKasirSesi] = useState<KasirSesiInfo | null>(initialKasirSesi)
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [closing, setClosing] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [selectedWarungId, setSelectedWarungId] = useState(session.warungId || '')
+  const isOwner = session.role === 'OWNER'
 
   useEffect(() => {
+    if (isOwner && !selectedWarungId) return
     fetchLaporan()
-  }, [])
+  }, [selectedWarungId])
 
   async function fetchLaporan() {
     setLoading(true)
     try {
-      const res = await fetch('/api/laporan/harian')
+      const params = new URLSearchParams()
+      if (isOwner && selectedWarungId) {
+        params.set('warung_id', selectedWarungId)
+      }
+      const qs = params.toString()
+      const res = await fetch(`/api/laporan/harian${qs ? '?' + qs : ''}`)
       const result = await res.json()
       if (result.success) {
         setData(result.data)
@@ -170,11 +186,30 @@ export default function LaporanClient({ session, initialKasirSesi }: LaporanClie
             Laporan Penjualan Harian 📊
           </h1>
           <p className="text-secondary text-sm">
-            {todayStr} • Cabang: {session.warungKode}
+            {todayStr}
+            {isOwner ? (
+              selectedWarungId && data?.warung ? ` • ${data.warung.nama}` : ''
+            ) : (
+              ` • Cabang: ${session.warungKode}`
+            )}
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Warung Selector untuk Owner */}
+          {isOwner && (
+            <select
+              className="form-control"
+              value={selectedWarungId}
+              onChange={(e) => setSelectedWarungId(e.target.value)}
+              style={{ minWidth: '200px' }}
+            >
+              <option value="">Pilih Warung...</option>
+              {warungs.map((w) => (
+                <option key={w.id} value={w.id}>{w.nama} ({w.kode})</option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             id="btn-export-excel"
