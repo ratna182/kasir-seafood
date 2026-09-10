@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
@@ -47,51 +48,63 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      display: 'flex',
+      display: 'grid',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'radial-gradient(ellipse at top, #1a2235 0%, #0a0e1a 70%)',
-      padding: '1rem',
+      background: 'linear-gradient(135deg, #07111F 0%, #101B2B 48%, #2A1014 100%)',
+      padding: 'clamp(1rem, 3vw, 2.5rem)',
     }}>
-      {/* Background decoration */}
       <div style={{
         position: 'fixed',
-        top: '-20%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '600px',
-        height: '600px',
-        background: 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%)',
+        inset: 0,
+        background: 'radial-gradient(circle at 18% 20%, rgba(185,28,28,0.22), transparent 28%), radial-gradient(circle at 80% 70%, rgba(6,182,212,0.10), transparent 30%)',
         pointerEvents: 'none',
       }} />
 
       <div style={{
         width: '100%',
-        maxWidth: '400px',
-        animation: 'slideUp 0.4s ease',
+        maxWidth: '1040px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
+        gap: 'clamp(1rem, 3vw, 2rem)',
+        alignItems: 'stretch',
+        position: 'relative',
+        zIndex: 1,
       }}>
-        {/* Logo & Brand */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <section style={{
+          background: 'linear-gradient(160deg, rgba(16,27,43,0.96), rgba(42,16,20,0.92))',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: '28px',
+          padding: 'clamp(1rem, 3vw, 2rem)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: '520px',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.35)',
+        }}>
           <div style={{
-            width: '72px',
-            height: '72px',
-            background: 'linear-gradient(135deg, #f97316, #fb923c)',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '2rem',
-            margin: '0 auto 1rem',
-            boxShadow: '0 8px 32px rgba(249,115,22,0.35)',
+            background: '#fff',
+            borderRadius: '22px',
+            padding: 'clamp(0.75rem, 2vw, 1.25rem)',
+            boxShadow: '0 18px 50px rgba(0,0,0,0.35)',
+            border: '1px solid rgba(255,255,255,0.75)',
           }}>
-            🦐
+            <Image
+              src="/cover-seafood.webp"
+              alt="Vian Jaya 08 Seafood dan Nasi Uduk"
+              width={1200}
+              height={900}
+              priority
+              style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '14px' }}
+            />
           </div>
           <h1 style={{
-            fontSize: '1.5rem',
+            fontSize: 'clamp(1.6rem, 3vw, 2.4rem)',
             fontFamily: "'Outfit', sans-serif",
             fontWeight: 800,
             color: 'var(--color-text)',
-            marginBottom: '4px',
+            marginTop: '1.5rem',
+            marginBottom: '0.35rem',
             lineHeight: 1.2,
           }}>
             Seafood & Nasi Uduk
@@ -101,31 +114,34 @@ export default function LoginPage() {
             color: 'var(--color-primary)',
             fontWeight: 700,
             fontFamily: "'Outfit', sans-serif",
-            marginBottom: '8px',
+            marginBottom: '0.5rem',
           }}>
             Vian Jaya 08
           </p>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-            Sistem Kasir Digital
+          <p style={{ fontSize: '0.95rem', color: 'var(--color-text-secondary)', maxWidth: '34rem' }}>
+            Sistem kasir cepat untuk meja aktif, pembayaran final, dan struk thermal 80mm.
           </p>
-        </div>
+        </section>
 
-        {/* Login Card */}
-        <div style={{
+        <section style={{
           background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-xl)',
-          padding: '2rem',
-          boxShadow: 'var(--shadow-lg)',
+          padding: 'clamp(1.5rem, 3vw, 2.25rem)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.32)',
+          alignSelf: 'center',
         }}>
           <h2 style={{
-            fontSize: '1.1rem',
-            marginBottom: '1.5rem',
+            fontSize: '1.45rem',
+            marginBottom: '0.5rem',
             fontFamily: "'Outfit', sans-serif",
-            fontWeight: 600,
+            fontWeight: 800,
           }}>
             Masuk ke Kasir
           </h2>
+          <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            Gunakan akun outlet untuk mulai mencatat order meja.
+          </p>
 
           {error && (
             <div className="alert alert-error" style={{ marginBottom: '1.25rem' }}>
@@ -169,6 +185,7 @@ export default function LoginPage() {
               id="btn-login"
               className="btn btn-primary btn-lg btn-full"
               disabled={loading || !username || !password}
+              style={{ minHeight: '48px' }}
             >
               {loading ? (
                 <>
@@ -177,22 +194,21 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  <span>🔑</span>
                   <span>Masuk</span>
                 </>
               )}
             </button>
           </form>
-        </div>
+          <p style={{
+            textAlign: 'center',
+            marginTop: '1.5rem',
+            fontSize: '0.75rem',
+            color: 'var(--color-text-muted)',
+          }}>
+            Kasir Vian Jaya 08 - Sistem Kasir Digital v1.0
+          </p>
+        </section>
 
-        <p style={{
-          textAlign: 'center',
-          marginTop: '1.5rem',
-          fontSize: '0.75rem',
-          color: 'var(--color-text-muted)',
-        }}>
-          Kasir Vian Jaya 08 — Sistem Kasir Digital v1.0
-        </p>
       </div>
     </div>
   )

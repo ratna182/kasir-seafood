@@ -5,41 +5,41 @@
    ============================================ */
 :root {
   /* Colors */
-  --color-bg: #0a0e1a;
-  --color-surface: #111827;
-  --color-surface-2: #1a2235;
-  --color-surface-3: #1f2d42;
+  --color-bg: #07111F;
+  --color-surface: #101B2B;
+  --color-surface-2: #17263A;
+  --color-surface-3: #22344D;
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-hover: rgba(255, 255, 255, 0.15);
 
   /* Brand */
-  --color-primary: #f97316;
-  --color-primary-hover: #ea6b0c;
-  --color-primary-light: rgba(249, 115, 22, 0.15);
-  --color-primary-glow: rgba(249, 115, 22, 0.25);
+  --color-primary: #B91C1C;
+  --color-primary-hover: #991B1B;
+  --color-primary-light: rgba(185, 28, 28, 0.16);
+  --color-primary-glow: rgba(185, 28, 28, 0.28);
 
   /* Accent */
   --color-accent: #06b6d4;
   --color-accent-light: rgba(6, 182, 212, 0.12);
 
   /* Status */
-  --color-success: #10b981;
-  --color-success-light: rgba(16, 185, 129, 0.12);
+  --color-success: #16A34A;
+  --color-success-light: rgba(22, 163, 74, 0.12);
   --color-warning: #f59e0b;
   --color-warning-light: rgba(245, 158, 11, 0.12);
-  --color-danger: #ef4444;
-  --color-danger-light: rgba(239, 68, 68, 0.12);
+  --color-danger: #DC2626;
+  --color-danger-light: rgba(220, 38, 38, 0.12);
 
   /* Text */
-  --color-text: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+  --color-text: #F7FAFC;
+  --color-text-secondary: #A6B3C4;
+  --color-text-muted: #748499;
 
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-primary: 0 4px 20px rgba(249, 115, 22, 0.3);
+  --shadow-primary: 0 4px 20px rgba(185, 28, 28, 0.3);
 
   /* Radius */
   --radius-sm: 6px;
@@ -73,6 +73,7 @@ body {
   min-height: 100vh;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ============================================
@@ -146,7 +147,7 @@ a:hover { opacity: 0.85; }
 .navbar-logo {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--color-primary), #fb923c);
+  background: linear-gradient(135deg, var(--color-primary), #7f1d1d);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -239,14 +240,14 @@ a:hover { opacity: 0.85; }
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), #fb923c);
+  background: linear-gradient(135deg, var(--color-primary), #7f1d1d);
   color: white;
   box-shadow: var(--shadow-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 6px 24px rgba(185, 28, 28, 0.4);
 }
 
 .btn-primary:active:not(:disabled) {
