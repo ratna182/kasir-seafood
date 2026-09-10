@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { decodeSessionToken, SessionUser } from '@/lib/session'
+import { prisma } from '@/lib/prisma'
 
 export interface AuthContext {
   user: SessionUser
@@ -93,6 +94,22 @@ export function requireRole(context: AuthContext | null, role: Role): NextRespon
   if (!context) return unauthorized()
   if (!hasRole(context, role)) return forbidden(`Role ${role} required`)
   return null
+}
+
+// Owner boleh menjalankan kasir pada cabang default yang dipilih sistem.
+export function requireKasirAccess(context: AuthContext | null): NextResponse | null {
+  if (!context) return unauthorized()
+  if (context.user.role !== 'KASIR' && context.user.role !== 'OWNER') {
+    return forbidden('Akses kasir diperlukan')
+  }
+  return null
+}
+
+export async function getKasirWarungId(context: AuthContext | null) {
+  if (!context) return null
+  if (context.user.role === 'KASIR') return context.warungId
+  const warung = await prisma.warung.findUnique({ where: { kode: 'VJ08-1' }, select: { id: true } })
+  return warung?.id ?? null
 }
 
 /**

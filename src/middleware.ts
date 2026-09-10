@@ -60,20 +60,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Owner tidak boleh akses kasir-only routes
+  // Owner dapat memakai kasir default (Kasir 1).
   if (activeSession.role === 'OWNER' && isKasirRoute) {
-    // Kecuali kalau ada kasir session juga
-    if (!kasirSession) {
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json(
-          { success: false, message: 'Forbidden: Owner cannot access kasir routes' },
-          { status: 403 }
-        )
-      }
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-    // Pakai kasir session untuk kasir routes
-    activeSession = kasirSession
+    activeSession = kasirSession || ownerSession
   }
 
   // Kasir tidak boleh akses owner-only routes

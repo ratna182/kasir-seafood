@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, requireRole } from '@/lib/auth'
+import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
 
 // POST /api/kasir/tutup — tutup kasir hari ini (kasir only)
 export async function POST(request: NextRequest) {
@@ -8,10 +8,10 @@ export async function POST(request: NextRequest) {
     const context = getAuthContext(request)
     
     // Hanya kasir yang boleh tutup kasir
-    const authError = requireRole(context, 'KASIR')
+    const authError = requireKasirAccess(context)
     if (authError) return authError
 
-    const warungId = context?.warungId
+    const warungId = await getKasirWarungId(context)
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }

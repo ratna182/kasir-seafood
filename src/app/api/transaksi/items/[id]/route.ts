@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, requireRole } from '@/lib/auth'
+import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = getAuthContext(request)
-    const authError = requireRole(context, 'KASIR')
+    const authError = requireKasirAccess(context)
     if (authError) return authError
 
-    const warungId = context?.warungId
+    const warungId = await getKasirWarungId(context)
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
@@ -59,10 +59,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = getAuthContext(request)
-    const authError = requireRole(context, 'KASIR')
+    const authError = requireKasirAccess(context)
     if (authError) return authError
 
-    const warungId = context?.warungId
+    const warungId = await getKasirWarungId(context)
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }

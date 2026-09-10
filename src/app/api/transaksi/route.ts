@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, requireRole } from '@/lib/auth'
+import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
 
 type IncomingItem = {
   menuId: string
@@ -24,10 +24,10 @@ function isUniqueOpenOrderError(error: unknown) {
 export async function POST(request: NextRequest) {
   try {
     const context = getAuthContext(request)
-    const authError = requireRole(context, 'KASIR')
+    const authError = requireKasirAccess(context)
     if (authError) return authError
 
-    const warungId = context?.warungId
+    const warungId = await getKasirWarungId(context)
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
@@ -140,10 +140,10 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const context = getAuthContext(request)
-    const authError = requireRole(context, 'KASIR')
+    const authError = requireKasirAccess(context)
     if (authError) return authError
 
-    const warungId = context?.warungId
+    const warungId = await getKasirWarungId(context)
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }

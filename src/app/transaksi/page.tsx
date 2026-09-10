@@ -17,17 +17,17 @@ export default async function TransaksiPage() {
   const session = await getSession()
   if (!session) redirect('/login')
   
-  // Hanya kasir yang boleh akses halaman ini
-  if (session.role !== 'KASIR') {
-    redirect('/dashboard')
-  }
-  
-  if (!session.warungId) {
-    redirect('/login')
-  }
+  const ownerWarung = session.role === 'OWNER'
+    ? await prisma.warung.findUnique({ where: { kode: 'VJ08-1' }, select: { id: true, nama: true, kode: true } })
+    : null
+  const activeSession = ownerWarung
+    ? { ...session, warungId: ownerWarung.id, warungNama: ownerWarung.nama, warungKode: ownerWarung.kode }
+    : session
+
+  if (!activeSession.warungId) redirect('/login')
 
   // Self-heal menu kasir tanpa menghapus menu yang sudah dipakai transaksi.
-  await syncWarungMenus(session.warungId)
+  await syncWarungMenus(activeSession.warungId)
 
   // Cek apakah kasir sudah tutup hari ini
   const today = new Date()
@@ -35,14 +35,14 @@ export default async function TransaksiPage() {
 
   const [kasirSesi, menus, activeOrders] = await Promise.all([
     prisma.kasirSesi.findUnique({
-      where: { warungId_tanggal: { warungId: session.warungId, tanggal: today } },
+      where: { warungId_tanggal: { warungId: activeSession.warungId, tanggal: today } },
     }),
     prisma.menu.findMany({
-      where: { warungId: session.warungId, isAktif: true },
+      where: { warungId: activeSession.warungId, isAktif: true },
       orderBy: [{ kategori: 'asc' }, { nama: 'asc' }],
     }),
     prisma.transaksi.findMany({
-      where: { warungId: session.warungId, status: 'OPEN' },
+      where: { warungId: activeSession.warungId, status: 'OPEN' },
       include: { items: { orderBy: { createdAt: 'asc' } } },
       orderBy: { updatedAt: 'desc' },
     }),
@@ -79,7 +79,7 @@ export default async function TransaksiPage() {
       <Navbar session={session} activePage="transaksi" />
       <div className="content-area">
         <TransaksiClient
-          session={session}
+          session={activeSession}
           menus={serializedMenus}
           initialActiveOrders={serializedActiveOrders}
           isKasirClosed={!!kasirSesi}
