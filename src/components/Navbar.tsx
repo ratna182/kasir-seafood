@@ -16,7 +16,6 @@ interface NavbarProps {
 }
 
 export default function Navbar({ session, activePage }: NavbarProps) {
-  const shortWarungName = session.warungNama?.split(' - ')[0] ?? 'Tanpa Nama'
 
   return (
     <nav className="navbar no-print">
@@ -25,7 +24,7 @@ export default function Navbar({ session, activePage }: NavbarProps) {
           <div className="navbar-logo">VJ</div>
           <div>
             <div className="navbar-title">Vian Jaya</div>
-            <div className="navbar-subtitle">{shortWarungName}</div>
+            <div className="navbar-subtitle">Seafood &amp; Nasi Uduk</div>
           </div>
         </Link>
       </div>
