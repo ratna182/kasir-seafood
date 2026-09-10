@@ -12,7 +12,7 @@ const ownerOnlyRoutes = ['/menu', '/api/menu']
 const sharedRoutes = ['/laporan', '/api/laporan']
 
 // Routes khusus kasir
-const kasirOnlyRoutes = ['/transaksi', '/api/transaksi', '/riwayat']
+const kasirOnlyRoutes = ['/transaksi', '/api/transaksi', '/api/kasir', '/riwayat']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -102,9 +102,13 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-session-user-id', activeSession.id)
   requestHeaders.set('x-session-role', activeSession.role)
+  requestHeaders.set('x-session-username', encodeURIComponent(activeSession.username))
+  requestHeaders.set('x-session-nama-lengkap', encodeURIComponent(activeSession.namaLengkap ?? ''))
   if (activeSession.warungId) {
     requestHeaders.set('x-session-warung-id', activeSession.warungId)
   }
+  requestHeaders.set('x-session-warung-nama', encodeURIComponent(activeSession.warungNama ?? ''))
+  requestHeaders.set('x-session-warung-kode', encodeURIComponent(activeSession.warungKode ?? ''))
 
   return NextResponse.next({
     request: {

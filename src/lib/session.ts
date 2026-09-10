@@ -1,5 +1,4 @@
-import { cookies } from 'next/headers'
-import { prisma } from '@/lib/prisma'
+import { cookies, headers } from 'next/headers'
 
 export interface SessionUser {
   id: string
@@ -49,6 +48,23 @@ export function decodeSessionToken(token: string): SessionUser | null {
 
 // Baca session dari cookie yang sesuai role, atau dari keduanya
 export async function getSession(): Promise<SessionUser | null> {
+  // Middleware memilih sesi sesuai route dan meneruskannya ke Server Component.
+  const requestHeaders = await headers()
+  const id = requestHeaders.get('x-session-user-id')
+  const role = requestHeaders.get('x-session-role')
+  if (id && (role === 'OWNER' || role === 'KASIR')) {
+    const decode = (value: string | null) => value ? decodeURIComponent(value) || null : null
+    return {
+      id,
+      role,
+      username: decode(requestHeaders.get('x-session-username')) ?? '',
+      namaLengkap: decode(requestHeaders.get('x-session-nama-lengkap')),
+      warungId: requestHeaders.get('x-session-warung-id'),
+      warungNama: decode(requestHeaders.get('x-session-warung-nama')),
+      warungKode: decode(requestHeaders.get('x-session-warung-kode')),
+    }
+  }
+
   const cookieStore = await cookies()
 
   // Coba owner dulu, lalu kasir
