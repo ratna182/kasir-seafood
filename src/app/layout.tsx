@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Fraunces } from 'next/font/google'
 import './globals.css'
 import { ToastProvider } from '@/components/Toast'
@@ -15,9 +15,23 @@ const fraunces = Fraunces({
   variable: '--font-fraunces',
 })
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#181310',
+  viewportFit: 'cover',
+}
+
 export const metadata: Metadata = {
   title: 'Kasir Vian Jaya 08 — Seafood & Nasi Uduk',
   description: 'Aplikasi kasir untuk Warung Seafood & Nasi Uduk Vian Jaya 08',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Kasir VJ',
+  },
 }
 
 export default function RootLayout({
@@ -26,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id" className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang="id" className={`${inter.variable} ${fraunces.variable}`} style={{ WebkitTapHighlightColor: 'transparent' }}>
       <body>
         <ToastProvider>
           {children}
