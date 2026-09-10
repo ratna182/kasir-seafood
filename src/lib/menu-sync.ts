@@ -8,22 +8,14 @@ type SharedMenu = {
 }
 
 async function getSharedMenus(): Promise<SharedMenu[]> {
-  const allMenus = await prisma.menu.findMany({ orderBy: { createdAt: 'asc' } })
-  const menuMap = new Map<string, SharedMenu>()
+  const masterWarung = await prisma.warung.findFirst({ orderBy: { kode: 'asc' }, select: { id: true } })
+  if (!masterWarung) return []
 
-  for (const menu of allMenus) {
-    const existing = menuMap.get(menu.nama)
-    if (!existing || (!existing.isAktif && menu.isAktif)) {
-      menuMap.set(menu.nama, {
-        nama: menu.nama,
-        kategori: menu.kategori,
-        harga: menu.harga,
-        isAktif: menu.isAktif,
-      })
-    }
-  }
-
-  return [...menuMap.values()]
+  return prisma.menu.findMany({
+    where: { warungId: masterWarung.id },
+    select: { nama: true, kategori: true, harga: true, isAktif: true },
+    orderBy: [{ kategori: 'asc' }, { nama: 'asc' }],
+  })
 }
 
 // Tidak menghapus menu agar riwayat transaksi yang mereferensikannya tetap aman.
@@ -39,4 +31,9 @@ export async function syncWarungMenus(warungId: string) {
 export async function syncMenusAcrossWarungs() {
   const warungs = await prisma.warung.findMany({ select: { id: true } })
   await Promise.all(warungs.map((warung) => syncWarungMenus(warung.id)))
+}
+
+export async function getMasterWarungId() {
+  const warung = await prisma.warung.findFirst({ orderBy: { kode: 'asc' }, select: { id: true } })
+  return warung?.id ?? null
 }

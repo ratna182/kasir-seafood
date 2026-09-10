@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, isOwner, requireRole, requireWarungAccess } from '@/lib/auth'
-import { syncMenusAcrossWarungs } from '@/lib/menu-sync'
+import { getMasterWarungId, syncMenusAcrossWarungs } from '@/lib/menu-sync'
 
 // GET /api/menu — ambil menu berdasarkan warung_id query param
 export async function GET(request: NextRequest) {
@@ -17,14 +17,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const warungId = searchParams.get('warung_id')
 
-    const where: any = {}
-    
+    const where: { warungId?: string } = {}
     if (isOwner(context)) {
-      if (warungId) {
-        where.warungId = warungId
-      }
+      // Owner mengelola satu katalog master, bukan duplikat tiap warung.
+      where.warungId = warungId || await getMasterWarungId() || undefined
     } else {
-      where.warungId = context?.warungId
+      where.warungId = context?.warungId ?? undefined
     }
 
     const menus = await prisma.menu.findMany({
@@ -48,14 +46,11 @@ export async function POST(request: NextRequest) {
     if (authError) return authError
 
     const body = await request.json()
-    const { warungId, nama, kategori, harga } = body
-
+    const { nama, kategori, harga } = body
+    const warungId = await getMasterWarungId()
     if (!warungId) {
-      return NextResponse.json({ success: false, errors: { warungId: 'Warung wajib dipilih.' } }, { status: 422 })
+      return NextResponse.json({ success: false, message: 'Warung master tidak ditemukan.' }, { status: 404 })
     }
-
-    const warungAccessError = requireWarungAccess(context, warungId)
-    if (warungAccessError) return warungAccessError
 
     if (!nama || !nama.trim()) {
       return NextResponse.json({ success: false, errors: { nama: 'Nama menu wajib diisi.' } }, { status: 422 })
