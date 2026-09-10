@@ -53,7 +53,7 @@ interface TransaksiClientProps {
   isKasirClosed: boolean
 }
 
-const QUICK_TABLES = ['Meja 1', 'Meja 2', 'Meja 3', 'Meja 4', 'Meja 5', 'Meja 6', 'Meja 7', 'Meja 8', 'Bungkus']
+const QUICK_TABLES = ['Meja 1', 'Meja 2', 'Meja 3', 'Meja 4', 'Meja 5', 'Meja 6', 'Meja 7', 'Meja 8', 'Meja 9', 'Meja 10', 'Meja 11', 'Meja 12', 'Meja 13', 'Meja 14', 'Meja 15', 'Meja 16', 'Meja 17', 'Meja 18', 'Meja 19', 'Meja 20', 'Meja 21', 'Meja 22', 'Meja 23', 'Meja 24', 'Meja 25', 'Bungkus']
 
 export default function TransaksiClient({ session, menus, initialActiveOrders, isKasirClosed }: TransaksiClientProps) {
   const [cart, setCart] = useState<CartItem[]>([])
@@ -296,15 +296,7 @@ export default function TransaksiClient({ session, menus, initialActiveOrders, i
       </div>
 
       {/* POS Two-Column Grid */}
-      <div
-        className="no-print"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.7fr) minmax(320px, 1.1fr)',
-          gap: '1.5rem',
-          alignItems: 'start',
-        }}
-      >
+      <div className="no-print pos-grid">
         {/* KOLOM KIRI: MENU PICKER */}
         <div>
           <div className="card" style={{ padding: '1rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

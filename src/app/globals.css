@@ -996,6 +996,7 @@ a:hover { opacity: 0.85; }
 
   .navbar {
     padding: 0 1rem;
+    flex-wrap: wrap;
   }
 
   .navbar-title {
@@ -1004,6 +1005,16 @@ a:hover { opacity: 0.85; }
 
   .navbar-subtitle {
     display: none;
+  }
+
+  .navbar-links {
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  .navbar-links .btn {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.5rem;
   }
 
   .menu-grid {
@@ -1016,11 +1027,70 @@ a:hover { opacity: 0.85; }
   }
 
   h1 { font-size: 1.5rem; }
+
+  .card { padding: 1rem; }
+
+  .btn { min-height: 44px; font-size: 0.875rem; }
+
+  .btn-sm { min-height: 36px; font-size: 0.8rem; padding: 0.4rem 0.6rem; }
+
+  .btn-lg { min-height: 52px; font-size: 1rem; }
+
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .table { font-size: 0.8rem; }
+
+  .table th, .table td { padding: 0.5rem 0.6rem; white-space: nowrap; }
+
+  .stat-value { font-size: 1.5rem; }
+
+  .stat-label { font-size: 0.7rem; }
+
+  .modal { width: calc(100vw - 2rem); max-height: 90vh; padding: 1.25rem; }
+
+  .modal-title { font-size: 1rem; }
+
+  .alert { font-size: 0.8rem; padding: 0.75rem; }
+
+  .login-card { width: calc(100vw - 2rem); padding: 2rem 1.25rem; }
+
+  .quick-tables { gap: 0.35rem; }
+
+  .quick-tables .btn { font-size: 0.75rem; padding: 0.35rem 0.5rem; min-height: 36px; }
+
+  .category-filters { gap: 0.35rem; }
+
+  .category-filters .btn { font-size: 0.75rem; padding: 0.35rem 0.6rem; }
 }
 
 @media (max-width: 480px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .navbar-brand > a { gap: 0.5rem; }
+
+  .navbar-logo { width: 32px; height: 32px; font-size: 0.75rem; }
+
+  .content-area { padding: 0.75rem; }
+}
+
+/* POS two-column grid */
+.pos-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1.1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .pos-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .pos-grid > div:last-child {
+    order: -1;
   }
 }
 
