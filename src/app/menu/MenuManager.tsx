@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Pencil, Trash2, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, RefreshCw } from 'lucide-react'
 
 export interface MenuItem {
   id: string
@@ -25,6 +25,7 @@ export default function MenuManager() {
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => { fetchMenus() }, [])
 
@@ -96,6 +97,18 @@ export default function MenuManager() {
     finally { setDeletingId(null) }
   }
 
+  async function handleSyncMenus() {
+    if (!confirm('Sync semua menu ke kasir 1, 2, 3? Menu lama di kasir akan diganti.')) return
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/menu/sync', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) showFeedback('success', data.message)
+      else showFeedback('error', data.message || 'Gagal sync menu.')
+    } catch { showFeedback('error', 'Terjadi kesalahan saat sync menu.') }
+    finally { setSyncing(false) }
+  }
+
   const filteredMenus = useMemo(() => {
     return menus.filter((menu) => {
       const matchSearch = menu.nama.toLowerCase().includes(search.toLowerCase())
@@ -112,9 +125,14 @@ export default function MenuManager() {
           <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Kelola Menu</h1>
           <p className="text-secondary text-sm">Atur daftar makanan, minuman, harga, dan ketersediaan menu warung.</p>
         </div>
-        <button id="btn-tambah-menu" onClick={openAddModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Plus size={16} /> Tambah Menu Baru
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button onClick={handleSyncMenus} disabled={syncing} className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <RefreshCw size={16} className={syncing ? 'spin' : ''} /> {syncing ? 'Syncing...' : 'Sync ke Semua Kasir'}
+          </button>
+          <button id="btn-tambah-menu" onClick={openAddModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Plus size={16} /> Tambah Menu Baru
+          </button>
+        </div>
       </div>
 
       {feedback && (
