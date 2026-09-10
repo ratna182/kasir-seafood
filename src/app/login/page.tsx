@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
@@ -12,6 +12,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const isSubmitting = loading || isPending
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -28,13 +30,9 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (data.success) {
-        const role = data.user?.role
-        if (role === 'OWNER') {
-          router.push('/dashboard')
-        } else {
-          router.push('/transaksi')
-        }
-        router.refresh()
+        const destination = data.user?.role === 'OWNER' ? '/dashboard' : '/transaksi'
+        startTransition(() => router.replace(destination))
+        return
       } else {
         setError(data.message || 'Login gagal.')
         setPassword('')
@@ -92,7 +90,7 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
                 autoFocus
-                disabled={loading}
+                disabled={isSubmitting}
               />
             </div>
 
@@ -107,7 +105,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  disabled={loading}
+                  disabled={isSubmitting}
                 />
                 <button
                   type="button"
@@ -124,9 +122,9 @@ export default function LoginPage() {
               type="submit"
               id="btn-login"
               className="btn btn-primary btn-full login-submit"
-              disabled={loading || !username || !password}
+              disabled={isSubmitting || !username || !password}
             >
-              {loading ? (
+              {isSubmitting ? (
                 <>
                   <span className="spinner" />
                   <span>Memverifikasi...</span>
