@@ -10,6 +10,9 @@ export const metadata = {
   description: 'Catat pesanan tamu, hitung total, dan cetak struk thermal 80mm.',
 }
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function TransaksiPage() {
   const session = await getSession()
   if (!session) redirect('/login')
