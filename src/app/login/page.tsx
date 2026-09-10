@@ -82,6 +82,7 @@ export default function LoginPage() {
         zIndex: 1,
         width: '100%',
         maxWidth: '400px',
+        marginTop: '3rem',
         animation: 'slideUp 0.4s ease',
       }}>
         <div style={{
