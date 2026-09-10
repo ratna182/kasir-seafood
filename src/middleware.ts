@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { decodeSessionToken } from '@/lib/session'
+import { decodeSessionToken, COOKIE_OWNER, COOKIE_KASIR } from '@/lib/session'
 
 // Routes yang tidak perlu auth
 const publicRoutes = ['/login', '/api/auth/login']
@@ -13,9 +13,6 @@ const sharedRoutes = ['/laporan', '/api/laporan']
 
 // Routes khusus kasir
 const kasirOnlyRoutes = ['/transaksi', '/api/transaksi', '/riwayat']
-
-// Routes yang butuh spesifik outlet
-const outletSpecificRoutes = ['/api/kasir', '/api/reports']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -34,54 +31,53 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Get session token from cookie
-  const sessionToken = request.cookies.get('kasir_session')?.value
+  // Baca kedua cookie
+  const ownerToken = request.cookies.get(COOKIE_OWNER)?.value
+  const kasirToken = request.cookies.get(COOKIE_KASIR)?.value
 
-  if (!sessionToken) {
-    // Jika request API, return 401
+  // Decode keduanya
+  const ownerSession = ownerToken ? decodeSessionToken(ownerToken) : null
+  const kasirSession = kasirToken ? decodeSessionToken(kasirToken) : null
+
+  // Tentukan session aktif berdasarkan route
+  const isOwnerRoute = ownerOnlyRoutes.some(route => pathname.startsWith(route))
+  const isKasirRoute = kasirOnlyRoutes.some(route => pathname.startsWith(route))
+  const isSharedRoute = sharedRoutes.some(route => pathname.startsWith(route))
+
+  let activeSession = ownerSession || kasirSession
+
+  // Jika route spesifik, prioritaskan session yang sesuai
+  if (isOwnerRoute && ownerSession) activeSession = ownerSession
+  if (isKasirRoute && kasirSession) activeSession = kasirSession
+
+  if (!activeSession) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
       )
     }
-    // Redirect ke login untuk page routes
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Decode session
-  const session = decodeSessionToken(sessionToken)
-  if (!session) {
-    // Session invalid, hapus cookie dan redirect ke login
-    const response = pathname.startsWith('/api/')
-      ? NextResponse.json(
-          { success: false, message: 'Session expired' },
-          { status: 401 }
-        )
-      : NextResponse.redirect(new URL('/login', request.url))
-    
-    response.cookies.delete('kasir_session')
-    return response
-  }
-
-  // Check role-based access
-  const isOwnerRoute = ownerOnlyRoutes.some(route => pathname.startsWith(route))
-  const isSharedRoute = sharedRoutes.some(route => pathname.startsWith(route))
-  const isKasirRoute = kasirOnlyRoutes.some(route => pathname.startsWith(route))
-
   // Owner tidak boleh akses kasir-only routes
-  if (session.role === 'OWNER' && isKasirRoute) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
-        { success: false, message: 'Forbidden: Owner cannot access kasir routes' },
-        { status: 403 }
-      )
+  if (activeSession.role === 'OWNER' && isKasirRoute) {
+    // Kecuali kalau ada kasir session juga
+    if (!kasirSession) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { success: false, message: 'Forbidden: Owner cannot access kasir routes' },
+          { status: 403 }
+        )
+      }
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    // Pakai kasir session untuk kasir routes
+    activeSession = kasirSession
   }
 
-  // Kasir tidak boleh akses owner-only routes (bukan shared routes)
-  if (session.role === 'KASIR' && isOwnerRoute) {
+  // Kasir tidak boleh akses owner-only routes
+  if (activeSession.role === 'KASIR' && isOwnerRoute) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { success: false, message: 'Forbidden: Kasir cannot access owner routes' },
@@ -92,7 +88,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Kasir harus punya warungId
-  if (session.role === 'KASIR' && !session.warungId) {
+  if (activeSession.role === 'KASIR' && !activeSession.warungId) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { success: false, message: 'Kasir harus terdaftar di salah satu outlet' },
@@ -102,12 +98,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Add session info ke headers untuk API routes
+  // Add session info ke headers
   const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-session-user-id', session.id)
-  requestHeaders.set('x-session-role', session.role)
-  if (session.warungId) {
-    requestHeaders.set('x-session-warung-id', session.warungId)
+  requestHeaders.set('x-session-user-id', activeSession.id)
+  requestHeaders.set('x-session-role', activeSession.role)
+  if (activeSession.warungId) {
+    requestHeaders.set('x-session-warung-id', activeSession.warungId)
   }
 
   return NextResponse.next({

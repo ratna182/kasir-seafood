@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { encodeSessionToken, SessionUser, getSessionCookieName } from '@/lib/session'
+import { encodeSessionToken, SessionUser, COOKIE_OWNER, COOKIE_KASIR } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { username, password } = body
 
-    // Validasi input
     if (!username || !password) {
       return NextResponse.json(
         { success: false, message: 'Username dan password wajib diisi.' },
@@ -16,7 +15,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Cari user
     const user = await prisma.user.findUnique({
       where: { username: username.trim().toLowerCase() },
       include: { warung: true },
@@ -29,7 +27,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verifikasi password
     const passwordMatch = await bcrypt.compare(password, user.passwordHash)
     if (!passwordMatch) {
       return NextResponse.json(
@@ -38,7 +35,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buat session
     const sessionUser: SessionUser = {
       id: user.id,
       username: user.username,
@@ -51,7 +47,6 @@ export async function POST(request: NextRequest) {
 
     const token = await encodeSessionToken(sessionUser)
 
-    // Set cookie
     const response = NextResponse.json({
       success: true,
       user: {
@@ -68,11 +63,14 @@ export async function POST(request: NextRequest) {
     })
 
     const isProduction = process.env.NODE_ENV === 'production'
-    response.cookies.set(getSessionCookieName(), token, {
+    const cookieName = user.role === 'OWNER' ? COOKIE_OWNER : COOKIE_KASIR
+
+    // Set cookie untuk role yang login
+    response.cookies.set(cookieName, token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
-      maxAge: 8 * 60 * 60, // 8 jam dalam detik
+      sameSite: 'lax',
+      maxAge: 8 * 60 * 60,
       path: '/',
     })
 
