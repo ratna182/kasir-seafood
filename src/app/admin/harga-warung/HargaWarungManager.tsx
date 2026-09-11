@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Save, X, DollarSign } from 'lucide-react'
+import { Save, X, DollarSign, Database } from 'lucide-react'
 
 interface Warung {
   id: string
@@ -22,7 +22,9 @@ export default function HargaWarungManager() {
   const [menus, setMenus] = useState<MenuHarga[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [migrating, setMigrating] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [dbReady, setDbReady] = useState(false)
 
   useEffect(() => {
     loadWarungs()
@@ -31,6 +33,24 @@ export default function HargaWarungManager() {
   useEffect(() => {
     if (selectedWarung) loadMenus(selectedWarung)
   }, [selectedWarung])
+
+  async function runMigration() {
+    setMigrating(true)
+    try {
+      const res = await fetch('/api/admin/migrate', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        setDbReady(true)
+        showFeedback('success', 'Database siap! Sekarang pilih cabang untuk atur harga.')
+      } else {
+        showFeedback('error', data.message || 'Gagal setup database')
+      }
+    } catch {
+      showFeedback('error', 'Gagal setup database')
+    } finally {
+      setMigrating(false)
+    }
+  }
 
   async function loadWarungs() {
     try {
@@ -137,6 +157,26 @@ export default function HargaWarungManager() {
       {feedback && (
         <div className={`p-4 rounded-lg ${feedback.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
           {feedback.message}
+        </div>
+      )}
+
+      {!dbReady && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <Database className="h-6 w-6 text-yellow-600" />
+            <h2 className="text-lg font-semibold text-yellow-800">Setup Database Dulu</h2>
+          </div>
+          <p className="text-sm text-yellow-700 mb-4">
+            Klik tombol di bawah untuk membuat tabel harga cabang. Cukup sekali saja.
+          </p>
+          <button
+            onClick={runMigration}
+            disabled={migrating}
+            className="flex items-center gap-2 bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50"
+          >
+            <Database className="h-4 w-4" />
+            {migrating ? 'Memproses...' : 'Setup Database Sekarang'}
+          </button>
         </div>
       )}
 
