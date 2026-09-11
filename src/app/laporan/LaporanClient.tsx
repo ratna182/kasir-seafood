@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { FileSpreadsheet, FileText, Printer, Lock, AlertTriangle } from 'lucide-react'
+import PrinterSetup from '@/components/PrinterSetup'
+import PrinterStatusBadge from '@/components/PrinterStatus'
+import { printer } from '@/lib/printer/bluetooth'
+import { loadPrinterConfig } from '@/lib/printer/storage'
+import { encodeLaporan, type LaporanData } from '@/lib/printer/laporan-encoder'
+import type { PrinterConfig } from '@/lib/printer/types'
 
 interface RekapItem {
   namaMenu: string
@@ -10,7 +16,7 @@ interface RekapItem {
   pendapatanTotal: number
 }
 
-interface LaporanData {
+interface LaporanDataLocal {
   tanggal: string
   warung: { id: string; nama: string; kode: string }
   rekap: RekapItem[]
@@ -42,7 +48,7 @@ interface LaporanClientProps {
 }
 
 export default function LaporanClient({ session, warungs, initialKasirSesi }: LaporanClientProps) {
-  const [data, setData] = useState<LaporanData | null>(null)
+  const [data, setData] = useState<LaporanDataLocal | null>(null)
   const [loading, setLoading] = useState(true)
   const [kasirSesi, setKasirSesi] = useState<KasirSesiInfo | null>(initialKasirSesi)
   const [showCloseModal, setShowCloseModal] = useState(false)
@@ -51,6 +57,19 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [selectedWarungId, setSelectedWarungId] = useState(session.warungId || '')
   const isOwner = session.role === 'OWNER'
+  const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
+  const [showPrinterSetup, setShowPrinterSetup] = useState(false)
+  const [printing, setPrinting] = useState(false)
+  const [printerWidth, setPrinterWidth] = useState<'58mm' | '80mm'>('80mm')
+
+  useEffect(() => {
+    const saved = loadPrinterConfig()
+    if (saved) {
+      setPrinterConfig(saved)
+      setPrinterWidth(saved.width)
+      printer.autoReconnect()
+    }
+  }, [])
 
   useEffect(() => {
     if (isOwner && !selectedWarungId) return
@@ -116,6 +135,34 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
   }
 
   function handlePrint() { window.print() }
+
+  async function handlePrintThermal() {
+    if (printer.status !== 'connected' || !data) {
+      window.print()
+      return
+    }
+    setPrinting(true)
+    try {
+      const encoded = encodeLaporan(
+        data,
+        session.namaLengkap || session.username,
+        session.warungNama,
+        session.warungKode,
+        printerWidth,
+        kasirSesi,
+      )
+      const ok = await printer.write(encoded)
+      if (!ok) {
+        setFeedback({ type: 'error', message: 'Gagal mengirim data ke printer. Coba cetak ulang.' })
+      } else {
+        setFeedback({ type: 'success', message: 'Laporan berhasil dicetak ke printer thermal!' })
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Gagal mencetak. Periksa koneksi printer.' })
+    } finally {
+      setPrinting(false)
+    }
+  }
 
   async function handleExportExcel() {
     try {
@@ -185,9 +232,17 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
           <button type="button" id="btn-export-pdf" onClick={handleExportPDF} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={16} /> Export PDF
           </button>
-          <button type="button" id="btn-cetak-laporan" onClick={handlePrint} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Printer size={16} /> Cetak Laporan (80mm)
+          <button type="button" id="btn-cetak-laporan" onClick={handlePrintThermal} disabled={loading || !data || data.rekap.length === 0 || printing} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Printer size={16} /> {printing ? 'Mencetak...' : 'Cetak Laporan'}
           </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            {(['58mm', '80mm'] as const).map((w) => (
+              <button key={w} type="button" onClick={() => setPrinterWidth(w)} className={`btn btn-sm ${printerWidth === w ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>
+                {w}
+              </button>
+            ))}
+          </div>
+          <PrinterStatusBadge onSetupClick={() => setShowPrinterSetup(true)} />
           {!kasirSesi ? (
             <button type="button" id="btn-tutup-kasir" onClick={() => setShowCloseModal(true)} disabled={loading} className="btn btn-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
               <Lock size={16} /> Tutup Kasir Hari Ini
@@ -386,6 +441,8 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
           </div>
         </div>
       )}
+
+      <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
     </div>
   )
 }
