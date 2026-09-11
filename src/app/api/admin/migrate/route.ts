@@ -169,7 +169,14 @@ export async function POST(request: NextRequest) {
     } catch (e: any) { results.push(`sort index: ${e.message}`) }
 
     // Step 12: Cleanup old soft-deleted menus with "(nonaktif" suffix
+    // First delete transaksi_items that reference these menus, then delete menus
     try {
+      await prisma.$executeRawUnsafe(`
+        DELETE FROM "transaksi_items"
+        WHERE "menu_id" IN (
+          SELECT "id" FROM "menus" WHERE "nama" LIKE '%(nonaktif%'
+        )
+      `)
       await prisma.$executeRawUnsafe(`DELETE FROM "menus" WHERE "nama" LIKE '%(nonaktif%'`)
       results.push('cleanup nonaktif menus: OK')
     } catch (e: any) { results.push(`cleanup nonaktif menus: ${e.message}`) }
