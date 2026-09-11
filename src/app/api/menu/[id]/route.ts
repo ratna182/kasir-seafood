@@ -89,10 +89,18 @@ export async function DELETE(
     })
 
     if (usedInTransaksi) {
+      // Menu dipakai di transaksi — tidak bisa hard delete, tapi kita
+      // nonaktifkan + rename supaya nama bisa dipakai lagi.
+      const suffix = ` (nonaktif ${Date.now().toString(36)})`
+      await prisma.menu.update({
+        where: { id },
+        data: { isAktif: false, nama: `${menu.nama}${suffix}` },
+      })
+      await syncMenusAcrossWarungs()
       return NextResponse.json({
-        success: false,
-        message: 'Menu tidak dapat dihapus karena sudah ada dalam transaksi. Nonaktifkan saja.',
-      }, { status: 409 })
+        success: true,
+        message: 'Menu sudah dipakai di transaksi, jadi dinonaktifkan. Anda bisa membuat menu baru dengan nama yang sama.',
+      })
     }
 
     await prisma.menu.delete({ where: { id } })
