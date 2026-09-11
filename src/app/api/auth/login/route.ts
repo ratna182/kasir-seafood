@@ -2,22 +2,45 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { encodeSessionToken, SessionUser, COOKIE_OWNER, COOKIE_KASIR } from '@/lib/session'
+import { loginRateLimiter } from '@/lib/rate-limiter'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { username, password } = body
+    const normalizedUsername = typeof username === 'string' ? username.trim().toLowerCase() : ''
 
-    if (!username || !password) {
+    if (!normalizedUsername || typeof password !== 'string' || !password) {
       return NextResponse.json(
         { success: false, message: 'Username dan password wajib diisi.' },
         { status: 400 }
       )
     }
 
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || request.headers.get('x-real-ip')
+      || 'local'
+    const rateLimitKey = `${ip}:${normalizedUsername}`
+    const limit = loginRateLimiter.check(rateLimitKey)
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Terlalu banyak percobaan. Coba lagi beberapa menit.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.resetIn / 1000)) } }
+      )
+    }
+
     const user = await prisma.user.findUnique({
-      where: { username: username.trim().toLowerCase() },
-      include: { warung: true },
+      where: { username: normalizedUsername },
+      select: {
+        id: true,
+        username: true,
+        passwordHash: true,
+        namaLengkap: true,
+        role: true,
+        warungId: true,
+        isActive: true,
+        warung: { select: { id: true, nama: true, kode: true } },
+      },
     })
 
     if (!user) {
@@ -41,6 +64,8 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
+
+    loginRateLimiter.reset(rateLimitKey)
 
     const sessionUser: SessionUser = {
       id: user.id,

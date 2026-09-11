@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import Image from 'next/image'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -12,53 +11,58 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const isSubmitting = loading || isPending
+  const requestRef = useRef<AbortController | null>(null)
+  const isSubmitting = loading
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+    if (requestRef.current) return
+
+    const normalizedUsername = username.trim().toLowerCase()
+    if (!normalizedUsername || !password) {
+      setError('Username dan password wajib diisi.')
+      return
+    }
+
     setError('')
     setLoading(true)
+    setUsername(normalizedUsername)
+
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000)
+    requestRef.current = controller
 
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: normalizedUsername, password }),
+        signal: controller.signal,
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
 
-      if (data.success) {
+      if (res.ok && data?.success) {
         const destination = data.user?.role === 'OWNER' ? '/dashboard' : '/transaksi'
-        startTransition(() => router.replace(destination))
+        router.replace(destination)
         return
       } else {
-        setError(data.message || 'Login gagal.')
+        setError(data?.message || 'Login gagal. Periksa username dan password Anda.')
         setPassword('')
       }
-    } catch {
-      setError('Gagal terhubung ke server. Periksa koneksi internet Anda.')
+    } catch (error) {
+      setError(error instanceof DOMException && error.name === 'AbortError'
+        ? 'Server terlalu lama merespons. Coba lagi.'
+        : 'Gagal terhubung ke server. Periksa koneksi internet Anda.')
     } finally {
+      window.clearTimeout(timeoutId)
+      requestRef.current = null
       setLoading(false)
     }
   }
 
   return (
     <div className="login-page">
-      {/* Background image */}
-      <div className="login-bg">
-        <Image
-          src="/cover-seafood.webp"
-          alt="Vian Jaya 08 Seafood dan Nasi Uduk"
-          fill
-          priority
-          sizes="100vw"
-          style={{ objectFit: 'cover', objectPosition: 'center' }}
-        />
-        <div className="login-bg-overlay" />
-      </div>
-
       {/* Login card */}
       <div className="login-wrapper">
         <div className="login-card">
@@ -73,7 +77,7 @@ export default function LoginPage() {
           <h2 className="login-form-title">Masuk ke Kasir</h2>
 
           {error && (
-            <div className="alert alert-error login-alert">
+            <div className="alert alert-error login-alert" role="alert" aria-live="polite">
               <span>{error}</span>
             </div>
           )}
@@ -89,7 +93,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
-                autoFocus
+                required
                 disabled={isSubmitting}
               />
             </div>
@@ -105,6 +109,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
+                  required
                   disabled={isSubmitting}
                 />
                 <button
@@ -122,7 +127,7 @@ export default function LoginPage() {
               type="submit"
               id="btn-login"
               className="btn btn-primary btn-full login-submit"
-              disabled={isSubmitting || !username || !password}
+              disabled={isSubmitting || !username.trim() || !password}
             >
               {isSubmitting ? (
                 <>
