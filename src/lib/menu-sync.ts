@@ -14,23 +14,22 @@ type SharedMenu = {
   categoryName: string
 }
 
-async function getSharedCategories(): Promise<SharedCategory[]> {
-  const masterWarung = await prisma.warung.findFirst({ orderBy: { kode: 'asc' }, select: { id: true } })
-  if (!masterWarung) return []
+async function getMasterWarungId(): Promise<string | null> {
+  const w = await prisma.warung.findFirst({ orderBy: { kode: 'asc' }, select: { id: true } })
+  return w?.id ?? null
+}
 
+async function getSharedCategories(masterId: string): Promise<SharedCategory[]> {
   return prisma.menuCategory.findMany({
-    where: { warungId: masterWarung.id },
+    where: { warungId: masterId },
     select: { nama: true, sortOrder: true, isAktif: true },
     orderBy: { sortOrder: 'asc' },
   })
 }
 
-async function getSharedMenus(): Promise<SharedMenu[]> {
-  const masterWarung = await prisma.warung.findFirst({ orderBy: { kode: 'asc' }, select: { id: true } })
-  if (!masterWarung) return []
-
+async function getSharedMenus(masterId: string): Promise<SharedMenu[]> {
   return prisma.menu.findMany({
-    where: { warungId: masterWarung.id },
+    where: { warungId: masterId },
     select: { nama: true, harga: true, isAktif: true, sortOrder: true, category: { select: { nama: true } } },
     orderBy: [{ sortOrder: 'asc' }, { nama: 'asc' }],
   }).then((menus) => menus.map((m) => ({
@@ -43,7 +42,9 @@ async function getSharedMenus(): Promise<SharedMenu[]> {
 }
 
 export async function syncWarungCategories(warungId: string) {
-  const categories = await getSharedCategories()
+  const masterId = await getMasterWarungId()
+  if (!masterId) return
+  const categories = await getSharedCategories(masterId)
   const existing = new Set(
     (await prisma.menuCategory.findMany({ where: { warungId }, select: { nama: true } })).map((c) => c.nama)
   )
@@ -58,22 +59,26 @@ export async function syncWarungCategories(warungId: string) {
 }
 
 export async function syncWarungMenus(warungId: string, overwrite = false) {
+  const masterId = await getMasterWarungId()
+  if (!masterId) return
+  if (masterId === warungId) return // skip master itu sendiri
+
+  // 1. Sync categories
   await syncWarungCategories(warungId)
 
-  const menus = await getSharedMenus()
+  // 2. Ambil master menus
+  const menus = await getSharedMenus(masterId)
+  const masterMenuNames = new Set(menus.map((m) => m.nama))
 
+  // 3. Map categories di target
   const categoriesInTarget = await prisma.menuCategory.findMany({
     where: { warungId },
     select: { id: true, nama: true },
   })
   const categoryMap = new Map(categoriesInTarget.map((c) => [c.nama, c.id]))
 
-  const existingNames = overwrite
-    ? new Set<string>()
-    : new Set((await prisma.menu.findMany({ where: { warungId }, select: { nama: true } })).map((m) => m.nama))
-
+  // 4. Upsert setiap menu dari master
   for (const menu of menus) {
-    if (!overwrite && existingNames.has(menu.nama)) continue
     const categoryId = categoryMap.get(menu.categoryName)
     if (!categoryId) continue
 
@@ -92,14 +97,31 @@ export async function syncWarungMenus(warungId: string, overwrite = false) {
       },
     })
   }
+
+  // 5. Hapus menu di target yang tidak ada di master (cleanup)
+  if (overwrite) {
+    await prisma.menu.deleteMany({
+      where: {
+        warungId,
+        nama: { notIn: Array.from(masterMenuNames) },
+      },
+    })
+  }
 }
 
 export async function syncMenusAcrossWarungs() {
-  const warungs = await prisma.warung.findMany({ select: { id: true } })
-  await Promise.all(warungs.map((warung) => syncWarungMenus(warung.id, true)))
+  const masterId = await getMasterWarungId()
+  if (!masterId) return
+
+  const warungs = await prisma.warung.findMany({
+    where: { id: { not: masterId } },
+    select: { id: true },
+  })
+
+  // Sync satu per satu untuk hindari race condition
+  for (const warung of warungs) {
+    await syncWarungMenus(warung.id, true)
+  }
 }
 
-export async function getMasterWarungId() {
-  const warung = await prisma.warung.findFirst({ orderBy: { kode: 'asc' }, select: { id: true } })
-  return warung?.id ?? null
-}
+export { getMasterWarungId }
