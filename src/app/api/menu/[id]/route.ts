@@ -84,6 +84,7 @@ export async function DELETE(
     const warungAccessError = requireWarungAccess(context, menu.warungId)
     if (warungAccessError) return warungAccessError
 
+    await prisma.transaksiItem.deleteMany({ where: { menuId: id } })
     await prisma.menu.delete({ where: { id } })
 
     await syncMenusAcrossWarungs()
