@@ -323,16 +323,16 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
             <p>Kode Cabang: {session.warungKode}</p>
           </div>
           <div className="print-divider" />
-          <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
             <span>Tanggal: {data.tanggal}</span>
             <span>Shift: Hari Ini</span>
           </div>
-          <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
             <span>Dicetak: {new Date().toLocaleTimeString('id-ID')}</span>
             <span>Kasir: {session.namaLengkap || session.username}</span>
           </div>
           {kasirSesi && (
-            <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
               <span>Status: SUDAH DITUTUP</span>
               <span>Pkl: {new Date(kasirSesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>

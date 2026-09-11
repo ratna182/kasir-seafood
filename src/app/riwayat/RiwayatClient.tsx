@@ -1,8 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Printer, X } from 'lucide-react'
-import Receipt, { type PrinterWidth } from '@/components/Receipt'
+import Receipt, { type PrinterWidth, type ReceiptTransaction } from '@/components/Receipt'
+import PrinterSetup from '@/components/PrinterSetup'
+import PrinterStatusBadge from '@/components/PrinterStatus'
+import { printer } from '@/lib/printer/bluetooth'
+import { loadPrinterConfig } from '@/lib/printer/storage'
+import { encodeReceipt } from '@/lib/printer/receipt-encoder'
+import type { PrinterConfig } from '@/lib/printer/types'
 
 interface TransaksiItem {
   id: string
@@ -42,6 +48,18 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
   const [search, setSearch] = useState('')
   const [selectedTransaksi, setSelectedTransaksi] = useState<Transaksi | null>(null)
   const [printerWidth, setPrinterWidth] = useState<PrinterWidth>('80mm')
+  const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
+  const [showPrinterSetup, setShowPrinterSetup] = useState(false)
+  const [printing, setPrinting] = useState(false)
+
+  useEffect(() => {
+    const saved = loadPrinterConfig()
+    if (saved) {
+      setPrinterConfig(saved)
+      setPrinterWidth(saved.width)
+      printer.autoReconnect()
+    }
+  }, [])
 
   const filtered = transaksis.filter((t) => {
     const matchMeja = t.nomorMeja.toLowerCase().includes(search.toLowerCase())
@@ -50,7 +68,38 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
     return matchMeja || matchId || matchItem
   })
 
-  function handlePrintReceipt() { window.print() }
+  async function handlePrintReceipt() {
+    if (printer.status === 'connected' && selectedTransaksi) {
+      setPrinting(true)
+      try {
+        const data: ReceiptTransaction = {
+          id: selectedTransaksi.id,
+          nomorMeja: selectedTransaksi.nomorMeja,
+          total: selectedTransaksi.total,
+          createdAt: selectedTransaksi.createdAt,
+          metodePembayaran: selectedTransaksi.metodePembayaran,
+          items: selectedTransaksi.items,
+        }
+        const encoded = encodeReceipt({
+          transaction: data,
+          cashier: session.namaLengkap || session.username,
+          warungNama: session.warungNama,
+          width: printerWidth,
+          reprint: true,
+        })
+        const ok = await printer.write(encoded)
+        if (!ok) {
+          alert('Gagal mengirim data ke printer. Coba cetak ulang.')
+        }
+      } catch {
+        alert('Gagal mencetak. Periksa koneksi printer.')
+      } finally {
+        setPrinting(false)
+      }
+    } else {
+      window.print()
+    }
+  }
 
   return (
     <div>
@@ -153,17 +202,20 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
             <div className="receipt-width-picker">
               <span>Ukuran printer</span>
               {(['58mm', '80mm'] as const).map((width) => <button key={width} type="button" onClick={() => setPrinterWidth(width)} className={`btn btn-sm ${printerWidth === width ? 'btn-primary' : 'btn-ghost'}`}>{width}</button>)}
+              <PrinterStatusBadge onSetupClick={() => setShowPrinterSetup(true)} />
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button type="button" onClick={() => setSelectedTransaksi(null)} className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>Tutup</button>
-              <button type="button" onClick={handlePrintReceipt} className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', fontWeight: 700 }}>
-                <Printer size={16} /> Cetak
+              <button type="button" onClick={handlePrintReceipt} disabled={printing} className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', fontWeight: 700 }}>
+                <Printer size={16} /> {printing ? 'Mencetak...' : 'Cetak'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
 
       {selectedTransaksi && <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} reprint />}
     </div>
