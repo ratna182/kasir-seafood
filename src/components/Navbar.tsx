@@ -87,6 +87,14 @@ export default function Navbar({ session, activePage }: NavbarProps) {
                 Transaksi
               </Link>
               <Link
+                href="/laporan"
+                className={`btn btn-sm ${activePage === 'laporan' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+              >
+                <BarChart3 size={14} />
+                Laporan
+              </Link>
+              <Link
                 href="/riwayat"
                 className={`btn btn-sm ${activePage === 'riwayat' ? 'btn-primary' : 'btn-ghost'}`}
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}

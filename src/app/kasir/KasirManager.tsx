@@ -19,9 +19,10 @@ interface KasirUser {
 
 interface KasirManagerProps {
   warungs: Warung[]
+  userRole: string
 }
 
-export default function KasirManager({ warungs }: KasirManagerProps) {
+export default function KasirManager({ warungs, userRole }: KasirManagerProps) {
   const [selectedWarung, setSelectedWarung] = useState(warungs[0]?.id || '')
   const [users, setUsers] = useState<KasirUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -261,8 +262,17 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
               {openingKasir ? 'Membuka...' : 'Buka Kasir'}
             </button>
           )}
-          <button type="button" onClick={() => handleToggleAll(true)} disabled={togglingAll} className="btn btn-success">Aktifkan Semua Kasir</button>
-          <button type="button" onClick={() => handleToggleAll(false)} disabled={togglingAll} className="btn btn-danger">Nonaktifkan Semua Kasir</button>
+          {!kasirClosed && (
+            <button type="button" disabled className="btn btn-ghost" style={{ opacity: 0.6 }}>
+              Kasir Sudah Terbuka
+            </button>
+          )}
+          {userRole === 'OWNER' && (
+            <>
+              <button type="button" onClick={() => handleToggleAll(true)} disabled={togglingAll} className="btn btn-success">Aktifkan Semua Kasir</button>
+              <button type="button" onClick={() => handleToggleAll(false)} disabled={togglingAll} className="btn btn-danger">Nonaktifkan Semua Kasir</button>
+            </>
+          )}
           <button type="button" onClick={() => handleOpenForm()} className="btn btn-primary"><Plus size={16} /> Tambah Kasir</button>
         </div>
       </div>

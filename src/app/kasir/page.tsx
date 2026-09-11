@@ -13,12 +13,7 @@ export default async function KasirPage() {
   const session = await getSession()
   if (!session) redirect('/login')
   
-  // Hanya owner yang boleh akses halaman ini
-  if (session.role !== 'OWNER') {
-    redirect('/transaksi')
-  }
-
-  // Ambil semua warung
+  // Semua role bisa akses halaman ini
   const warungs = await prisma.warung.findMany({
     orderBy: { nama: 'asc' },
   })
@@ -27,7 +22,7 @@ export default async function KasirPage() {
     <div className="app-container">
       <Navbar session={session} activePage="kasir" />
       <div className="content-area">
-        <KasirManager warungs={warungs} />
+        <KasirManager warungs={warungs} userRole={session.role} />
       </div>
     </div>
   )
