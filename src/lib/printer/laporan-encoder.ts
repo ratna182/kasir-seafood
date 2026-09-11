@@ -7,6 +7,7 @@ import {
   setAlign,
   setBold,
   setFontSize,
+  setLineSpacing,
   compose,
   padRight,
   drawLine,
@@ -34,13 +35,14 @@ function centerText(text: string, width: number): string {
   return ' '.repeat(pad) + text
 }
 
-function encodeLine(text: string, bold: boolean = false, align: 'left' | 'center' | 'right' = 'left'): Uint8Array {
+function encodeLine(text: string, bold: boolean = true, align: 'left' | 'center' | 'right' = 'left', fontSize: 1 | 2 = 1): Uint8Array {
   const parts: Uint8Array[] = []
-  if (bold) parts.push(setBold(true))
+  parts.push(setBold(bold))
   if (align !== 'left') parts.push(setAlign(align))
+  if (fontSize > 1) parts.push(setFontSize(fontSize, fontSize))
   parts.push(setText(text + '\n'))
+  if (fontSize > 1) parts.push(setFontSize(1, 1))
   if (align !== 'left') parts.push(setAlign('left'))
-  if (bold) parts.push(setBold(false))
   return compose(...parts)
 }
 
@@ -56,36 +58,38 @@ export function encodeLaporan(
   const parts: Uint8Array[] = []
 
   parts.push(initPrinter())
+  parts.push(setLineSpacing(20))
   parts.push(setFontSize(1, 1))
 
-  parts.push(encodeLine(centerText('LAPORAN PENJUALAN HARIAN', w), true, 'center'))
-  parts.push(encodeLine(centerText(warungNama || 'WARUNG', w), false, 'center'))
+  parts.push(encodeLine(centerText('LAPORAN PENJUALAN', w), true, 'center', 2))
+  parts.push(encodeLine(centerText('HARIAN', w), true, 'center', 2))
+  parts.push(encodeLine(centerText(warungNama || 'WARUNG', w), true, 'center'))
   if (warungKode) {
-    parts.push(encodeLine(centerText(`Kode: ${warungKode}`, w), false, 'center'))
+    parts.push(encodeLine(centerText(`Kode: ${warungKode}`, w), true, 'center'))
   }
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(drawLine(w), true))
 
-  parts.push(encodeLine(`Tanggal: ${data.tanggal}`))
-  parts.push(encodeLine(`Dicetak: ${new Date().toLocaleTimeString('id-ID')}`))
-  parts.push(encodeLine(`Kasir: ${cashierName}`))
+  parts.push(encodeLine(`Tanggal : ${data.tanggal}`, true))
+  parts.push(encodeLine(`Dicetak : ${new Date().toLocaleTimeString('id-ID')}`, true))
+  parts.push(encodeLine(`Kasir   : ${cashierName}`, true))
 
   if (kasirSesi) {
-    parts.push(encodeLine('Status: SUDAH DITUTUP'))
-    parts.push(encodeLine(`Pkl: ${new Date(kasirSesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`))
+    parts.push(encodeLine('Status  : SUDAH DITUTUP', true))
+    parts.push(encodeLine(`Pkl     : ${new Date(kasirSesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`, true))
   }
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(drawLine(w), true))
 
   for (const item of data.rekap) {
     const qtyStr = String(item.qtyTotal)
     const totalStr = `Rp ${item.pendapatanTotal.toLocaleString('id-ID')}`
     const leftWidth = w - qtyStr.length - totalStr.length - 2
     const nameLine = padRight(item.namaMenu, Math.max(1, leftWidth)) + qtyStr + ' ' + totalStr
-    parts.push(encodeLine(nameLine))
+    parts.push(encodeLine(nameLine, true))
   }
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(drawLine(w), true))
 
   const gtyStr = String(data.grandTotalQty)
   const gtpStr = `Rp ${data.grandTotalPendapatan.toLocaleString('id-ID')}`
@@ -94,21 +98,22 @@ export function encodeLaporan(
 
   const jmlStr = `${data.jumlahTransaksi} transaksi`
   const jLeft = w - jmlStr.length
-  parts.push(encodeLine(padRight('TOTAL TRANSAKSI', Math.max(1, jLeft)) + jmlStr))
+  parts.push(encodeLine(padRight('TOTAL TRANSAKSI', Math.max(1, jLeft)) + jmlStr, true))
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(drawLine(w), true))
 
   const gtLabel = 'GRAND TOTAL'
   const gtVal = `Rp ${data.grandTotalPendapatan.toLocaleString('id-ID')}`
   const gtLeft = w - gtLabel.length - gtVal.length
-  parts.push(encodeLine(padRight(gtLabel, Math.max(1, gtLeft)) + gtVal, true))
+  parts.push(encodeLine(padRight(gtLabel, Math.max(1, gtLeft)) + gtVal, true, 'left', 2))
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(drawLine(w), true))
 
-  parts.push(encodeLine(centerText('*** REKAPITULASI PENJUALAN RESMI ***', w), false, 'center'))
-  parts.push(encodeLine(centerText('Kasir Vian Jaya 08', w), false, 'center'))
+  parts.push(encodeLine(centerText('*** REKAPITULASI RESMI ***', w), true, 'center'))
+  parts.push(encodeLine(centerText('Kasir Vian Jaya 08', w), true, 'center'))
 
-  parts.push(feedAndCut(4))
+  parts.push(setLineSpacing(30))
+  parts.push(feedAndCut(3))
 
   return compose(...parts)
 }

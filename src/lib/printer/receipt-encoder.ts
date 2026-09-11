@@ -7,6 +7,7 @@ import {
   setAlign,
   setBold,
   setFontSize,
+  setLineSpacing,
   compose,
   padRight,
   drawLine,
@@ -40,15 +41,14 @@ function rightText(text: string, width: number): string {
   return ' '.repeat(width - text.length) + text
 }
 
-function encodeLine(text: string, bold: boolean = false, align: 'left' | 'center' | 'right' = 'left', fontSize: 1 | 2 = 1): Uint8Array {
+function encodeLine(text: string, bold: boolean = true, align: 'left' | 'center' | 'right' = 'left', fontSize: 1 | 2 = 1): Uint8Array {
   const parts: Uint8Array[] = []
-  if (bold) parts.push(setBold(true))
+  parts.push(setBold(bold))
   if (align !== 'left') parts.push(setAlign(align))
-  if (fontSize > 1) parts.push(setFontSize(fontSize))
+  if (fontSize > 1) parts.push(setFontSize(fontSize, fontSize))
   parts.push(setText(text + '\n'))
-  if (fontSize > 1) parts.push(setFontSize(1))
+  if (fontSize > 1) parts.push(setFontSize(1, 1))
   if (align !== 'left') parts.push(setAlign('left'))
-  if (bold) parts.push(setBold(false))
   return compose(...parts)
 }
 
@@ -66,29 +66,28 @@ export function encodeReceipt(
   const parts: Uint8Array[] = []
 
   parts.push(initPrinter())
+  parts.push(setLineSpacing(20))
   parts.push(setFontSize(1, 1))
 
   if (data.reprint) {
-    parts.push(encodeLine(centerText('*** CETAK ULANG STRUK RESMI ***', w), true, 'center'))
+    parts.push(encodeLine(centerText('*** CETAK ULANG STRUK RESMI ***', w), true, 'center', 1))
   }
 
-  parts.push(encodeLine(centerText(data.warungNama || 'WARUNG', w), true, 'center'))
-  parts.push(encodeLine(centerText('Jl. Raya Kranggan no.18', w), false, 'center'))
-  parts.push(encodeLine(centerText('IG : Seafood08vianjaya.id', w), false, 'center'))
-  parts.push(encodeLine(centerText('FB : Seafood08vianjaya', w), false, 'center'))
-  parts.push(encodeLine(centerText('TT : Seafood08vianjaya', w), false, 'center'))
+  parts.push(encodeLine(centerText(data.warungNama || 'WARUNG', w), true, 'center', 2))
+  parts.push(encodeLine(centerText('Jl. Raya Kranggan no.18', w), true, 'center'))
+  parts.push(encodeLine(centerText('IG : Seafood08vianjaya.id', w), true, 'center'))
+  parts.push(encodeLine(centerText('FB : Seafood08vianjaya', w), true, 'center'))
+  parts.push(encodeLine(centerText('TT : Seafood08vianjaya', w), true, 'center'))
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(drawLine(w), true))
 
   const date = new Date(t.createdAt)
   const dateStr = date.toLocaleDateString('sv-SE')
   const timeStr = date.toLocaleTimeString('id-ID')
-  const metaLeft = `${dateStr}\n${timeStr}`
-  const metaRight = `Kasir : ${data.cashier}`
-  parts.push(encodeLine(metaLeft, false, 'left'))
-  parts.push(encodeLine(metaRight, false, 'right'))
+  parts.push(encodeLine(`${dateStr}  ${timeStr}`, true, 'left'))
+  parts.push(encodeLine(`Kasir : ${data.cashier}`, true, 'right'))
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(drawLine(w), true))
 
   for (const item of t.items) {
     const price = formatRupiah(item.subtotal)
@@ -96,40 +95,34 @@ export function encodeReceipt(
     parts.push(encodeLine(nameLine, true))
 
     const detail = `${item.qty} X ${formatRupiah(item.hargaSatuan)}${item.diskonSatuan ? ` - diskon ${formatRupiah(item.diskonSatuan)}` : ''}`
-    parts.push(encodeLine(detail))
+    parts.push(encodeLine(detail, true))
 
     if (item.catatan) {
-      parts.push(encodeLine(item.catatan))
+      parts.push(encodeLine(item.catatan, true))
     }
   }
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(drawLine(w), true))
 
   const totalQty = t.items.reduce((acc, item) => acc + item.qty, 0)
-  const subtotalLine = padRight('Total QTY :', w - String(totalQty).length) + String(totalQty)
-  parts.push(encodeLine(subtotalLine))
+  parts.push(encodeLine(`Total QTY : ${totalQty}`, true))
+  parts.push(encodeLine(`Subtotal   ${formatRupiah(t.total)}`, true))
 
-  const subPrice = formatRupiah(t.total)
-  parts.push(encodeLine(padRight('Subtotal', w - subPrice.length) + subPrice))
+  parts.push(encodeLine(drawLine(w), true))
 
-  parts.push(encodeLine(drawLine(w)))
+  parts.push(encodeLine(`Total      ${formatRupiah(t.total)}`, true, 'left', 2))
+  parts.push(encodeLine(`Bayar      ${formatRupiah(t.total)}`, true))
+  parts.push(encodeLine(`Kembali    Rp 0`, true))
 
-  const totalStr = formatRupiah(t.total)
-  parts.push(encodeLine(padRight('Total', w - totalStr.length) + totalStr, true))
+  parts.push(encodeLine(drawLine(w), true))
 
-  const bayarStr = formatRupiah(t.total)
-  parts.push(encodeLine(padRight('Bayar', w - bayarStr.length) + bayarStr))
+  parts.push(encodeLine(centerText('Terima Kasih', w), true, 'center'))
+  parts.push(encodeLine(centerText('Selamat Datang Kembali', w), true, 'center'))
+  parts.push(encodeLine(centerText('Kritik dan Saran WA', w), true, 'center'))
+  parts.push(encodeLine(centerText('0852-8000-4508', w), true, 'center'))
 
-  parts.push(encodeLine('Kembali' + rightText('Rp 0', w - 8)))
-
-  parts.push(encodeLine(drawLine(w)))
-
-  parts.push(encodeLine(centerText('Terima Kasih', w), false, 'center'))
-  parts.push(encodeLine(centerText('Selamat Datang Kembali', w), false, 'center'))
-  parts.push(encodeLine(centerText('Kritik dan Saran WA', w), false, 'center'))
-  parts.push(encodeLine(centerText('0852-8000-4508', w), false, 'center'))
-
-  parts.push(feedAndCut(4))
+  parts.push(setLineSpacing(30))
+  parts.push(feedAndCut(3))
 
   return compose(...parts)
 }
