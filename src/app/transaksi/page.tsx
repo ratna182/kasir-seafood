@@ -29,7 +29,7 @@ export default async function TransaksiPage() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const [kasirSesi, menus, activeOrders] = await Promise.all([
+  const [kasirSesi, menus, warungMenus, activeOrders] = await Promise.all([
     prisma.kasirSesi.findUnique({
       where: { warungId_tanggal: { warungId: activeSession.warungId, tanggal: today } },
     }),
@@ -38,6 +38,9 @@ export default async function TransaksiPage() {
       include: { category: { select: { id: true, nama: true } } },
       orderBy: [{ sortOrder: 'asc' }, { nama: 'asc' }],
     }),
+    prisma.warungMenu.findMany({
+      where: { warungId: activeSession.warungId },
+    }),
     prisma.transaksi.findMany({
       where: { warungId: activeSession.warungId, status: 'OPEN' },
       include: { items: { orderBy: { createdAt: 'asc' } } },
@@ -45,10 +48,12 @@ export default async function TransaksiPage() {
     }),
   ])
 
+  const warungHargaMap = new Map(warungMenus.map((wm) => [wm.menuId, wm.harga]))
+
   const serializedMenus = menus.map((m) => ({
     id: m.id,
     nama: m.nama,
-    harga: m.harga,
+    harga: warungHargaMap.get(m.id) ?? m.harga,
     isAktif: m.isAktif,
     categoryId: m.categoryId,
     category: m.category,
