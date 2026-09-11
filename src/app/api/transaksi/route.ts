@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
     const menuIds = [...new Set(items.map((item) => item.menuId))]
     const menus = await prisma.menu.findMany({
       where: { id: { in: menuIds }, warungId, isAktif: true },
+      include: { warungMenus: { where: { warungId }, select: { harga: true } } },
     })
 
     if (menus.length !== menuIds.length) {
@@ -88,7 +89,8 @@ export async function POST(request: NextRequest) {
     for (const item of items) {
       const menu = menusById.get(item.menuId)!
       const qty = Number(item.qty)
-      const hargaSatuan = item.hargaSatuan === undefined ? menu.harga : Number(item.hargaSatuan)
+      const effectiveHarga = menu.warungMenus[0]?.harga ?? menu.harga
+      const hargaSatuan = item.hargaSatuan === undefined ? effectiveHarga : Number(item.hargaSatuan)
       const diskonSatuan = Number(item.diskonSatuan || 0)
       const catatan = item.catatan?.trim() || null
       if (diskonSatuan > hargaSatuan) {

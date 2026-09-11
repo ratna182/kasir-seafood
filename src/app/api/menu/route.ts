@@ -21,11 +21,24 @@ export async function GET(request: NextRequest) {
 
     const menus = await prisma.menu.findMany({
       where,
-      include: { category: { select: { id: true, nama: true } } },
+      include: {
+        category: { select: { id: true, nama: true } },
+        warungMenus: { select: { harga: true, warungId: true } },
+      },
       orderBy: [{ sortOrder: 'asc' }, { nama: 'asc' }],
     })
 
-    return NextResponse.json({ success: true, data: menus })
+    const menusWithHarga = menus.map((menu) => {
+      const override = menu.warungMenus.find((wm) => wm.warungId === where.warungId)
+      return {
+        ...menu,
+        harga: override?.harga ?? menu.harga,
+        hargaDefault: menu.harga,
+        isCustomHarga: !!override,
+      }
+    })
+
+    return NextResponse.json({ success: true, data: menusWithHarga })
   } catch (error) {
     console.error('[GET /api/menu]', error)
     return NextResponse.json({ success: false, message: 'Gagal mengambil data menu.' }, { status: 500 })

@@ -21,6 +21,7 @@ model Warung {
   menuCategories MenuCategory[]
   transaksis    Transaksi[]
   kasirSesis    KasirSesi[]
+  warungMenus  WarungMenu[]
 
   @@map("warungs")
 }
@@ -55,9 +56,25 @@ model Menu {
   warung          Warung          @relation(fields: [warungId], references: [id])
   category        MenuCategory    @relation(fields: [categoryId], references: [id])
   transaksiItems  TransaksiItem[]
+  warungMenus     WarungMenu[]
 
   @@unique([warungId, nama])
   @@map("menus")
+}
+
+model WarungMenu {
+  id        String   @id @default(uuid())
+  warungId  String   @map("warung_id")
+  menuId    String   @map("menu_id")
+  harga     Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  warung Warung @relation(fields: [warungId], references: [id])
+  menu   Menu   @relation(fields: [menuId], references: [id])
+
+  @@unique([warungId, menuId])
+  @@map("warung_menus")
 }
 
 model MenuCategory {

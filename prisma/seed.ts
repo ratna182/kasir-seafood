@@ -9,6 +9,7 @@ async function main() {
   await prisma.kasirSesi.deleteMany()
   await prisma.transaksiItem.deleteMany()
   await prisma.transaksi.deleteMany()
+  await prisma.warungMenu.deleteMany()
   await prisma.menu.deleteMany()
   await prisma.menuCategory.deleteMany()
   await prisma.user.deleteMany()
