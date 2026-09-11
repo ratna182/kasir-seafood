@@ -54,20 +54,10 @@ export default function HargaWarungManager() {
 
   async function loadWarungs() {
     try {
-      const res = await fetch('/api/menu')
+      const res = await fetch('/api/admin/warungs')
       const data = await res.json()
       if (data.success) {
-        const uniqueWarungs = new Map<string, Warung>()
-        for (const menu of data.data) {
-          if (!uniqueWarungs.has(menu.warungId)) {
-            uniqueWarungs.set(menu.warungId, {
-              id: menu.warungId,
-              nama: menu.warung?.nama || 'Unknown',
-              kode: menu.warung?.kode || '??'
-            })
-          }
-        }
-        setWarungs(Array.from(uniqueWarungs.values()))
+        setWarungs(data.data)
       }
     } catch {
       showFeedback('error', 'Gagal memuat warung')
@@ -183,7 +173,7 @@ export default function HargaWarungManager() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Cabang</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">1. Pilih Cabang yang mau diatur harganya</label>
             <select
               value={selectedWarung}
               onChange={(e) => setSelectedWarung(e.target.value)}
@@ -203,10 +193,15 @@ export default function HargaWarungManager() {
               className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {saving ? 'Menyimpan...' : 'Simpan Semua'}
+              {saving ? 'Menyimpan...' : '2. Simpan Semua Harga'}
             </button>
           )}
         </div>
+        {selectedWarung && (
+          <p className="mt-3 text-sm text-gray-500">
+            Isi <strong>Harga Cabang</strong> untuk menu yang harganya beda. Kosongkan jika pakai harga default.
+          </p>
+        )}
       </div>
 
       {selectedWarung && (
