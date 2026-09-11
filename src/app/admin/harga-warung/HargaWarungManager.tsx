@@ -100,25 +100,22 @@ export default function HargaWarungManager() {
   async function saveHarga() {
     setSaving(true)
     try {
-      for (const menu of menus) {
-        if (menu.hargaOverride !== null) {
-          await fetch('/api/admin/warung-menu', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              warungId: selectedWarung,
-              menuId: menu.id,
-              harga: menu.hargaOverride
-            })
-          })
-        } else {
-          await fetch(`/api/admin/warung-menu?warung_id=${selectedWarung}&menu_id=${menu.id}`, {
-            method: 'DELETE'
-          })
-        }
+      const items = menus.map(m => ({
+        menuId: m.id,
+        harga: m.hargaOverride,
+      }))
+      const res = await fetch('/api/admin/warung-menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ warungId: selectedWarung, items }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        showFeedback('success', data.message || 'Harga berhasil disimpan!')
+        loadMenus(selectedWarung)
+      } else {
+        showFeedback('error', data.message || 'Gagal menyimpan')
       }
-      showFeedback('success', 'Harga berhasil disimpan!')
-      loadMenus(selectedWarung)
     } catch {
       showFeedback('error', 'Gagal menyimpan harga')
     } finally {

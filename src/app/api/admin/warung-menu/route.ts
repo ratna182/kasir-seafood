@@ -37,6 +37,39 @@ export async function POST(request: NextRequest) {
     if (authError) return authError
 
     const body = await request.json()
+
+    // Batch mode: { warungId, items: [{ menuId, harga }] }
+    if (body.items && Array.isArray(body.items)) {
+      const { warungId, items } = body
+      if (!warungId) {
+        return NextResponse.json({ success: false, message: 'warungId wajib.' }, { status: 422 })
+      }
+
+      const warung = await prisma.warung.findUnique({ where: { id: warungId } })
+      if (!warung) {
+        return NextResponse.json({ success: false, message: 'Warung tidak ditemukan.' }, { status: 404 })
+      }
+
+      // Delete existing overrides for this warung
+      await prisma.warungMenu.deleteMany({ where: { warungId } })
+
+      // Insert new overrides (only for items with harga)
+      const toInsert = items
+        .filter((item: { menuId: string; harga: number }) => item.harga !== null && item.harga !== undefined && item.harga > 0)
+        .map((item: { menuId: string; harga: number }) => ({
+          warungId,
+          menuId: item.menuId,
+          harga: Number(item.harga),
+        }))
+
+      if (toInsert.length > 0) {
+        await prisma.warungMenu.createMany({ data: toInsert })
+      }
+
+      return NextResponse.json({ success: true, message: `${toInsert.length} harga berhasil disimpan.` })
+    }
+
+    // Single mode: { warungId, menuId, harga }
     const { warungId, menuId, harga } = body
 
     if (!warungId || !menuId || harga === undefined || harga === null) {
