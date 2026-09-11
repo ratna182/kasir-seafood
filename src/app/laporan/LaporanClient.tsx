@@ -47,6 +47,7 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
   const [kasirSesi, setKasirSesi] = useState<KasirSesiInfo | null>(initialKasirSesi)
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [opening, setOpening] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [selectedWarungId, setSelectedWarungId] = useState(session.warungId || '')
   const isOwner = session.role === 'OWNER'
@@ -89,6 +90,29 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
       setFeedback({ type: 'error', message: 'Terjadi kesalahan sistem saat menutup kasir' })
       setShowCloseModal(false)
     } finally { setClosing(false) }
+  }
+
+  async function handleBukaKasir() {
+    if (!confirm('Yakin ingin membuka kasir hari ini? Kasir akan bisa bertransaksi lagi.')) return
+    setOpening(true)
+    try {
+      const warungId = isOwner ? selectedWarungId : session.warungId
+      const res = await fetch('/api/kasir/buka', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ warungId }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        setKasirSesi(null)
+        setFeedback({ type: 'success', message: 'Kasir hari ini berhasil dibuka kembali!' })
+        fetchLaporan()
+      } else {
+        setFeedback({ type: 'error', message: result.message || 'Gagal membuka kasir' })
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Terjadi kesalahan sistem saat membuka kasir' })
+    } finally { setOpening(false) }
   }
 
   function handlePrint() { window.print() }
@@ -169,9 +193,9 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
               <Lock size={16} /> Tutup Kasir Hari Ini
             </button>
           ) : (
-            <div className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.5rem 0.85rem', borderRadius: '8px' }}>
-              <Lock size={14} /> Kasir Sudah Ditutup
-            </div>
+            <button type="button" id="btn-buka-kasir" onClick={handleBukaKasir} disabled={opening} className="btn btn-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Lock size={16} /> {opening ? 'Membuka...' : 'Buka Kasir Lagi'}
+            </button>
           )}
         </div>
       </div>
