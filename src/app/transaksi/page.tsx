@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
-import { syncWarungMenus } from '@/lib/menu-sync'
 import Navbar from '@/components/Navbar'
 import TransaksiClient from './TransaksiClient'
 
@@ -25,9 +24,6 @@ export default async function TransaksiPage() {
     : session
 
   if (!activeSession.warungId) redirect('/login')
-
-  // Self-heal menu kasir tanpa menghapus menu yang sudah dipakai transaksi.
-  await syncWarungMenus(activeSession.warungId)
 
   // Cek apakah kasir sudah tutup hari ini
   const today = new Date()
