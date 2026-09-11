@@ -168,6 +168,12 @@ export async function POST(request: NextRequest) {
       results.push('sort index: OK')
     } catch (e: any) { results.push(`sort index: ${e.message}`) }
 
+    // Step 12: Cleanup old soft-deleted menus with "(nonaktif" suffix
+    try {
+      await prisma.$executeRawUnsafe(`DELETE FROM "menus" WHERE "nama" LIKE '%(nonaktif%'`)
+      results.push('cleanup nonaktif menus: OK')
+    } catch (e: any) { results.push(`cleanup nonaktif menus: ${e.message}`) }
+
     const catCount = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM "menu_categories"`
     const menuCount = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM "menus" WHERE "category_id" IS NOT NULL`
     const menuTotal = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM "menus"`
