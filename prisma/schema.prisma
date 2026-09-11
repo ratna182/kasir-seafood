@@ -11,15 +11,16 @@ datasource db {
 }
 
 model Warung {
-  id         String      @id @default(uuid())
-  nama       String      @unique
-  kode       String      @unique
-  createdAt  DateTime    @default(now()) @map("created_at")
+  id            String          @id @default(uuid())
+  nama          String          @unique
+  kode          String          @unique
+  createdAt     DateTime        @default(now()) @map("created_at")
 
-  users      User[]
-  menus      Menu[]
-  transaksis Transaksi[]
-  kasirSesis KasirSesi[]
+  users         User[]
+  menus         Menu[]
+  menuCategories MenuCategory[]
+  transaksis    Transaksi[]
+  kasirSesis    KasirSesi[]
 
   @@map("warungs")
 }
@@ -41,20 +42,37 @@ model User {
 }
 
 model Menu {
-  id        String          @id @default(uuid())
-  warungId  String          @map("warung_id")
-  nama      String
-  kategori  KategoriMenu
-  harga     Int
-  isAktif   Boolean         @default(true) @map("is_aktif")
-  createdAt DateTime        @default(now()) @map("created_at")
-  updatedAt DateTime        @updatedAt @map("updated_at")
+  id         String          @id @default(uuid())
+  warungId   String          @map("warung_id")
+  categoryId String          @map("category_id")
+  nama       String
+  harga      Int
+  isAktif    Boolean         @default(true) @map("is_aktif")
+  sortOrder  Int             @default(0) @map("sort_order")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
 
-  warung         Warung          @relation(fields: [warungId], references: [id])
-  transaksiItems TransaksiItem[]
+  warung          Warung          @relation(fields: [warungId], references: [id])
+  category        MenuCategory    @relation(fields: [categoryId], references: [id])
+  transaksiItems  TransaksiItem[]
 
   @@unique([warungId, nama])
   @@map("menus")
+}
+
+model MenuCategory {
+  id        String   @id @default(uuid())
+  warungId  String   @map("warung_id")
+  nama      String
+  sortOrder Int      @default(0) @map("sort_order")
+  isAktif   Boolean  @default(true) @map("is_aktif")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  warung Warung @relation(fields: [warungId], references: [id])
+  menus  Menu[]
+
+  @@unique([warungId, nama])
+  @@map("menu_categories")
 }
 
 model Transaksi {
@@ -115,11 +133,6 @@ model KasirSesi {
 enum RoleUser {
   OWNER
   KASIR
-}
-
-enum KategoriMenu {
-  MAKANAN
-  MINUMAN
 }
 
 enum StatusTransaksi {

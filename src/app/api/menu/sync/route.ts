@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const [warungs, allMenus] = await Promise.all([
       prisma.warung.findMany({ orderBy: { kode: 'asc' } }),
-      prisma.menu.findMany({ orderBy: [{ kategori: 'asc' }, { nama: 'asc' }] }),
+      prisma.menu.findMany({ orderBy: [{ sortOrder: 'asc' }, { nama: 'asc' }] }),
     ])
 
     if (warungs.length === 0) {
@@ -30,11 +30,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Deduplicate by nama — ambil yang paling lengkap
-    const menuMap = new Map<string, { nama: string; kategori: 'MAKANAN' | 'MINUMAN'; harga: number; isAktif: boolean }>()
+    const menuMap = new Map<string, { nama: string; harga: number; isAktif: boolean }>()
     for (const m of allMenus) {
       const existing = menuMap.get(m.nama)
       if (!existing || (!existing.isAktif && m.isAktif)) {
-        menuMap.set(m.nama, { nama: m.nama, kategori: m.kategori, harga: m.harga, isAktif: m.isAktif })
+        menuMap.set(m.nama, { nama: m.nama, harga: m.harga, isAktif: m.isAktif })
       }
     }
 

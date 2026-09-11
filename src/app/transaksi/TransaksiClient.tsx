@@ -8,9 +8,10 @@ import Receipt, { type PrinterWidth } from '@/components/Receipt'
 interface Menu {
   id: string
   nama: string
-  kategori: string
   harga: number
   isAktif: boolean
+  categoryId: string
+  category: { id: string; nama: string }
 }
 
 interface CartItem {
@@ -64,7 +65,7 @@ const QUICK_TABLES = ['Meja 1', 'Meja 2', 'Meja 3', 'Meja 4', 'Meja 5', 'Meja 6'
 export default function TransaksiClient({ session, menus: initialMenus, initialActiveOrders, isKasirClosed }: TransaksiClientProps) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [nomorMeja, setNomorMeja] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'MAKANAN' | 'MINUMAN'>('ALL')
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [paying, setPaying] = useState(false)
@@ -82,10 +83,31 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   const filteredMenus = useMemo(() => {
     return menus.filter((menu) => {
       const matchesSearch = menu.nama.toLowerCase().includes(search.toLowerCase())
-      const matchesCategory = categoryFilter === 'ALL' || menu.kategori === categoryFilter
+      const matchesCategory = !activeCategoryId || menu.categoryId === activeCategoryId
       return matchesSearch && matchesCategory
     })
-  }, [menus, search, categoryFilter])
+  }, [menus, search, activeCategoryId])
+
+  const categories = useMemo(() => {
+    const seen = new Map<string, { id: string; nama: string; count: number }>()
+    for (const menu of menus) {
+      if (!menu.isAktif) continue
+      const existing = seen.get(menu.categoryId)
+      if (existing) existing.count++
+      else seen.set(menu.categoryId, { id: menu.categoryId, nama: menu.category.nama, count: 1 })
+    }
+    return Array.from(seen.values())
+  }, [menus])
+
+  const menusByCategory = useMemo(() => {
+    const grouped = new Map<string, Menu[]>()
+    for (const menu of filteredMenus) {
+      const list = grouped.get(menu.categoryId) || []
+      list.push(menu)
+      grouped.set(menu.categoryId, list)
+    }
+    return grouped
+  }, [filteredMenus])
 
   const loadActiveOrders = useCallback(async () => {
     const res = await fetch('/api/transaksi/open')
@@ -338,19 +360,22 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                 style={{ width: '100%', paddingLeft: '36px' }}
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setCategoryFilter('ALL')} className={`btn btn-sm ${categoryFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}>
-                Semua ({menus.length})
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => { setActiveCategoryId(null); document.getElementById('menu-list')?.scrollIntoView({ behavior: 'smooth' }) }}
+                className={`btn btn-sm ${activeCategoryId === null ? 'btn-primary' : 'btn-ghost'}`}>
+                Semua ({menus.filter((m) => m.isAktif).length})
               </button>
-              <button type="button" onClick={() => setCategoryFilter('MAKANAN')} className={`btn btn-sm ${categoryFilter === 'MAKANAN' ? 'btn-primary' : 'btn-ghost'}`}>
-                Makanan ({menus.filter((m) => m.kategori === 'MAKANAN').length})
-              </button>
-              <button type="button" onClick={() => setCategoryFilter('MINUMAN')} className={`btn btn-sm ${categoryFilter === 'MINUMAN' ? 'btn-primary' : 'btn-ghost'}`}>
-                Minuman ({menus.filter((m) => m.kategori === 'MINUMAN').length})
-              </button>
+              {categories.map((cat) => (
+                <button key={cat.id} type="button"
+                  onClick={() => { setActiveCategoryId(cat.id); document.getElementById(`cat-${cat.id}`)?.scrollIntoView({ behavior: 'smooth' }) }}
+                  className={`btn btn-sm ${activeCategoryId === cat.id ? 'btn-primary' : 'btn-ghost'}`}>
+                  {cat.nama} ({cat.count})
+                </button>
+              ))}
             </div>
           </div>
 
+          <div id="menu-list">
           {filteredMenus.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
               <ShoppingCart size={40} style={{ color: 'var(--color-text-muted)', marginBottom: '0.5rem' }} />
@@ -364,79 +389,80 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
               )}
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.85rem' }}>
-              {filteredMenus.map((menu) => {
-                const inCart = cart.find((item) => item.menuId === menu.id)
-                return (
-                  <div
-                    key={menu.id}
-                    onClick={() => addToCart(menu)}
-                    className="card"
-                    style={{
-                      padding: '1rem',
-                      cursor: isKasirClosed ? 'not-allowed' : 'pointer',
-                      border: inCart ? '1px solid var(--color-brand)' : '1px solid var(--color-border)',
-                      background: inCart ? 'var(--color-brand-light)' : 'var(--color-surface)',
-                      position: 'relative',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      transition: 'var(--transition)',
-                      opacity: isKasirClosed ? 0.6 : 1,
-                      userSelect: 'none',
-                    }}
-                  >
-                    {inCart && (
-                      <span style={{
-                        position: 'absolute', top: '8px', right: '8px',
-                        background: 'var(--color-brand)', color: '#fff',
-                        fontWeight: 700, fontSize: '0.75rem', borderRadius: '12px',
-                        padding: '0.15rem 0.5rem', boxShadow: 'var(--shadow-sm)',
-                      }}>
-                        {inCart.qty}x
-                      </span>
-                    )}
-                    <div>
-                      <div style={{
-                        fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700,
-                        color: menu.kategori === 'MAKANAN' ? 'var(--color-brand)' : 'var(--color-success)',
-                        marginBottom: '4px',
-                      }}>
-                        {menu.kategori === 'MAKANAN' ? 'Makanan' : 'Minuman'}
-                      </div>
-                      <div style={{
-                        fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-text-primary)',
-                        lineHeight: '1.3', marginBottom: '0.5rem',
-                      }}>
-                        {menu.nama}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                      <span style={{
-                        fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}>
-                        Rp {menu.harga.toLocaleString('id-ID')}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={isKasirClosed}
-                        style={{
-                          width: '28px', height: '28px', borderRadius: '50%', border: 'none',
-                          background: inCart ? 'var(--color-brand)' : 'var(--color-surface-raised)',
-                          color: inCart ? '#fff' : 'var(--color-text-primary)',
-                          fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          cursor: isKasirClosed ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        +
-                      </button>
-                    </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {Array.from(menusByCategory.entries()).map(([catId, catMenus]) => (
+                <div key={catId} id={`cat-${catId}`}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.6rem', color: 'var(--color-text-primary)' }}>
+                    {catMenus[0]?.category.nama}
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                    {catMenus.map((menu) => {
+                      const inCart = cart.find((item) => item.menuId === menu.id)
+                      return (
+                        <div
+                          key={menu.id}
+                          onClick={() => addToCart(menu)}
+                          className="card"
+                          style={{
+                            padding: '1rem',
+                            cursor: isKasirClosed ? 'not-allowed' : 'pointer',
+                            border: inCart ? '1px solid var(--color-brand)' : '1px solid var(--color-border)',
+                            background: inCart ? 'var(--color-brand-soft)' : 'var(--color-surface)',
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            transition: 'var(--transition)',
+                            opacity: isKasirClosed ? 0.6 : 1,
+                            userSelect: 'none',
+                          }}
+                        >
+                          {inCart && (
+                            <span style={{
+                              position: 'absolute', top: '8px', right: '8px',
+                              background: 'var(--color-brand)', color: '#fff',
+                              fontWeight: 700, fontSize: '0.75rem', borderRadius: '12px',
+                              padding: '0.15rem 0.5rem', boxShadow: 'var(--shadow-sm)',
+                            }}>
+                              {inCart.qty}x
+                            </span>
+                          )}
+                          <div style={{
+                            fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-text-primary)',
+                            lineHeight: '1.3', marginBottom: '0.5rem',
+                          }}>
+                            {menu.nama}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                            <span style={{
+                              fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}>
+                              Rp {menu.harga.toLocaleString('id-ID')}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={isKasirClosed}
+                              style={{
+                                width: '28px', height: '28px', borderRadius: '50%', border: 'none',
+                                background: inCart ? 'var(--color-brand)' : 'var(--color-surface-raised)',
+                                color: inCart ? '#fff' : 'var(--color-text-primary)',
+                                fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: isKasirClosed ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           )}
+          </div>
         </div>
 
         {/* KOLOM KANAN: CART / ORDER SUMMARY */}

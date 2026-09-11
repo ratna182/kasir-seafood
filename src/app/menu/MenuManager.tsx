@@ -1,42 +1,70 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { Plus, Pencil, Trash2, Search } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 
-export interface MenuItem {
+interface Category {
   id: string
-  warungId: string
   nama: string
-  kategori: 'MAKANAN' | 'MINUMAN'
+  sortOrder: number
+  isAktif: boolean
+  _count: { menus: number }
+}
+
+interface MenuItem {
+  id: string
+  nama: string
   harga: number
   isAktif: boolean
+  sortOrder: number
+  categoryId: string
 }
 
 export default function MenuManager() {
-  const [menus, setMenus] = useState<MenuItem[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [menusByCategory, setMenusByCategory] = useState<Record<string, MenuItem[]>>({})
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'MAKANAN' | 'MINUMAN'>('ALL')
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingMenu, setEditingMenu] = useState<MenuItem | null>(null)
-  const [formData, setFormData] = useState({ nama: '', kategori: 'MAKANAN' as 'MAKANAN' | 'MINUMAN', harga: '', isAktif: true })
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-  const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => { fetchMenus() }, [])
+  const [catModalOpen, setCatModalOpen] = useState(false)
+  const [editingCat, setEditingCat] = useState<Category | null>(null)
+  const [catName, setCatName] = useState('')
+  const [catSaving, setCatSaving] = useState(false)
 
-  async function fetchMenus() {
+  const [menuModalOpen, setMenuModalOpen] = useState(false)
+  const [editingMenu, setEditingMenu] = useState<MenuItem | null>(null)
+  const [menuForm, setMenuForm] = useState({ nama: '', harga: '', categoryId: '', isAktif: true })
+  const [menuErrors, setMenuErrors] = useState<Record<string, string>>({})
+  const [menuSaving, setMenuSaving] = useState(false)
+  const [deletingMenuId, setDeletingMenuId] = useState<string | null>(null)
+
+  useEffect(() => { loadAll() }, [])
+
+  async function loadAll() {
     setLoading(true)
     try {
-      const res = await fetch('/api/menu')
-      const data = await res.json()
-      if (data.success) setMenus(data.data)
-      else showFeedback('error', data.message || 'Gagal memuat menu')
-    } catch { showFeedback('error', 'Koneksi ke server gagal') }
-    finally { setLoading(false) }
+      const [catRes, menuRes] = await Promise.all([
+        fetch('/api/menu/categories'),
+        fetch('/api/menu'),
+      ])
+      const catData = await catRes.json()
+      const menuData = await menuRes.json()
+      if (catData.success) {
+        setCategories(catData.data)
+        const grouped: Record<string, MenuItem[]> = {}
+        for (const cat of catData.data) grouped[cat.id] = []
+        if (menuData.success) {
+          for (const m of menuData.data) {
+            if (grouped[m.categoryId]) grouped[m.categoryId].push(m)
+          }
+        }
+        setMenusByCategory(grouped)
+      } else {
+        showFeedback('error', catData.message || 'Gagal memuat data')
+      }
+    } catch {
+      showFeedback('error', 'Koneksi ke server gagal')
+    } finally { setLoading(false) }
   }
 
   function showFeedback(type: 'success' | 'error', message: string) {
@@ -44,76 +72,148 @@ export default function MenuManager() {
     setTimeout(() => setFeedback(null), 4000)
   }
 
-  function openAddModal() {
-    setEditingMenu(null); setFormData({ nama: '', kategori: 'MAKANAN', harga: '', isAktif: true }); setFormErrors({}); setIsModalOpen(true)
-  }
+  // ── Category CRUD ──
 
-  function openEditModal(menu: MenuItem) {
-    setEditingMenu(menu); setFormData({ nama: menu.nama, kategori: menu.kategori, harga: menu.harga.toString(), isAktif: menu.isAktif }); setFormErrors({}); setIsModalOpen(true)
-  }
+  function openAddCat() { setEditingCat(null); setCatName(''); setCatModalOpen(true) }
+  function openEditCat(cat: Category) { setEditingCat(cat); setCatName(cat.nama); setCatModalOpen(true) }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); setFormErrors({})
-    const errors: Record<string, string> = {}
-    if (!formData.nama.trim()) errors.nama = 'Nama menu wajib diisi.'
-    if (!formData.harga || isNaN(Number(formData.harga)) || Number(formData.harga) < 0) errors.harga = 'Harga harus berupa nominal angka valid.'
-    if (Object.keys(errors).length > 0) { setFormErrors(errors); return }
-    setSaving(true)
+  async function saveCat() {
+    if (!catName.trim()) { showFeedback('error', 'Nama kategori wajib diisi.'); return }
+    setCatSaving(true)
     try {
-      if (editingMenu) {
-        const res = await fetch(`/api/menu/${editingMenu.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nama: formData.nama.trim(), kategori: formData.kategori, harga: Number(formData.harga), isAktif: formData.isAktif }) })
+      if (editingCat) {
+        const res = await fetch(`/api/menu/categories/${editingCat.id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nama: catName.trim() }),
+        })
         const data = await res.json()
-        if (data.success) { showFeedback('success', `Menu "${formData.nama}" berhasil diperbarui!`); setIsModalOpen(false); fetchMenus() }
-        else { if (data.errors) setFormErrors(data.errors); else showFeedback('error', data.message || 'Gagal memperbarui menu') }
+        if (data.success) { showFeedback('success', 'Kategori diperbarui.'); setCatModalOpen(false); loadAll() }
+        else showFeedback('error', data.errors?.nama || data.message || 'Gagal')
       } else {
-        const res = await fetch('/api/menu', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nama: formData.nama.trim(), kategori: formData.kategori, harga: Number(formData.harga) }) })
+        const maxSort = categories.length > 0 ? Math.max(...categories.map((c) => c.sortOrder)) + 1 : 0
+        const res = await fetch('/api/menu/categories', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nama: catName.trim(), sortOrder: maxSort }),
+        })
         const data = await res.json()
-        if (data.success) { showFeedback('success', `Menu "${formData.nama}" berhasil ditambahkan!`); setIsModalOpen(false); fetchMenus() }
-        else { if (data.errors) setFormErrors(data.errors); else showFeedback('error', data.message || 'Gagal menambahkan menu') }
+        if (data.success) { showFeedback('success', 'Kategori dibuat.'); setCatModalOpen(false); loadAll() }
+        else showFeedback('error', data.errors?.nama || data.message || 'Gagal')
       }
-    } catch { showFeedback('error', 'Terjadi kesalahan sistem. Coba lagi.') }
-    finally { setSaving(false) }
+    } catch { showFeedback('error', 'Terjadi kesalahan.') }
+    finally { setCatSaving(false) }
   }
 
-  async function handleToggleStatus(menu: MenuItem) {
+  async function deleteCat(cat: Category) {
+    if (cat._count.menus > 0) {
+      if (!window.confirm(`Kategori "${cat.nama}" masih ada ${cat._count.menus} menu. Hapus semua menu dulu, atau pindahkan ke kategori lain.`)) return
+      return
+    }
+    if (!window.confirm(`Hapus kategori "${cat.nama}"?`)) return
+    try {
+      const res = await fetch(`/api/menu/categories/${cat.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) { showFeedback('success', 'Kategori dihapus.'); loadAll() }
+      else showFeedback('error', data.message || 'Gagal menghapus')
+    } catch { showFeedback('error', 'Gagal menghapus kategori.') }
+  }
+
+  async function moveCat(cat: Category, direction: 'up' | 'down') {
+    const idx = categories.findIndex((c) => c.id === cat.id)
+    if (idx < 0) return
+    const target = direction === 'up' ? categories[idx - 1] : categories[idx + 1]
+    if (!target) return
+    await Promise.all([
+      fetch(`/api/menu/categories/${cat.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortOrder: target.sortOrder }) }),
+      fetch(`/api/menu/categories/${target.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortOrder: cat.sortOrder }) }),
+    ])
+    loadAll()
+  }
+
+  // ── Menu CRUD ──
+
+  function openAddMenu(categoryId: string) {
+    setEditingMenu(null)
+    setMenuForm({ nama: '', harga: '', categoryId, isAktif: true })
+    setMenuErrors({})
+    setMenuModalOpen(true)
+  }
+
+  function openEditMenu(menu: MenuItem) {
+    setEditingMenu(menu)
+    setMenuForm({ nama: menu.nama, harga: menu.harga.toString(), categoryId: menu.categoryId, isAktif: menu.isAktif })
+    setMenuErrors({})
+    setMenuModalOpen(true)
+  }
+
+  async function saveMenu(e: React.FormEvent) {
+    e.preventDefault()
+    setMenuErrors({})
+    const errors: Record<string, string> = {}
+    if (!menuForm.nama.trim()) errors.nama = 'Nama menu wajib diisi.'
+    if (!menuForm.harga || isNaN(Number(menuForm.harga)) || Number(menuForm.harga) < 0) errors.harga = 'Harga harus angka valid.'
+    if (!menuForm.categoryId) errors.categoryId = 'Kategori wajib dipilih.'
+    if (Object.keys(errors).length > 0) { setMenuErrors(errors); return }
+    setMenuSaving(true)
+    try {
+      const body = { nama: menuForm.nama.trim(), harga: Number(menuForm.harga), categoryId: menuForm.categoryId, isAktif: menuForm.isAktif }
+      if (editingMenu) {
+        const res = await fetch(`/api/menu/${editingMenu.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        const data = await res.json()
+        if (data.success) { showFeedback('success', `Menu "${menuForm.nama}" diperbarui.`); setMenuModalOpen(false); loadAll() }
+        else { if (data.errors) setMenuErrors(data.errors); else showFeedback('error', data.message || 'Gagal') }
+      } else {
+        const res = await fetch('/api/menu', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        const data = await res.json()
+        if (data.success) { showFeedback('success', `Menu "${menuForm.nama}" ditambahkan.`); setMenuModalOpen(false); loadAll() }
+        else { if (data.errors) setMenuErrors(data.errors); else showFeedback('error', data.message || 'Gagal') }
+      }
+    } catch { showFeedback('error', 'Terjadi kesalahan.') }
+    finally { setMenuSaving(false) }
+  }
+
+  async function toggleMenuStatus(menu: MenuItem) {
     try {
       const res = await fetch(`/api/menu/${menu.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isAktif: !menu.isAktif }) })
       const data = await res.json()
-      if (data.success) { showFeedback('success', `Menu "${menu.nama}" sekarang ${!menu.isAktif ? 'Aktif' : 'Nonaktif'}`); setMenus((prev) => prev.map((m) => (m.id === menu.id ? { ...m, isAktif: !m.isAktif } : m))) }
-      else showFeedback('error', data.message || 'Gagal mengubah status menu')
-    } catch { showFeedback('error', 'Gagal memperbarui status menu') }
+      if (data.success) { showFeedback('success', `Menu "${menu.nama}" sekarang ${!menu.isAktif ? 'Aktif' : 'Nonaktif'}`); loadAll() }
+      else showFeedback('error', data.message || 'Gagal')
+    } catch { showFeedback('error', 'Gagal update status.') }
   }
 
-  async function handleDelete(menu: MenuItem) {
+  async function deleteMenu(menu: MenuItem) {
     if (!window.confirm(`Hapus menu "${menu.nama}"?`)) return
-    setDeletingId(menu.id)
+    setDeletingMenuId(menu.id)
     try {
       const res = await fetch(`/api/menu/${menu.id}`, { method: 'DELETE' })
       const data = await res.json()
-      if (data.success) { showFeedback('success', `Menu "${menu.nama}" berhasil dihapus.`); setMenus((prev) => prev.filter((m) => m.id !== menu.id)) }
-      else showFeedback('error', data.message || 'Gagal menghapus menu.')
-    } catch { showFeedback('error', 'Terjadi kesalahan saat menghapus menu.') }
-    finally { setDeletingId(null) }
+      if (data.success) { showFeedback('success', `Menu "${menu.nama}" dihapus.`); loadAll() }
+      else showFeedback('error', data.message || 'Gagal menghapus.')
+    } catch { showFeedback('error', 'Gagal menghapus menu.') }
+    finally { setDeletingMenuId(null) }
   }
 
-  const filteredMenus = useMemo(() => {
-    return menus.filter((menu) => {
-      const matchSearch = menu.nama.toLowerCase().includes(search.toLowerCase())
-      const matchCategory = categoryFilter === 'ALL' || menu.kategori === categoryFilter
-      const matchStatus = statusFilter === 'ALL' || (statusFilter === 'ACTIVE' && menu.isAktif) || (statusFilter === 'INACTIVE' && !menu.isAktif)
-      return matchSearch && matchCategory && matchStatus
-    })
-  }, [menus, search, categoryFilter, statusFilter])
+  async function moveMenu(menu: MenuItem, direction: 'up' | 'down') {
+    const siblings = menusByCategory[menu.categoryId] || []
+    const idx = siblings.findIndex((m) => m.id === menu.id)
+    if (idx < 0) return
+    const target = direction === 'up' ? siblings[idx - 1] : siblings[idx + 1]
+    if (!target) return
+    await Promise.all([
+      fetch(`/api/menu/${menu.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortOrder: target.sortOrder }) }),
+      fetch(`/api/menu/${target.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortOrder: menu.sortOrder }) }),
+    ])
+    loadAll()
+  }
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Kelola Menu</h1>
-          <p className="text-secondary text-sm">Atur daftar makanan, minuman, harga, dan ketersediaan menu warung.</p>
+          <p className="text-secondary text-sm">Atur kategori, menu, harga, dan urutan tampil.</p>
         </div>
-        <button id="btn-tambah-menu" onClick={openAddModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Plus size={16} /> Tambah Menu Baru
+        <button onClick={openAddCat} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Plus size={16} /> Tambah Kategori
         </button>
       </div>
 
@@ -123,120 +223,145 @@ export default function MenuManager() {
         </div>
       )}
 
-      <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ flex: '1 1 250px', position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-          <input type="text" className="form-input" placeholder="Cari nama menu (cth: Udang, Es Teh)..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', paddingLeft: '36px' }} />
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-          <div style={{ display: 'inline-flex' }}>
-            <button onClick={() => setCategoryFilter('ALL')} className={`btn btn-sm ${categoryFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}>Semua ({menus.length})</button>
-            <button onClick={() => setCategoryFilter('MAKANAN')} className={`btn btn-sm ${categoryFilter === 'MAKANAN' ? 'btn-primary' : 'btn-ghost'}`}>Makanan ({menus.filter((m) => m.kategori === 'MAKANAN').length})</button>
-            <button onClick={() => setCategoryFilter('MINUMAN')} className={`btn btn-sm ${categoryFilter === 'MINUMAN' ? 'btn-primary' : 'btn-ghost'}`}>Minuman ({menus.filter((m) => m.kategori === 'MINUMAN').length})</button>
-          </div>
-          <select className="form-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')} style={{ width: 'auto', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-            <option value="ALL">Semua Status</option>
-            <option value="ACTIVE">Hanya Aktif</option>
-            <option value="INACTIVE">Hanya Nonaktif</option>
-          </select>
-        </div>
-      </div>
-
       {loading ? (
         <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
           <div className="spinner" style={{ margin: '0 auto 1rem' }} />
-          <p className="text-secondary">Memuat daftar menu...</p>
+          <p className="text-secondary">Memuat data menu...</p>
         </div>
-      ) : filteredMenus.length === 0 ? (
+      ) : categories.length === 0 ? (
         <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
-          <h3>Tidak Ada Menu Ditemukan</h3>
-          <p className="text-secondary text-sm" style={{ marginBottom: '1.5rem' }}>
-            {search ? `Tidak ada menu yang sesuai dengan pencarian "${search}".` : 'Belum ada menu yang didaftarkan pada kategori ini.'}
-          </p>
-          {search ? <button onClick={() => setSearch('')} className="btn btn-ghost btn-sm">Reset Pencarian</button> : <button onClick={openAddModal} className="btn btn-primary btn-sm">Tambah Menu Pertama</button>}
+          <h3>Belum Ada Kategori</h3>
+          <p className="text-secondary text-sm" style={{ marginBottom: '1.5rem' }}>Buat kategori dulu untuk mengorganisir menu.</p>
+          <button onClick={openAddCat} className="btn btn-primary btn-sm">Tambah Kategori Pertama</button>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: 'var(--color-surface-raised)', borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: '0.875rem 1.25rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Nama Menu</th>
-                  <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Kategori</th>
-                  <th style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Harga Satuan</th>
-                  <th style={{ padding: '0.875rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Status</th>
-                  <th style={{ padding: '0.875rem 1.25rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredMenus.map((menu) => (
-                  <tr key={menu.id} style={{ borderBottom: '1px solid var(--color-border)', opacity: menu.isAktif ? 1 : 0.6, transition: 'var(--transition)' }}>
-                    <td style={{ padding: '1rem 1.25rem' }}><div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{menu.nama}</div></td>
-                    <td style={{ padding: '1rem' }}>
-                      <span className="badge" style={{ background: menu.kategori === 'MAKANAN' ? 'var(--color-brand-light)' : 'var(--color-success-light)', color: menu.kategori === 'MAKANAN' ? 'var(--color-brand)' : 'var(--color-success)', fontSize: '0.75rem' }}>
-                        {menu.kategori === 'MAKANAN' ? 'Makanan' : 'Minuman'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 700, fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
-                      Rp {menu.harga.toLocaleString('id-ID')}
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'center' }}>
-                      <button onClick={() => handleToggleStatus(menu)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                        <span className={`badge ${menu.isAktif ? 'badge-success' : 'badge-danger'}`} style={{ cursor: 'pointer', fontSize: '0.75rem', padding: '0.25rem 0.65rem', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: menu.isAktif ? 'var(--color-success)' : 'var(--color-danger)' }} />
-                          {menu.isAktif ? 'Aktif' : 'Nonaktif'}
-                        </span>
-                      </button>
-                    </td>
-                    <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <button onClick={() => openEditModal(menu)} className="btn btn-ghost btn-sm" style={{ padding: '4px' }} title="Edit menu"><Pencil size={14} /></button>
-                        <button onClick={() => handleDelete(menu)} disabled={deletingId === menu.id} className="btn btn-ghost btn-sm" style={{ padding: '4px', color: 'var(--color-danger)' }} title="Hapus menu"><Trash2 size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {categories.map((cat, catIdx) => (
+            <div key={cat.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem 1.25rem', background: 'var(--color-surface-raised)', borderBottom: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <h2 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>{cat.nama}</h2>
+                  <span className="badge" style={{ background: 'var(--color-brand-soft)', color: 'var(--color-brand)', fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '10px' }}>
+                    {cat._count.menus} menu
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <button onClick={() => moveCat(cat, 'up')} disabled={catIdx === 0} className="btn btn-ghost btn-sm" style={{ padding: '4px', opacity: catIdx === 0 ? 0.3 : 1 }} title="Naik"><ArrowUp size={14} /></button>
+                  <button onClick={() => moveCat(cat, 'down')} disabled={catIdx === categories.length - 1} className="btn btn-ghost btn-sm" style={{ padding: '4px', opacity: catIdx === categories.length - 1 ? 0.3 : 1 }} title="Turun"><ArrowDown size={14} /></button>
+                  <button onClick={() => openEditCat(cat)} className="btn btn-ghost btn-sm" style={{ padding: '4px' }} title="Edit"><Pencil size={14} /></button>
+                  <button onClick={() => deleteCat(cat)} className="btn btn-ghost btn-sm" style={{ padding: '4px', color: 'var(--color-danger)' }} title="Hapus"><Trash2 size={14} /></button>
+                </div>
+              </div>
+
+              <div style={{ padding: '0.75rem 1.25rem' }}>
+                <button onClick={() => openAddMenu(cat.id)} className="btn btn-ghost btn-sm" style={{ marginBottom: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Plus size={14} /> Tambah Menu
+                </button>
+
+                {(menusByCategory[cat.id] || []).length === 0 ? (
+                  <p className="text-secondary text-sm" style={{ margin: '0.5rem 0' }}>Belum ada menu di kategori ini.</p>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'left', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Nama Menu</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'right', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Harga</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'center', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Status</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'right', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(menusByCategory[cat.id] || []).map((menu, menuIdx) => {
+                        const siblings = menusByCategory[cat.id] || []
+                        return (
+                          <tr key={menu.id} style={{ borderBottom: '1px solid var(--color-border)', opacity: menu.isAktif ? 1 : 0.6 }}>
+                            <td style={{ padding: '0.75rem 0' }}>
+                              <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{menu.nama}</span>
+                            </td>
+                            <td style={{ padding: '0.75rem 0', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                              Rp {menu.harga.toLocaleString('id-ID')}
+                            </td>
+                            <td style={{ padding: '0.75rem 0', textAlign: 'center' }}>
+                              <button onClick={() => toggleMenuStatus(menu)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                <span className={`badge ${menu.isAktif ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '10px' }}>
+                                  {menu.isAktif ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                              </button>
+                            </td>
+                            <td style={{ padding: '0.75rem 0', textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '0.25rem', alignItems: 'center' }}>
+                                <button onClick={() => moveMenu(menu, 'up')} disabled={menuIdx === 0} className="btn btn-ghost btn-sm" style={{ padding: '2px', opacity: menuIdx === 0 ? 0.3 : 1 }}><ArrowUp size={12} /></button>
+                                <button onClick={() => moveMenu(menu, 'down')} disabled={menuIdx === siblings.length - 1} className="btn btn-ghost btn-sm" style={{ padding: '2px', opacity: menuIdx === siblings.length - 1 ? 0.3 : 1 }}><ArrowDown size={12} /></button>
+                                <button onClick={() => openEditMenu(menu)} className="btn btn-ghost btn-sm" style={{ padding: '2px' }}><Pencil size={12} /></button>
+                                <button onClick={() => deleteMenu(menu)} disabled={deletingMenuId === menu.id} className="btn btn-ghost btn-sm" style={{ padding: '2px', color: 'var(--color-danger)' }}><Trash2 size={12} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Category Modal */}
+      {catModalOpen && (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000, animation: 'fadeIn 0.2s ease-out' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setCatModalOpen(false) }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '1.75rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', background: 'var(--color-surface)', animation: 'scaleIn 0.2s ease-out' }}>
+            <h2 style={{ fontSize: '1.15rem', marginBottom: '1.25rem' }}>{editingCat ? 'Edit Kategori' : 'Tambah Kategori'}</h2>
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label className="form-label">Nama Kategori *</label>
+              <input type="text" className="form-input" placeholder="Contoh: Udang, Kerang, Minuman" value={catName} onChange={(e) => setCatName(e.target.value)} autoFocus />
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setCatModalOpen(false)} disabled={catSaving} className="btn btn-ghost">Batal</button>
+              <button type="button" onClick={saveCat} disabled={catSaving} className="btn btn-primary" style={{ minWidth: '100px' }}>{catSaving ? 'Menyimpan...' : 'Simpan'}</button>
+            </div>
           </div>
         </div>
       )}
 
-      {isModalOpen && (
+      {/* Menu Modal */}
+      {menuModalOpen && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000, animation: 'fadeIn 0.2s ease-out' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false) }}>
+          onClick={(e) => { if (e.target === e.currentTarget) setMenuModalOpen(false) }}>
           <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '1.75rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', background: 'var(--color-surface)', animation: 'scaleIn 0.2s ease-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>{editingMenu ? 'Edit Menu' : 'Tambah Menu Baru'}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="btn btn-ghost btn-sm" style={{ padding: '4px' }}><span style={{ fontSize: '1.2rem' }}>×</span></button>
-            </div>
-            <form onSubmit={handleSubmit}>
+            <h2 style={{ fontSize: '1.15rem', marginBottom: '1.25rem' }}>{editingMenu ? 'Edit Menu' : 'Tambah Menu Baru'}</h2>
+            <form onSubmit={saveMenu}>
               <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <label className="form-label">Nama Menu *</label>
-                <input type="text" className="form-input" placeholder="Contoh: Kepiting Saus Padang" value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} autoFocus required />
-                {formErrors.nama && <span className="text-danger text-sm">{formErrors.nama}</span>}
+                <input type="text" className="form-input" placeholder="Contoh: Kepiting Saus Padang" value={menuForm.nama} onChange={(e) => setMenuForm({ ...menuForm, nama: e.target.value })} autoFocus required />
+                {menuErrors.nama && <span className="text-danger text-sm">{menuErrors.nama}</span>}
               </div>
               <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <label className="form-label">Kategori *</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <button type="button" onClick={() => setFormData({ ...formData, kategori: 'MAKANAN' })} className={`btn ${formData.kategori === 'MAKANAN' ? 'btn-primary' : 'btn-ghost'}`} style={{ justifyContent: 'center' }}>Makanan</button>
-                  <button type="button" onClick={() => setFormData({ ...formData, kategori: 'MINUMAN' })} className={`btn ${formData.kategori === 'MINUMAN' ? 'btn-primary' : 'btn-ghost'}`} style={{ justifyContent: 'center' }}>Minuman</button>
-                </div>
+                <select className="form-input" value={menuForm.categoryId} onChange={(e) => setMenuForm({ ...menuForm, categoryId: e.target.value })}>
+                  <option value="">Pilih Kategori</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.nama}</option>
+                  ))}
+                </select>
+                {menuErrors.categoryId && <span className="text-danger text-sm">{menuErrors.categoryId}</span>}
               </div>
               <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <label className="form-label">Harga Jual (Rp) *</label>
-                <input type="number" min="0" step="500" className="form-input" placeholder="35000" value={formData.harga} onChange={(e) => setFormData({ ...formData, harga: e.target.value })} required />
-                {formErrors.harga && <span className="text-danger text-sm">{formErrors.harga}</span>}
+                <input type="number" min="0" step="500" className="form-input" placeholder="35000" value={menuForm.harga} onChange={(e) => setMenuForm({ ...menuForm, harga: e.target.value })} required />
+                {menuErrors.harga && <span className="text-danger text-sm">{menuErrors.harga}</span>}
               </div>
               {editingMenu && (
                 <div className="form-group" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-surface-raised)', borderRadius: 'var(--radius-md)' }}>
-                  <input type="checkbox" id="chk-aktif" checked={formData.isAktif} onChange={(e) => setFormData({ ...formData, isAktif: e.target.checked })} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                  <label htmlFor="chk-aktif" style={{ cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}><strong>Menu Aktif</strong> (tampil di halaman kasir transaksi)</label>
+                  <input type="checkbox" id="chk-aktif" checked={menuForm.isAktif} onChange={(e) => setMenuForm({ ...menuForm, isAktif: e.target.checked })} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                  <label htmlFor="chk-aktif" style={{ cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}><strong>Menu Aktif</strong> (tampil di halaman kasir)</label>
                 </div>
               )}
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} disabled={saving} className="btn btn-ghost">Batal</button>
-                <button type="submit" disabled={saving} className="btn btn-primary" style={{ minWidth: '120px' }}>{saving ? 'Menyimpan...' : editingMenu ? 'Simpan Perubahan' : 'Tambah Menu'}</button>
+                <button type="button" onClick={() => setMenuModalOpen(false)} disabled={menuSaving} className="btn btn-ghost">Batal</button>
+                <button type="submit" disabled={menuSaving} className="btn btn-primary" style={{ minWidth: '120px' }}>{menuSaving ? 'Menyimpan...' : editingMenu ? 'Simpan' : 'Tambah'}</button>
               </div>
             </form>
           </div>

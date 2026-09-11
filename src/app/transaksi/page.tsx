@@ -39,7 +39,8 @@ export default async function TransaksiPage() {
     }),
     prisma.menu.findMany({
       where: { warungId: activeSession.warungId, isAktif: true },
-      orderBy: [{ kategori: 'asc' }, { nama: 'asc' }],
+      include: { category: { select: { id: true, nama: true } } },
+      orderBy: [{ sortOrder: 'asc' }, { nama: 'asc' }],
     }),
     prisma.transaksi.findMany({
       where: { warungId: activeSession.warungId, status: 'OPEN' },
@@ -51,9 +52,10 @@ export default async function TransaksiPage() {
   const serializedMenus = menus.map((m) => ({
     id: m.id,
     nama: m.nama,
-    kategori: m.kategori,
     harga: m.harga,
     isAktif: m.isAktif,
+    categoryId: m.categoryId,
+    category: m.category,
   }))
 
   const serializedActiveOrders = activeOrders.map((order) => ({

@@ -6,15 +6,14 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Seeding database...')
 
-  // Hapus data lama (urutan penting karena foreign key)
   await prisma.kasirSesi.deleteMany()
   await prisma.transaksiItem.deleteMany()
   await prisma.transaksi.deleteMany()
   await prisma.menu.deleteMany()
+  await prisma.menuCategory.deleteMany()
   await prisma.user.deleteMany()
   await prisma.warung.deleteMany()
 
-  // Buat 3 warung
   const warung1 = await prisma.warung.create({
     data: { nama: 'Seafood & Nasi Uduk Vian Jaya 08 - Cabang 1', kode: 'VJ08-1' },
   })
@@ -27,9 +26,8 @@ async function main() {
 
   console.log('✅ 3 warung dibuat')
 
-  // Buat akun owner (tanpa warung spesifik, bisa akses semua)
   const ownerPasswordHash = await bcrypt.hash('owner123', 8)
-  const owner = await prisma.user.create({
+  await prisma.user.create({
     data: {
       username: 'owner',
       passwordHash: ownerPasswordHash,
@@ -40,73 +38,43 @@ async function main() {
 
   console.log('✅ Akun owner dibuat (username=owner, password=owner123)')
 
-  // Buat 3 akun kasir (1 per warung)
   const kasirPasswordHash = await bcrypt.hash('kasir123', 8)
-
   await prisma.user.createMany({
     data: [
-      {
-        warungId: warung1.id,
-        username: 'kasir1',
-        passwordHash: kasirPasswordHash,
-        namaLengkap: 'Kasir Cabang 1',
-        role: 'KASIR',
-      },
-      {
-        warungId: warung2.id,
-        username: 'kasir2',
-        passwordHash: kasirPasswordHash,
-        namaLengkap: 'Kasir Cabang 2',
-        role: 'KASIR',
-      },
-      {
-        warungId: warung3.id,
-        username: 'kasir3',
-        passwordHash: kasirPasswordHash,
-        namaLengkap: 'Kasir Cabang 3',
-        role: 'KASIR',
-      },
+      { warungId: warung1.id, username: 'kasir1', passwordHash: kasirPasswordHash, namaLengkap: 'Kasir Cabang 1', role: 'KASIR' },
+      { warungId: warung2.id, username: 'kasir2', passwordHash: kasirPasswordHash, namaLengkap: 'Kasir Cabang 2', role: 'KASIR' },
+      { warungId: warung3.id, username: 'kasir3', passwordHash: kasirPasswordHash, namaLengkap: 'Kasir Cabang 3', role: 'KASIR' },
     ],
   })
 
   console.log('✅ 3 akun kasir dibuat (password: kasir123)')
 
-  // Menu lengkap — sama untuk semua warung
-  const menuData = [
-    // Makanan
-    { nama: 'Nasi Uduk', kategori: 'MAKANAN' as const, harga: 15000 },
-    { nama: 'Nasi Putih', kategori: 'MAKANAN' as const, harga: 5000 },
-    { nama: 'Cumi Goreng', kategori: 'MAKANAN' as const, harga: 35000 },
-    { nama: 'Udang Goreng', kategori: 'MAKANAN' as const, harga: 40000 },
-    { nama: 'Ikan Bakar', kategori: 'MAKANAN' as const, harga: 45000 },
-    { nama: 'Kepiting Rebus', kategori: 'MAKANAN' as const, harga: 75000 },
-    { nama: 'Kerang Rebus', kategori: 'MAKANAN' as const, harga: 30000 },
-    { nama: 'Ayam Goreng', kategori: 'MAKANAN' as const, harga: 25000 },
-    { nama: 'Tempe Goreng', kategori: 'MAKANAN' as const, harga: 8000 },
-    { nama: 'Tahu Goreng', kategori: 'MAKANAN' as const, harga: 8000 },
-    // Minuman
-    { nama: 'Es Teh Manis', kategori: 'MINUMAN' as const, harga: 5000 },
-    { nama: 'Es Jeruk', kategori: 'MINUMAN' as const, harga: 8000 },
-    { nama: 'Es Kelapa Muda', kategori: 'MINUMAN' as const, harga: 15000 },
-    { nama: 'Air Mineral', kategori: 'MINUMAN' as const, harga: 5000 },
-    { nama: 'Teh Hangat', kategori: 'MINUMAN' as const, harga: 5000 },
-    { nama: 'Jus Alpukat', kategori: 'MINUMAN' as const, harga: 15000 },
-  ]
+  const categories = ['Lainnya', 'Nasi', 'Udang', 'Kerang', 'Kepiting', 'Cumi', 'Ikan Bakar', 'Sayur', 'Ayam/Bebek/Lauk', 'Minuman']
 
-  // Seed menu yang sama untuk semua warung
   for (const warung of [warung1, warung2, warung3]) {
+    const categoryRecords = await Promise.all(
+      categories.map((nama, i) =>
+        prisma.menuCategory.create({ data: { warungId: warung.id, nama, sortOrder: i } })
+      )
+    )
+    const lainnyaId = categoryRecords[0].id
+
     await prisma.menu.createMany({
-      data: menuData.map((m) => ({
-        warungId: warung.id,
-        nama: m.nama,
-        kategori: m.kategori,
-        harga: m.harga,
-        isAktif: true,
-      })),
+      data: [
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Nasi Uduk', harga: 15000, isAktif: true },
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Cumi Goreng', harga: 35000, isAktif: true },
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Udang Goreng', harga: 40000, isAktif: true },
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Ikan Bakar', harga: 45000, isAktif: true },
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Kepiting Rebus', harga: 75000, isAktif: true },
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Kerang Rebus', harga: 30000, isAktif: true },
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Ayam Goreng', harga: 25000, isAktif: true },
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Es Teh Manis', harga: 5000, isAktif: true },
+        { warungId: warung.id, categoryId: lainnyaId, nama: 'Es Jeruk', harga: 8000, isAktif: true },
+      ],
     })
   }
 
-  console.log('✅ Menu yang sama di-seed untuk semua 3 warung')
+  console.log('✅ Menu dan kategori di-seed untuk semua 3 warung')
   console.log('')
   console.log('📋 Akun login:')
   console.log('  Owner:    username=owner    password=owner123')

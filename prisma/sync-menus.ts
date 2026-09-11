@@ -11,11 +11,16 @@ async function main() {
     return
   }
 
-  // Ambil menu dari warung pertama sebagai source
   const sourceWarung = warungs[0]
+  const sourceCategories = await prisma.menuCategory.findMany({
+    where: { warungId: sourceWarung.id },
+    orderBy: { sortOrder: 'asc' },
+  })
+
   const sourceMenus = await prisma.menu.findMany({
     where: { warungId: sourceWarung.id },
-    orderBy: [{ kategori: 'asc' }, { nama: 'asc' }],
+    include: { category: { select: { nama: true } } },
+    orderBy: [{ sortOrder: 'asc' }, { nama: 'asc' }],
   })
 
   if (sourceMenus.length === 0) {
@@ -25,21 +30,28 @@ async function main() {
 
   console.log(`📋 Source: ${sourceWarung.nama} (${sourceMenus.length} menu)`)
 
-  // Untuk setiap warung lain, hapus semua menu lama, lalu copy dari source
   for (const warung of warungs) {
     if (warung.id === sourceWarung.id) continue
 
-    // Hapus semua menu di warung ini
+    await prisma.menuCategory.deleteMany({ where: { warungId: warung.id } })
     await prisma.menu.deleteMany({ where: { warungId: warung.id } })
 
-    // Copy semua menu dari source
+    const categoryMap = new Map<string, string>()
+    for (const cat of sourceCategories) {
+      const created = await prisma.menuCategory.create({
+        data: { warungId: warung.id, nama: cat.nama, sortOrder: cat.sortOrder, isAktif: cat.isAktif },
+      })
+      categoryMap.set(cat.nama, created.id)
+    }
+
     await prisma.menu.createMany({
       data: sourceMenus.map((m) => ({
         warungId: warung.id,
+        categoryId: categoryMap.get(m.category.nama) ?? '',
         nama: m.nama,
-        kategori: m.kategori,
         harga: m.harga,
         isAktif: m.isAktif,
+        sortOrder: m.sortOrder,
       })),
     })
 
@@ -47,10 +59,7 @@ async function main() {
   }
 
   console.log('')
-  console.log(`🎉 Semua ${warungs.length} warung sekarang punya menu yang sama:`)
-  sourceMenus.forEach((m) => {
-    console.log(`   ${m.kategori === 'MAKANAN' ? '🍽️' : '🥤'} ${m.nama} — Rp ${m.harga.toLocaleString('id-ID')}`)
-  })
+  console.log(`🎉 Semua ${warungs.length} warung sekarang punya menu yang sama`)
 }
 
 main()

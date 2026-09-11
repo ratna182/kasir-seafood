@@ -3,20 +3,18 @@ import { prisma } from '@/lib/prisma'
 import { getAuthContext, isOwner, requireRole, requireWarungAccess } from '@/lib/auth'
 import { syncMenusAcrossWarungs } from '@/lib/menu-sync'
 
-// PUT /api/menu/:id — update menu + auto sync
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const context = getAuthContext(request)
-    
     const authError = requireRole(context, 'OWNER')
     if (authError) return authError
 
     const { id } = await params
     const body = await request.json()
-    const { nama, kategori, harga, isAktif } = body
+    const { nama, categoryId, harga, isAktif, sortOrder } = body
 
     const menu = await prisma.menu.findFirst({ where: { id } })
     if (!menu) {
@@ -28,17 +26,19 @@ export async function PUT(
 
     const errors: Record<string, string> = {}
     if (nama !== undefined && !nama.trim()) errors.nama = 'Nama menu tidak boleh kosong.'
-    if (kategori !== undefined && !['MAKANAN', 'MINUMAN'].includes(kategori)) errors.kategori = 'Kategori tidak valid.'
+    if (categoryId !== undefined) {
+      const cat = await prisma.menuCategory.findFirst({ where: { id: categoryId, warungId: menu.warungId } })
+      if (!cat) errors.categoryId = 'Kategori tidak valid.'
+    }
     if (harga !== undefined && (isNaN(Number(harga)) || Number(harga) < 0)) errors.harga = 'Harga harus angka positif.'
 
     if (Object.keys(errors).length > 0) {
       return NextResponse.json({ success: false, errors }, { status: 422 })
     }
 
-    // Cek duplikat nama di SEMUA warung
     if (nama && nama.trim() !== menu.nama) {
       const existing = await prisma.menu.findFirst({
-        where: { nama: nama.trim() },
+        where: { nama: nama.trim(), warungId: menu.warungId, id: { not: id } },
       })
       if (existing) {
         return NextResponse.json({ success: false, errors: { nama: 'Nama menu sudah ada.' } }, { status: 422 })
@@ -49,13 +49,13 @@ export async function PUT(
       where: { id },
       data: {
         ...(nama !== undefined && { nama: nama.trim() }),
-        ...(kategori !== undefined && { kategori }),
+        ...(categoryId !== undefined && { categoryId }),
         ...(harga !== undefined && { harga: Number(harga) }),
-        ...(isAktif !== undefined && { isAktif }),
+        ...(isAktif !== undefined && { isAktif: Boolean(isAktif) }),
+        ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
       },
     })
 
-    // Auto sync ke semua warung
     await syncMenusAcrossWarungs()
 
     return NextResponse.json({ success: true, data: updated })
@@ -65,14 +65,12 @@ export async function PUT(
   }
 }
 
-// DELETE /api/menu/:id — hapus menu + auto sync
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const context = getAuthContext(request)
-    
     const authError = requireRole(context, 'OWNER')
     if (authError) return authError
 
@@ -99,7 +97,6 @@ export async function DELETE(
 
     await prisma.menu.delete({ where: { id } })
 
-    // Auto sync ke semua warung
     await syncMenusAcrossWarungs()
 
     return NextResponse.json({ success: true, message: 'Menu berhasil dihapus.' })
