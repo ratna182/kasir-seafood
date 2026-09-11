@@ -84,25 +84,6 @@ export async function DELETE(
     const warungAccessError = requireWarungAccess(context, menu.warungId)
     if (warungAccessError) return warungAccessError
 
-    const usedInTransaksi = await prisma.transaksiItem.findFirst({
-      where: { menuId: id },
-    })
-
-    if (usedInTransaksi) {
-      // Menu dipakai di transaksi — tidak bisa hard delete, tapi kita
-      // nonaktifkan + rename supaya nama bisa dipakai lagi.
-      const suffix = ` (nonaktif ${Date.now().toString(36)})`
-      await prisma.menu.update({
-        where: { id },
-        data: { isAktif: false, nama: `${menu.nama}${suffix}` },
-      })
-      await syncMenusAcrossWarungs()
-      return NextResponse.json({
-        success: true,
-        message: 'Menu sudah dipakai di transaksi, jadi dinonaktifkan. Anda bisa membuat menu baru dengan nama yang sama.',
-      })
-    }
-
     await prisma.menu.delete({ where: { id } })
 
     await syncMenusAcrossWarungs()
