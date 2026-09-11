@@ -69,6 +69,8 @@ export default async function TransaksiPage() {
       id: item.id,
       namaMenu: item.namaMenu,
       hargaSatuan: item.hargaSatuan,
+      diskonSatuan: item.diskonSatuan,
+      catatan: item.catatan,
       qty: item.qty,
       subtotal: item.subtotal,
     })),

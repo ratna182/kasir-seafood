@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Search, ShoppingCart, X, Minus, Plus, Printer, CreditCard, Banknote, CheckCircle, Trash2 } from 'lucide-react'
+import { Search, ShoppingCart, X, Minus, Plus, Printer, CreditCard, Banknote, CheckCircle, Trash2, Pencil } from 'lucide-react'
 import Receipt, { type PrinterWidth } from '@/components/Receipt'
 
 interface Menu {
@@ -18,6 +18,9 @@ interface CartItem {
   nama: string
   harga: number
   qty: number
+  hargaSementara?: number
+  diskonSatuan: number
+  catatan: string
 }
 
 interface CompletedTransaksi {
@@ -31,6 +34,8 @@ interface CompletedTransaksi {
     id?: string
     namaMenu: string
     hargaSatuan: number
+    diskonSatuan?: number
+    catatan?: string | null
     qty: number
     subtotal: number
   }>
@@ -72,6 +77,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   const [showReceiptModal, setShowReceiptModal] = useState(false)
   const [printerWidth, setPrinterWidth] = useState<PrinterWidth>('80mm')
   const [menus, setMenus] = useState<Menu[]>(initialMenus)
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
 
   const filteredMenus = useMemo(() => {
     return menus.filter((menu) => {
@@ -102,15 +108,28 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
 
   function addToCart(menu: Menu) {
     if (isKasirClosed) return
+    const existing = cart.find((item) => item.menuId === menu.id)
+    setEditingCartItem(existing ? { ...existing, qty: existing.qty + 1 } : { menuId: menu.id, nama: menu.nama, harga: menu.harga, qty: 1, diskonSatuan: 0, catatan: '' })
     setCart((prev) => {
-      const existing = prev.find((item) => item.menuId === menu.id)
-      if (existing) {
+      const current = prev.find((item) => item.menuId === menu.id)
+      if (current) {
         return prev.map((item) =>
           item.menuId === menu.id ? { ...item, qty: item.qty + 1 } : item
         )
       }
-      return [...prev, { menuId: menu.id, nama: menu.nama, harga: menu.harga, qty: 1 }]
+      return [...prev, { menuId: menu.id, nama: menu.nama, harga: menu.harga, qty: 1, diskonSatuan: 0, catatan: '' }]
     })
+  }
+
+  function itemUnitPrice(item: CartItem) { return Math.max(0, (item.hargaSementara ?? item.harga) - item.diskonSatuan) }
+
+  function saveCartItemEdit() {
+    if (!editingCartItem) return
+    if (editingCartItem.diskonSatuan > (editingCartItem.hargaSementara ?? editingCartItem.harga)) {
+      setError('Diskon tidak boleh melebihi harga satuan.'); return
+    }
+    setCart((prev) => prev.map((item) => item.menuId === editingCartItem.menuId ? editingCartItem : item))
+    setEditingCartItem(null)
   }
 
   function updateQty(menuId: string, delta: number) {
@@ -139,7 +158,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
     setSuccess('')
   }
 
-  const grandTotal = useMemo(() => cart.reduce((sum, item) => sum + item.harga * item.qty, 0), [cart])
+  const grandTotal = useMemo(() => cart.reduce((sum, item) => sum + itemUnitPrice(item) * item.qty, 0), [cart])
   const totalItemCount = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart])
   const selectedItemCount = useMemo(() => selectedOrder?.items.reduce((sum, item) => sum + item.qty, 0) || 0, [selectedOrder])
 
@@ -157,7 +176,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nomorMeja: nomorMeja.trim(),
-          items: cart.map((item) => ({ menuId: item.menuId, qty: item.qty })),
+          items: cart.map((item) => ({ menuId: item.menuId, qty: item.qty, hargaSatuan: item.hargaSementara ?? item.harga, diskonSatuan: item.diskonSatuan, catatan: item.catatan })),
         }),
       })
       const data = await res.json()
@@ -487,9 +506,9 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => item.id && handleUpdateSavedItem(item.id, item.qty - 1)} style={{ padding: '4px' }}><Minus size={14} /></button>
+                      <button type="button" className="btn btn-ghost btn-sm qty-stepper" onClick={() => item.id && handleUpdateSavedItem(item.id, item.qty - 1)}><Minus size={14} /></button>
                       <strong>{item.qty}</strong>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => item.id && handleUpdateSavedItem(item.id, item.qty + 1)} style={{ padding: '4px' }}><Plus size={14} /></button>
+                      <button type="button" className="btn btn-ghost btn-sm qty-stepper" onClick={() => item.id && handleUpdateSavedItem(item.id, item.qty + 1)}><Plus size={14} /></button>
                     </div>
                     <div style={{ textAlign: 'right', minWidth: '75px' }}>
                       <div style={{ fontWeight: 700, fontSize: '0.8rem', fontVariantNumeric: 'tabular-nums' }}>Rp {item.subtotal.toLocaleString('id-ID')}</div>
@@ -520,27 +539,29 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                         {item.nama}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-                        Rp {item.harga.toLocaleString('id-ID')}
+                        Rp {itemUnitPrice(item).toLocaleString('id-ID')}{item.diskonSatuan > 0 && ` (diskon Rp ${item.diskonSatuan.toLocaleString('id-ID')})`}
                       </div>
+                      {item.catatan && <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.catatan}</div>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <button type="button" onClick={() => updateQty(item.menuId, -1)} className="btn btn-ghost btn-sm" style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-surface)', borderRadius: '4px' }}>
+                      <button type="button" onClick={() => updateQty(item.menuId, -1)} className="btn btn-ghost btn-sm qty-stepper">
                         <Minus size={14} />
                       </button>
                       <span style={{ minWidth: '22px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums' }}>
                         {item.qty}
                       </span>
-                      <button type="button" onClick={() => updateQty(item.menuId, 1)} className="btn btn-ghost btn-sm" style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-surface)', borderRadius: '4px' }}>
+                      <button type="button" onClick={() => updateQty(item.menuId, 1)} className="btn btn-ghost btn-sm qty-stepper">
                         <Plus size={14} />
                       </button>
                     </div>
                     <div style={{ textAlign: 'right', minWidth: '70px' }}>
                       <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                        Rp {(item.harga * item.qty).toLocaleString('id-ID')}
+                        Rp {(itemUnitPrice(item) * item.qty).toLocaleString('id-ID')}
                       </div>
-                      <button type="button" onClick={() => removeFromCart(item.menuId)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}>
-                        Hapus
-                      </button>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                        <button type="button" onClick={() => setEditingCartItem(item)} style={{ background: 'none', border: 'none', color: 'var(--color-brand)', cursor: 'pointer', padding: 0 }} title="Atur harga, diskon, atau catatan"><Pencil size={13} /></button>
+                        <button type="button" onClick={() => removeFromCart(item.menuId)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}>Hapus</button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -616,6 +637,26 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
           </div>
         </div>
       </div>
+
+      {editingCartItem && (
+        <div className="modal-overlay no-print" style={{ position: 'fixed', inset: 0, background: 'rgba(51, 51, 51, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000 }} onClick={(event) => { if (event.target === event.currentTarget) setEditingCartItem(null) }}>
+          <div className="item-edit-modal">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontFamily: 'inherit', fontSize: '1.15rem', margin: 0 }}>EDIT PESANAN</h2>
+              <button type="button" onClick={() => setEditingCartItem(null)} className="btn btn-ghost btn-sm" style={{ padding: '4px' }}><X size={18} /></button>
+            </div>
+            <div className="item-edit-summary"><div className="item-edit-avatar">{editingCartItem.nama.slice(0, 2).toUpperCase()}</div><div style={{ flex: 1 }}><strong>{editingCartItem.nama}</strong><p>Harga menu: Rp {editingCartItem.harga.toLocaleString('id-ID')}</p></div><strong>Rp {(itemUnitPrice(editingCartItem) * editingCartItem.qty).toLocaleString('id-ID')}</strong></div>
+            <div className="item-edit-stepper"><button type="button" onClick={() => setEditingCartItem({ ...editingCartItem, qty: Math.max(1, editingCartItem.qty - 1) })}>−</button><strong>{editingCartItem.qty}</strong><button type="button" onClick={() => setEditingCartItem({ ...editingCartItem, qty: editingCartItem.qty + 1 })}>+</button></div>
+            <label className="item-edit-option"><input type="checkbox" checked={editingCartItem.hargaSementara !== undefined} onChange={(event) => setEditingCartItem({ ...editingCartItem, hargaSementara: event.target.checked ? editingCartItem.harga : undefined })} /> Ubah harga sementara</label>
+            {editingCartItem.hargaSementara !== undefined && <input type="number" min="0" step="500" className="form-input" value={editingCartItem.hargaSementara} onChange={(event) => setEditingCartItem({ ...editingCartItem, hargaSementara: Number(event.target.value) })} aria-label="Harga sementara" />}
+            <label className="item-edit-option"><input type="checkbox" checked={editingCartItem.diskonSatuan > 0} onChange={(event) => setEditingCartItem({ ...editingCartItem, diskonSatuan: event.target.checked ? 500 : 0 })} /> Ubah diskon per jumlah</label>
+            {editingCartItem.diskonSatuan > 0 && <input type="number" min="0" step="500" className="form-input" value={editingCartItem.diskonSatuan} onChange={(event) => setEditingCartItem({ ...editingCartItem, diskonSatuan: Number(event.target.value) })} aria-label="Diskon per jumlah" />}
+            <label className="item-edit-option"><input type="checkbox" checked={Boolean(editingCartItem.catatan)} onChange={(event) => setEditingCartItem({ ...editingCartItem, catatan: event.target.checked ? ' ' : '' })} /> Tambah catatan singkat</label>
+            {editingCartItem.catatan && <input type="text" maxLength={160} className="form-input" placeholder="Contoh: pilih yang besar" value={editingCartItem.catatan} onChange={(event) => setEditingCartItem({ ...editingCartItem, catatan: event.target.value })} />}
+            <button type="button" onClick={saveCartItemEdit} className="btn btn-primary item-edit-save">SIMPAN</button>
+          </div>
+        </div>
+      )}
 
       {/* MODAL STRUK */}
       {showReceiptModal && completedTransaksi && (

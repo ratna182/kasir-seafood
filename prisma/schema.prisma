@@ -82,6 +82,8 @@ model TransaksiItem {
   menuId      String    @map("menu_id")
   namaMenu    String    @map("nama_menu")
   hargaSatuan Int       @map("harga_satuan")
+  diskonSatuan Int      @default(0) @map("diskon_satuan")
+  catatan     String?
   qty         Int
   subtotal    Int
   createdAt   DateTime  @default(now()) @map("created_at")

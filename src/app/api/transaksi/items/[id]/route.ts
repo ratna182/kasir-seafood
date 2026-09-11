@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
       await tx.transaksiItem.update({
         where: { id },
-        data: { qty, subtotal: item.hargaSatuan * qty },
+        data: { qty, subtotal: (item.hargaSatuan - item.diskonSatuan) * qty },
       })
 
       const total = await tx.transaksiItem.aggregate({

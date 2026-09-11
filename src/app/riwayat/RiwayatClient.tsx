@@ -8,6 +8,8 @@ interface TransaksiItem {
   id: string
   namaMenu: string
   hargaSatuan: number
+  diskonSatuan?: number
+  catatan?: string | null
   qty: number
   subtotal: number
 }

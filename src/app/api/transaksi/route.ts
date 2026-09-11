@@ -6,6 +6,9 @@ import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth
 type IncomingItem = {
   menuId: string
   qty: number
+  hargaSatuan?: number
+  diskonSatuan?: number
+  catatan?: string
 }
 
 function todayRange() {
@@ -56,16 +59,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Tambahkan minimal 1 item pesanan.' }, { status: 422 })
     }
 
-    const qtyByMenuId = new Map<string, number>()
     for (const item of items) {
       const qty = Number(item.qty)
       if (!item.menuId || !Number.isInteger(qty) || qty < 1) {
         return NextResponse.json({ success: false, message: 'Qty harus minimal 1.' }, { status: 422 })
       }
-      qtyByMenuId.set(item.menuId, (qtyByMenuId.get(item.menuId) || 0) + qty)
+      if ((item.hargaSatuan !== undefined && (!Number.isInteger(Number(item.hargaSatuan)) || Number(item.hargaSatuan) < 0)) ||
+        (item.diskonSatuan !== undefined && (!Number.isInteger(Number(item.diskonSatuan)) || Number(item.diskonSatuan) < 0)) ||
+        (item.catatan !== undefined && (typeof item.catatan !== 'string' || item.catatan.length > 160))) {
+        return NextResponse.json({ success: false, message: 'Penyesuaian item tidak valid.' }, { status: 422 })
+      }
     }
 
-    const menuIds = [...qtyByMenuId.keys()]
+    const menuIds = [...new Set(items.map((item) => item.menuId))]
     const menus = await prisma.menu.findMany({
       where: { id: { in: menuIds }, warungId, isAktif: true },
     })
@@ -77,16 +83,27 @@ export async function POST(request: NextRequest) {
       }, { status: 422 })
     }
 
-    const processedItems = menus.map((menu) => {
-      const qty = qtyByMenuId.get(menu.id) || 0
-      return {
+    const menusById = new Map(menus.map((menu) => [menu.id, menu]))
+    const processedItems: Array<{ menuId: string; namaMenu: string; hargaSatuan: number; diskonSatuan: number; catatan: string | null; qty: number; subtotal: number }> = []
+    for (const item of items) {
+      const menu = menusById.get(item.menuId)!
+      const qty = Number(item.qty)
+      const hargaSatuan = item.hargaSatuan === undefined ? menu.harga : Number(item.hargaSatuan)
+      const diskonSatuan = Number(item.diskonSatuan || 0)
+      const catatan = item.catatan?.trim() || null
+      if (diskonSatuan > hargaSatuan) {
+        return NextResponse.json({ success: false, message: 'Diskon tidak boleh melebihi harga satuan.' }, { status: 422 })
+      }
+      processedItems.push({
         menuId: menu.id,
         namaMenu: menu.nama,
-        hargaSatuan: menu.harga,
+        hargaSatuan,
+        diskonSatuan,
+        catatan,
         qty,
-        subtotal: menu.harga * qty,
-      }
-    })
+        subtotal: (hargaSatuan - diskonSatuan) * qty,
+      })
+    }
     const addedTotal = processedItems.reduce((sum, item) => sum + item.subtotal, 0)
 
     const transaksi = await prisma.$transaction(async (tx) => {

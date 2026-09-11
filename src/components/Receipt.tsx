@@ -9,7 +9,7 @@ interface ReceiptProps {
     total: number
     createdAt: string
     metodePembayaran?: string | null
-    items: Array<{ namaMenu: string; hargaSatuan: number; qty: number; subtotal: number }>
+    items: Array<{ namaMenu: string; hargaSatuan: number; diskonSatuan?: number; catatan?: string | null; qty: number; subtotal: number }>
   }
   cashier: string
   warungNama: string | null
@@ -43,7 +43,7 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
         <tbody>
           {transaction.items.map((item, index) => (
             <tr key={index}>
-              <td><div className="receipt-item"><span>{item.namaMenu}</span><span>{rupiah(item.subtotal)}</span></div><div>{item.qty} X {rupiah(item.hargaSatuan)}</div></td>
+              <td><div className="receipt-item"><span>{item.namaMenu}</span><span>{rupiah(item.subtotal)}</span></div><div>{item.qty} X {rupiah(item.hargaSatuan)}{item.diskonSatuan ? ` - diskon ${rupiah(item.diskonSatuan)}` : ''}</div>{item.catatan && <div>{item.catatan}</div>}</td>
             </tr>
           ))}
         </tbody>

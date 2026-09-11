@@ -16,32 +16,40 @@ elemen terpisah yang ditambahkan belakangan.
 
 ## 1. Color
 
-Merah dari logo brand dijadikan aksen primer. Base gelap dipilih **hangat**
-(bukan navy/biru dingin seperti default dashboard generik) supaya selaras
-dengan kehangatan warna ilustrasi seafood dan tidak terasa seperti admin
-panel SaaS generik.
+Palet memakai **light cream + olive green**: hangat, terang, dan tetap tenang
+saat dipakai lama di area kasir. Merah dari logo dipertahankan sebagai aksen
+minor untuk aksi destruktif agar identitas brand tetap hadir tanpa mendominasi
+seluruh UI.
 
 | Token | Hex | Peran |
 |---|---|---|
-| `--color-base` | `#181310` | Background utama, warm charcoal — bukan navy |
-| `--color-surface` | `#231C17` | Card, panel, elemen terangkat dari base |
-| `--color-surface-raised` | `#2E2620` | Elemen di atas surface (modal, dropdown) |
-| `--color-text-primary` | `#F3ECE3` | Teks utama, warm off-white |
-| `--color-text-muted` | `#9C9086` | Teks sekunder, label, meta |
-| `--color-brand` | `#B4222B` | Merah brand dari logo — aksen primer, CTA utama |
-| `--color-success` | `#4C7A5C` | Status "PAID" / transaksi berhasil — hijau muted, bukan hijau terang |
-| `--color-pending` | `#C1893E` | Status "OPEN" / meja masih aktif — gold muted |
+| `--color-base` | `#EAE7DE` | Background utama, cream hangat |
+| `--color-surface` | `#F5F3EC` | Card, modal, elemen terangkat dari base |
+| `--color-surface-raised` | `#FFFFFF` | Dropdown, popover, tombol stepper |
+| `--color-text-primary` | `#1B1B1B` | Teks utama, hampir hitam |
+| `--color-text-muted` | `#6B6B6B` | Teks sekunder, label, meta |
+| `--color-brand` | `#4F5D23` | Olive gelap, aksen primer dan CTA utama |
+| `--color-brand-soft` | `#C3D3B3` | Background badge, avatar, dan chip |
+| `--color-accent` | `#6E7A1E` | Aksen sekunder: addon dan highlight opsional |
+| `--color-accent-soft` | `#F2E7B4` | Fill pill dan badge aksen sekunder |
+| `--color-danger` | `#B4222B` | Aksi hapus, batal, dan error destruktif saja |
+| `--color-success` | `#4F5D23` | Status "PAID" memakai brand olive |
+| `--color-pending` | `#6E7A1E` | Status "OPEN" atau meja masih aktif |
 
 **Aturan pakai:**
-- `--color-brand` dipakai sedikit dan strategis (tombol utama, aksen logo,
-  status aktif di nav) — bukan disebar ke semua elemen interaktif.
+- `--color-brand` dipakai untuk CTA utama, nav aktif, focus ring, dan status
+  PAID. `--color-accent` bukan CTA utama.
+- `--color-danger` hanya untuk aksi menghapus atau membatalkan; jangan
+  digunakan sebagai warna status normal atau aksen luas.
+- Tombol qty/stepper selalu putih solid, rounded penuh, shadow lembut, dan
+  ikon gelap. Checkbox memakai outline hitam tegas dengan tanda centang gelap.
 - Warna angka di statistik/card **tidak boleh dibedakan sembarangan**.
   Beda warna hanya kalau memang beda makna status (contoh: total
   penjualan pakai `--color-text-primary` besar, bukan merah/hijau/ungu
   campur seperti di versi lama).
-- Kontras `--color-text-primary` di atas `--color-base` harus lolos WCAG
-  AA (rasio ≥ 4.5:1) — sudah terpenuhi dengan pasangan di atas, tapi
-  validasi ulang kalau ada penyesuaian nilai hex.
+- Kontras `--color-text-primary` di atas base/surface harus lolos WCAG AA
+  (rasio ≥ 4.5:1). `--color-text-muted` dipakai hanya untuk caption/meta;
+  label penting memakai teks sekunder yang lebih gelap.
 
 ---
 
@@ -172,7 +180,7 @@ Prinsip: **hierarki**, bukan grid seragam.
 
 | Interaksi | Bentuk | Durasi |
 |---|---|---|
-| Item ditambahkan ke order | Angka qty/subtotal update dengan micro fade+scale singkat pada angka yang berubah | 150ms ease-out |
+| Item ditambahkan ke order | Angka qty/subtotal update dengan micro fade+scale singkat pada angka yang berubah; highlight memakai `--color-brand-soft` | 150ms ease-out |
 | Meja OPEN → PAID | Card meja fade out dari list "Meja Aktif" | 200ms ease-in |
 | Konfirmasi pembayaran berhasil | Checkmark muncul dengan scale-in, bukan confetti/animasi berlebihan | 250ms ease-out |
 | Struk siap cetak | Slide-up panel preview struk | 200ms ease-out |
