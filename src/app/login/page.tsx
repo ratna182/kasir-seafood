@@ -2,11 +2,9 @@
 
 import { useRef, useState } from 'react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -45,7 +43,7 @@ export default function LoginPage() {
 
       if (res.ok && data?.success) {
         const destination = data.user?.role === 'OWNER' ? '/dashboard' : '/transaksi'
-        router.replace(destination)
+        window.location.replace(destination)
         return
       } else {
         setError(data?.message || 'Login gagal. Periksa username dan password Anda.')
