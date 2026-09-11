@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react'
 
 interface Category {
   id: string
@@ -28,6 +28,7 @@ export default function MenuManager() {
 
   const [catModalOpen, setCatModalOpen] = useState(false)
   const [editingCat, setEditingCat] = useState<Category | null>(null)
+  const [syncing, setSyncing] = useState(false)
   const [catName, setCatName] = useState('')
   const [catSaving, setCatSaving] = useState(false)
 
@@ -65,6 +66,24 @@ export default function MenuManager() {
     } catch {
       showFeedback('error', 'Koneksi ke server gagal')
     } finally { setLoading(false) }
+  }
+
+  async function handleSyncMenus() {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/menu/sync', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        showFeedback('success', data.message || 'Menu berhasil disinkronkan ke semua kasir.')
+        loadAll()
+      } else {
+        showFeedback('error', data.message || 'Gagal sync menu.')
+      }
+    } catch {
+      showFeedback('error', 'Gagal sync menu.')
+    } finally {
+      setSyncing(false)
+    }
   }
 
   function showFeedback(type: 'success' | 'error', message: string) {
@@ -212,9 +231,14 @@ export default function MenuManager() {
           <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Kelola Menu</h1>
           <p className="text-secondary text-sm">Atur kategori, menu, harga, dan urutan tampil.</p>
         </div>
-        <button onClick={openAddCat} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Plus size={16} /> Tambah Kategori
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button onClick={handleSyncMenus} disabled={syncing} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} /> {syncing ? 'Syncing...' : 'Sync ke Semua Kasir'}
+          </button>
+          <button onClick={openAddCat} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Plus size={16} /> Tambah Kategori
+          </button>
+        </div>
       </div>
 
       {feedback && (
