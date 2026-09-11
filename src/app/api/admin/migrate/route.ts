@@ -181,6 +181,51 @@ export async function POST(request: NextRequest) {
       results.push('cleanup nonaktif menus: OK')
     } catch (e: any) { results.push(`cleanup nonaktif menus: ${e.message}`) }
 
+    // Step 13: Create warung_menus table for price overrides per cabang
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "warung_menus" (
+          "id" TEXT NOT NULL,
+          "warung_id" TEXT NOT NULL,
+          "menu_id" TEXT NOT NULL,
+          "harga" INTEGER NOT NULL,
+          "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updated_at" TIMESTAMP(3) NOT NULL,
+          CONSTRAINT "warung_menus_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('warung_menus table: OK')
+    } catch (e: any) { results.push(`warung_menus table: ${e.message}`) }
+
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "warung_menus_warung_id_menu_id_key" ON "warung_menus"("warung_id", "menu_id")
+      `)
+      results.push('warung_menus unique index: OK')
+    } catch (e: any) { results.push(`warung_menus unique index: ${e.message}`) }
+
+    try {
+      await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+          ALTER TABLE "warung_menus" ADD CONSTRAINT "warung_menus_warung_id_fkey"
+          FOREIGN KEY ("warung_id") REFERENCES "warungs"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        EXCEPTION WHEN duplicate_object THEN null;
+        END $$
+      `)
+      results.push('warung_menus FK warung: OK')
+    } catch (e: any) { results.push(`warung_menus FK warung: ${e.message}`) }
+
+    try {
+      await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+          ALTER TABLE "warung_menus" ADD CONSTRAINT "warung_menus_menu_id_fkey"
+          FOREIGN KEY ("menu_id") REFERENCES "menus"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        EXCEPTION WHEN duplicate_object THEN null;
+        END $$
+      `)
+      results.push('warung_menus FK menu: OK')
+    } catch (e: any) { results.push(`warung_menus FK menu: ${e.message}`) }
+
     const catCount = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM "menu_categories"`
     const menuCount = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM "menus" WHERE "category_id" IS NOT NULL`
     const menuTotal = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM "menus"`
