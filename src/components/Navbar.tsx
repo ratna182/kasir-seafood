@@ -50,6 +50,14 @@ export default function Navbar({ session, activePage }: NavbarProps) {
                 Laporan
               </Link>
               <Link
+                href="/riwayat"
+                className={`btn btn-sm ${activePage === 'riwayat' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+              >
+                <History size={14} />
+                Riwayat
+              </Link>
+              <Link
                 href="/menu"
                 className={`btn btn-sm ${activePage === 'menu' ? 'btn-primary' : 'btn-ghost'}`}
                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}

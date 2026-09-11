@@ -28,6 +28,7 @@ interface RiwayatClientProps {
     warungKode: string | null
     namaLengkap?: string | null
     username: string
+    role: string
   }
   initialTransaksis: Transaksi[]
   initialStartDate?: string
@@ -54,7 +55,7 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Riwayat Penjualan</h1>
-          <p className="text-secondary text-sm">{transaksis.length} transaksi selesai • Cabang: {session.warungKode}</p>
+          <p className="text-secondary text-sm">{transaksis.length} transaksi selesai • {session.role === 'OWNER' ? 'Semua cabang' : `Cabang: ${session.warungKode}`}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <form style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
