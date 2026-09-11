@@ -5,7 +5,7 @@ import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = getAuthContext(request)
-    const authError = requireKasirAccess(context)
+    const authError = await requireKasirAccess(context)
     if (authError) return authError
 
     const warungId = await getKasirWarungId(context)
@@ -59,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = getAuthContext(request)
-    const authError = requireKasirAccess(context)
+    const authError = await requireKasirAccess(context)
     if (authError) return authError
 
     const warungId = await getKasirWarungId(context)

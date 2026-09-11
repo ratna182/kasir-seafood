@@ -36,6 +36,7 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [togglingAll, setTogglingAll] = useState(false)
 
   useEffect(() => {
     if (selectedWarung) {
@@ -162,6 +163,31 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
     }
   }
 
+  async function handleToggleAll(isActive: boolean) {
+    const action = isActive ? 'mengaktifkan' : 'menonaktifkan'
+    if (!confirm(`Yakin ${action} semua akun kasir?`)) return
+
+    setTogglingAll(true)
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        setFeedback({ type: 'success', message: `${result.data.count} akun kasir berhasil ${isActive ? 'diaktifkan' : 'dinonaktifkan'}.` })
+        fetchUsers()
+      } else {
+        setFeedback({ type: 'error', message: result.message || 'Gagal mengubah status semua kasir.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Terjadi kesalahan sistem' })
+    } finally {
+      setTogglingAll(false)
+    }
+  }
+
   async function handleDelete(user: KasirUser) {
     if (!confirm(`Hapus kasir "${user.username}"?`)) return
 
@@ -189,14 +215,11 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
           <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Manajemen Kasir</h1>
           <p className="text-secondary text-sm">Kelola akun kasir untuk setiap outlet</p>
         </div>
-        <button
-          type="button"
-          onClick={() => handleOpenForm()}
-          className="btn btn-primary"
-        >
-          <Plus size={16} />
-          Tambah Kasir
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => handleToggleAll(true)} disabled={togglingAll} className="btn btn-success">Aktifkan Semua Kasir</button>
+          <button type="button" onClick={() => handleToggleAll(false)} disabled={togglingAll} className="btn btn-danger">Nonaktifkan Semua Kasir</button>
+          <button type="button" onClick={() => handleOpenForm()} className="btn btn-primary"><Plus size={16} /> Tambah Kasir</button>
+        </div>
       </div>
 
       {feedback && (

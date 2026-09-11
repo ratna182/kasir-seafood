@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Search, ShoppingCart, X, Minus, Plus, Printer, CreditCard, Banknote, CheckCircle, Trash2 } from 'lucide-react'
+import Receipt, { type PrinterWidth } from '@/components/Receipt'
 
 interface Menu {
   id: string
@@ -69,6 +70,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   const [metodePembayaran, setMetodePembayaran] = useState<'CASH' | 'QRIS'>('CASH')
   const [completedTransaksi, setCompletedTransaksi] = useState<CompletedTransaksi | null>(null)
   const [showReceiptModal, setShowReceiptModal] = useState(false)
+  const [printerWidth, setPrinterWidth] = useState<PrinterWidth>('80mm')
   const [menus, setMenus] = useState<Menu[]>(initialMenus)
 
   const filteredMenus = useMemo(() => {
@@ -627,46 +629,10 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
               </p>
             </div>
 
-            <div style={{ background: '#ffffff', color: '#000000', padding: '1.25rem', borderRadius: '8px', fontFamily: "'Courier New', Courier, monospace", fontSize: '11px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', marginBottom: '1.25rem', maxHeight: '320px', overflowY: 'auto' }}>
-              <div style={{ textAlign: 'center', marginBottom: '6px' }}>
-                <strong style={{ fontSize: '13px', display: 'block', textTransform: 'uppercase' }}>{session.warungNama}</strong>
-                <span style={{ fontSize: '9px' }}>Cabang: {session.warungKode}</span>
-              </div>
-              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                <span>No. Trx: #{completedTransaksi.id.slice(0, 8).toUpperCase()}</span>
-                <span>{completedTransaksi.nomorMeja}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                <span>
-                  {new Date(completedTransaksi.createdAt).toLocaleDateString('id-ID')} {' '}
-                  {new Date(completedTransaksi.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <span>Kasir: {session.namaLengkap || session.username}</span>
-              </div>
-              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
-                <tbody>
-                  {completedTransaksi.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td style={{ verticalAlign: 'top', padding: '2px 0' }}>
-                        <div>{item.namaMenu}</div>
-                        <div style={{ color: '#555', fontSize: '9px' }}>{item.qty} x {item.hargaSatuan.toLocaleString('id-ID')}</div>
-                      </td>
-                      <td style={{ textAlign: 'right', verticalAlign: 'bottom', padding: '2px 0' }}>Rp {item.subtotal.toLocaleString('id-ID')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ borderTop: '1px solid #000', margin: '6px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px' }}>
-                <span>TOTAL</span>
-                <span>Rp {completedTransaksi.total.toLocaleString('id-ID')}</span>
-              </div>
-              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-              <div style={{ textAlign: 'center', fontSize: '9px', marginTop: '6px' }}>
-                *** TERIMA KASIH ATAS KUNJUNGAN ANDA ***
-              </div>
+            <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} preview />
+            <div className="receipt-width-picker">
+              <span>Ukuran printer</span>
+              {(['58mm', '80mm'] as const).map((width) => <button key={width} type="button" onClick={() => setPrinterWidth(width)} className={`btn btn-sm ${printerWidth === width ? 'btn-primary' : 'btn-ghost'}`}>{width}</button>)}
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -681,58 +647,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
         </div>
       )}
 
-      {/* PRINT-ONLY THERMAL RECEIPT */}
-      {completedTransaksi && (
-        <div className="print-only print-receipt">
-          <div className="print-header">
-            <h2>{session.warungNama}</h2>
-            <p>Cabang: {session.warungKode}</p>
-          </div>
-          <div className="print-divider" />
-          <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>No: #{completedTransaksi.id.slice(0, 8).toUpperCase()}</span>
-            <span>{completedTransaksi.nomorMeja}</span>
-          </div>
-          <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>
-              {new Date(completedTransaksi.createdAt).toLocaleDateString('id-ID')} {' '}
-              {new Date(completedTransaksi.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-            <span>Kasir: {session.namaLengkap || session.username}</span>
-          </div>
-          <div className="print-divider" />
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>ITEM</th>
-                <th className="text-right">TOTAL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {completedTransaksi.items.map((item, idx) => (
-                <tr key={idx}>
-                  <td>
-                    <div>{item.namaMenu}</div>
-                    <div style={{ fontSize: '9px' }}>{item.qty} x {item.hargaSatuan.toLocaleString('id-ID')}</div>
-                  </td>
-                  <td className="text-right" style={{ verticalAlign: 'bottom' }}>{item.subtotal.toLocaleString('id-ID')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="print-total">
-            <div className="print-total-row grand">
-              <span>TOTAL</span>
-              <span>Rp {completedTransaksi.total.toLocaleString('id-ID')}</span>
-            </div>
-          </div>
-          <div className="print-divider" />
-          <div className="print-footer">
-            <p>Terima kasih atas kunjungan Anda!</p>
-            <p>Makanan Halal, Nikmat, & Segar</p>
-          </div>
-        </div>
-      )}
+      {completedTransaksi && <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} />}
     </div>
   )
 }

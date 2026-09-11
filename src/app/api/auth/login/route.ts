@@ -27,6 +27,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!user.isActive) {
+      return NextResponse.json(
+        { success: false, message: 'Akun kasir sedang dinonaktifkan owner.' },
+        { status: 403 }
+      )
+    }
+
     const passwordMatch = await bcrypt.compare(password, user.passwordHash)
     if (!passwordMatch) {
       return NextResponse.json(

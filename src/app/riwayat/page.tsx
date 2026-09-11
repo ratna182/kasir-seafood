@@ -12,30 +12,33 @@ export const metadata = {
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function RiwayatPage() {
+export default async function RiwayatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mulai?: string; sampai?: string }>
+}) {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
+  const { mulai, sampai } = await searchParams
+  const startDate = /^\d{4}-\d{2}-\d{2}$/.test(mulai || '') ? new Date(`${mulai}T00:00:00.000Z`) : undefined
+  const endDate = /^\d{4}-\d{2}-\d{2}$/.test(sampai || '') ? new Date(`${sampai}T00:00:00.000Z`) : undefined
 
   const transaksis = await prisma.transaksi.findMany({
     where: {
       warungId: session.warungId ?? undefined,
-      tanggal: { gte: today, lt: tomorrow },
+      ...(startDate || endDate ? { tanggal: { ...(startDate ? { gte: startDate } : {}), ...(endDate ? { lte: endDate } : {}) } } : {}),
       status: 'SELESAI',
     },
     include: { items: { orderBy: { createdAt: 'asc' } } },
     orderBy: { createdAt: 'desc' },
-    take: 100,
   })
 
   const serialized = transaksis.map((transaksi) => ({
     id: transaksi.id,
     nomorMeja: transaksi.nomorMeja,
     total: transaksi.total,
+    metodePembayaran: transaksi.metodePembayaran,
     tanggal: transaksi.tanggal.toISOString(),
     createdAt: transaksi.createdAt.toISOString(),
     items: transaksi.items.map((item) => ({
@@ -51,7 +54,7 @@ export default async function RiwayatPage() {
     <div className="app-container">
       <Navbar session={session} activePage="riwayat" />
       <div className="content-area">
-        <RiwayatClient session={session} initialTransaksis={serialized} />
+        <RiwayatClient session={session} initialTransaksis={serialized} initialStartDate={mulai} initialEndDate={sampai} />
       </div>
     </div>
   )

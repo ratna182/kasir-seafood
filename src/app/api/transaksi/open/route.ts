@@ -5,7 +5,7 @@ import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth
 export async function GET(request: NextRequest) {
   try {
     const context = getAuthContext(request)
-    const authError = requireKasirAccess(context)
+    const authError = await requireKasirAccess(context)
     if (authError) return authError
 
     const warungId = await getKasirWarungId(context)

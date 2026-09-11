@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Search, Printer, X } from 'lucide-react'
+import Receipt, { type PrinterWidth } from '@/components/Receipt'
 
 interface TransaksiItem {
   id: string
@@ -15,6 +16,7 @@ interface Transaksi {
   id: string
   nomorMeja: string
   total: number
+  metodePembayaran?: string | null
   tanggal: string
   createdAt: string
   items: TransaksiItem[]
@@ -28,12 +30,15 @@ interface RiwayatClientProps {
     username: string
   }
   initialTransaksis: Transaksi[]
+  initialStartDate?: string
+  initialEndDate?: string
 }
 
-export default function RiwayatClient({ session, initialTransaksis }: RiwayatClientProps) {
+export default function RiwayatClient({ session, initialTransaksis, initialStartDate, initialEndDate }: RiwayatClientProps) {
   const [transaksis] = useState<Transaksi[]>(initialTransaksis)
   const [search, setSearch] = useState('')
   const [selectedTransaksi, setSelectedTransaksi] = useState<Transaksi | null>(null)
+  const [printerWidth, setPrinterWidth] = useState<PrinterWidth>('80mm')
 
   const filtered = transaksis.filter((t) => {
     const matchMeja = t.nomorMeja.toLowerCase().includes(search.toLowerCase())
@@ -48,27 +53,36 @@ export default function RiwayatClient({ session, initialTransaksis }: RiwayatCli
     <div>
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Riwayat Transaksi Hari Ini</h1>
-          <p className="text-secondary text-sm">Daftar pesanan tercatat hari ini • Cabang: {session.warungKode}</p>
+          <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Riwayat Penjualan</h1>
+          <p className="text-secondary text-sm">{transaksis.length} transaksi selesai • Cabang: {session.warungKode}</p>
         </div>
-        <div style={{ position: 'relative', minWidth: '260px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Cari meja, menu, atau ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', paddingLeft: '36px' }}
-          />
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <form style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <input type="date" name="mulai" aria-label="Tanggal mulai" defaultValue={initialStartDate} className="form-input" />
+            <span className="text-secondary text-sm">sampai</span>
+            <input type="date" name="sampai" aria-label="Tanggal akhir" defaultValue={initialEndDate} className="form-input" />
+            <button type="submit" className="btn btn-ghost btn-sm">Filter tanggal</button>
+            {(initialStartDate || initialEndDate) && <a href="/riwayat" className="btn btn-ghost btn-sm">Semua waktu</a>}
+          </form>
+          <div style={{ position: 'relative', minWidth: '260px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Cari meja, menu, atau ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: '100%', paddingLeft: '36px' }}
+            />
+          </div>
         </div>
       </div>
 
       <div className="no-print">
         {transaksis.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
-            <h3>Belum Ada Transaksi Hari Ini</h3>
-            <p className="text-secondary text-sm">Semua transaksi yang dibuat hari ini akan tersimpan dan dapat dicetak ulang di halaman ini.</p>
+            <h3>Belum Ada Transaksi</h3>
+            <p className="text-secondary text-sm">Transaksi selesai dari semua waktu akan tersimpan dan dapat dicetak ulang di halaman ini.</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
@@ -132,44 +146,10 @@ export default function RiwayatClient({ session, initialTransaksis }: RiwayatCli
               </button>
             </div>
 
-            <div style={{ background: '#ffffff', color: '#000000', padding: '1.25rem', borderRadius: '8px', fontFamily: "'Courier New', Courier, monospace", fontSize: '11px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', marginBottom: '1.25rem', maxHeight: '340px', overflowY: 'auto' }}>
-              <div style={{ textAlign: 'center', marginBottom: '6px' }}>
-                <strong style={{ fontSize: '13px', display: 'block', textTransform: 'uppercase' }}>{session.warungNama}</strong>
-                <span style={{ fontSize: '9px' }}>Cabang: {session.warungKode}</span>
-              </div>
-              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                <span>No. Trx: #{selectedTransaksi.id.slice(0, 8).toUpperCase()}</span>
-                <span>{selectedTransaksi.nomorMeja}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                <span>
-                  {new Date(selectedTransaksi.createdAt).toLocaleDateString('id-ID')}{' '}
-                  {new Date(selectedTransaksi.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <span>Kasir: {session.namaLengkap || session.username}</span>
-              </div>
-              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
-                <tbody>
-                  {selectedTransaksi.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td style={{ verticalAlign: 'top', padding: '2px 0' }}>
-                        <div>{item.namaMenu}</div>
-                        <div style={{ color: '#555', fontSize: '9px' }}>{item.qty} x {item.hargaSatuan.toLocaleString('id-ID')}</div>
-                      </td>
-                      <td style={{ textAlign: 'right', verticalAlign: 'bottom', padding: '2px 0' }}>Rp {item.subtotal.toLocaleString('id-ID')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ borderTop: '1px solid #000', margin: '6px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px' }}>
-                <span>TOTAL</span>
-                <span>Rp {selectedTransaksi.total.toLocaleString('id-ID')}</span>
-              </div>
-              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-              <div style={{ textAlign: 'center', fontSize: '9px', marginTop: '6px' }}>*** CETAK ULANG STRUK RESMI ***</div>
+            <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} preview reprint />
+            <div className="receipt-width-picker">
+              <span>Ukuran printer</span>
+              {(['58mm', '80mm'] as const).map((width) => <button key={width} type="button" onClick={() => setPrinterWidth(width)} className={`btn btn-sm ${printerWidth === width ? 'btn-primary' : 'btn-ghost'}`}>{width}</button>)}
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -182,46 +162,7 @@ export default function RiwayatClient({ session, initialTransaksis }: RiwayatCli
         </div>
       )}
 
-      {selectedTransaksi && (
-        <div className="print-only print-receipt">
-          <div className="print-header">
-            <h2>{session.warungNama}</h2>
-            <p>Cabang: {session.warungKode}</p>
-          </div>
-          <div className="print-divider" />
-          <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>No: #{selectedTransaksi.id.slice(0, 8).toUpperCase()}</span>
-            <span>{selectedTransaksi.nomorMeja}</span>
-          </div>
-          <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>
-              {new Date(selectedTransaksi.createdAt).toLocaleDateString('id-ID')}{' '}
-              {new Date(selectedTransaksi.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-            <span>Kasir: {session.namaLengkap || session.username}</span>
-          </div>
-          <div className="print-divider" />
-          <table className="print-table">
-            <thead><tr><th>ITEM</th><th className="text-right">TOTAL</th></tr></thead>
-            <tbody>
-              {selectedTransaksi.items.map((item, idx) => (
-                <tr key={idx}>
-                  <td><div>{item.namaMenu}</div><div style={{ fontSize: '9px' }}>{item.qty} x {item.hargaSatuan.toLocaleString('id-ID')}</div></td>
-                  <td className="text-right" style={{ verticalAlign: 'bottom' }}>{item.subtotal.toLocaleString('id-ID')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="print-total">
-            <div className="print-total-row grand"><span>TOTAL</span><span>Rp {selectedTransaksi.total.toLocaleString('id-ID')}</span></div>
-          </div>
-          <div className="print-divider" />
-          <div className="print-footer">
-            <p>*** CETAK ULANG STRUK RESMI ***</p>
-            <p>Terima kasih atas kunjungan Anda!</p>
-          </div>
-        </div>
-      )}
+      {selectedTransaksi && <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} reprint />}
     </div>
   )
 }

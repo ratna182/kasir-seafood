@@ -101,3 +101,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'Gagal membuat akun kasir.' }, { status: 500 })
   }
 }
+
+// PATCH /api/users — aktifkan atau nonaktifkan seluruh akun kasir
+export async function PATCH(request: NextRequest) {
+  try {
+    const context = getAuthContext(request)
+    const authError = requireRole(context, 'OWNER')
+    if (authError) return authError
+
+    const { isActive } = await request.json()
+    if (typeof isActive !== 'boolean') {
+      return NextResponse.json({ success: false, message: 'Status kasir wajib diisi.' }, { status: 422 })
+    }
+
+    const result = await prisma.user.updateMany({ where: { role: 'KASIR' }, data: { isActive } })
+    return NextResponse.json({ success: true, data: { count: result.count, isActive } })
+  } catch (error) {
+    console.error('[PATCH /api/users]', error)
+    return NextResponse.json({ success: false, message: 'Gagal mengubah status kasir.' }, { status: 500 })
+  }
+}

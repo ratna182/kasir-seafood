@@ -7,7 +7,7 @@ const DAILY_TRANSACTION_LIMIT = 150
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = getAuthContext(request)
-    const authError = requireKasirAccess(context)
+    const authError = await requireKasirAccess(context)
     if (authError) return authError
 
     const warungId = await getKasirWarungId(context)

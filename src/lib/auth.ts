@@ -97,10 +97,14 @@ export function requireRole(context: AuthContext | null, role: Role): NextRespon
 }
 
 // Owner boleh menjalankan kasir pada cabang default yang dipilih sistem.
-export function requireKasirAccess(context: AuthContext | null): NextResponse | null {
+export async function requireKasirAccess(context: AuthContext | null): Promise<NextResponse | null> {
   if (!context) return unauthorized()
   if (context.user.role !== 'KASIR' && context.user.role !== 'OWNER') {
     return forbidden('Akses kasir diperlukan')
+  }
+  if (context.user.role === 'KASIR') {
+    const user = await prisma.user.findUnique({ where: { id: context.user.id }, select: { isActive: true } })
+    if (!user?.isActive) return forbidden('Akun kasir sedang dinonaktifkan owner')
   }
   return null
 }

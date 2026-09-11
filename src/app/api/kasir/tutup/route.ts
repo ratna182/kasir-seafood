@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const context = getAuthContext(request)
     
     // Hanya kasir yang boleh tutup kasir
-    const authError = requireKasirAccess(context)
+    const authError = await requireKasirAccess(context)
     if (authError) return authError
 
     const warungId = await getKasirWarungId(context)
