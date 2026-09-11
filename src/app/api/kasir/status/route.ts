@@ -2,18 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, requireRole } from '@/lib/auth'
 
-// GET /api/kasir/status — cek status kasir hari ini (kasir only)
 export async function GET(request: NextRequest) {
   try {
     const context = getAuthContext(request)
-    
-    // Hanya kasir yang boleh cek status kasir
-    const authError = requireRole(context, 'KASIR')
-    if (authError) return authError
 
-    const warungId = context?.warungId
-    if (!warungId) {
-      return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
+    let warungId: string | null = null
+
+    if (requireRole(context, 'OWNER') === null) {
+      const { searchParams } = new URL(request.url)
+      warungId = searchParams.get('warungId')
+      if (!warungId) {
+        return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
+      }
+    } else if (requireRole(context, 'KASIR') === null) {
+      warungId = context?.warungId ?? null
+      if (!warungId) {
+        return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
+      }
+    } else {
+      return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 })
     }
 
     const today = new Date()
@@ -22,7 +29,7 @@ export async function GET(request: NextRequest) {
     const sesi = await prisma.kasirSesi.findUnique({
       where: {
         warungId_tanggal: {
-          warungId,
+          warungId: warungId!,
           tanggal: today,
         },
       },

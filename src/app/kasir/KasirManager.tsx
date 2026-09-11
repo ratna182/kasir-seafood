@@ -37,10 +37,13 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [togglingAll, setTogglingAll] = useState(false)
+  const [kasirClosed, setKasirClosed] = useState(false)
+  const [openingKasir, setOpeningKasir] = useState(false)
 
   useEffect(() => {
     if (selectedWarung) {
       fetchUsers()
+      checkKasirStatus()
     }
   }, [selectedWarung])
 
@@ -58,6 +61,43 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
       setFeedback({ type: 'error', message: 'Koneksi ke server terganggu' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function checkKasirStatus() {
+    try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const res = await fetch(`/api/kasir/status?warungId=${selectedWarung}`)
+      const result = await res.json()
+      if (result.success) {
+        setKasirClosed(result.data.sudahTutup)
+      }
+    } catch {
+      // silent
+    }
+  }
+
+  async function handleOpenKasir() {
+    if (!confirm('Yakin ingin membuka kasir hari ini? Kasir akan bisa bertransaksi lagi.')) return
+    setOpeningKasir(true)
+    try {
+      const res = await fetch('/api/kasir/buka', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ warungId: selectedWarung }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        setFeedback({ type: 'success', message: 'Kasir hari ini berhasil dibuka kembali!' })
+        setKasirClosed(false)
+      } else {
+        setFeedback({ type: 'error', message: result.message || 'Gagal membuka kasir.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Terjadi kesalahan sistem' })
+    } finally {
+      setOpeningKasir(false)
     }
   }
 
@@ -216,6 +256,11 @@ export default function KasirManager({ warungs }: KasirManagerProps) {
           <p className="text-secondary text-sm">Kelola akun kasir untuk setiap outlet</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {kasirClosed && (
+            <button type="button" onClick={handleOpenKasir} disabled={openingKasir} className="btn btn-success">
+              {openingKasir ? 'Membuka...' : 'Buka Kasir'}
+            </button>
+          )}
           <button type="button" onClick={() => handleToggleAll(true)} disabled={togglingAll} className="btn btn-success">Aktifkan Semua Kasir</button>
           <button type="button" onClick={() => handleToggleAll(false)} disabled={togglingAll} className="btn btn-danger">Nonaktifkan Semua Kasir</button>
           <button type="button" onClick={() => handleOpenForm()} className="btn btn-primary"><Plus size={16} /> Tambah Kasir</button>
