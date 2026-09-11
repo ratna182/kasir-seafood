@@ -98,13 +98,16 @@ export async function syncWarungMenus(warungId: string, overwrite = false) {
     })
   }
 
-  // 5. Hapus menu di target yang tidak ada di master (cleanup)
+  // 5. Nonaktifkan menu di target yang tidak ada di master (bisa because sudah hapus di master tapi masih dipakai transaksi)
   if (overwrite) {
-    await prisma.menu.deleteMany({
+    const masterNama = Array.from(masterMenuNames)
+    await prisma.menu.updateMany({
       where: {
         warungId,
-        nama: { notIn: Array.from(masterMenuNames) },
+        nama: { notIn: masterNama },
+        isAktif: true,
       },
+      data: { isAktif: false },
     })
   }
 }
