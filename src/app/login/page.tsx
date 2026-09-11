@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -63,6 +64,18 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      <div className="login-bg" aria-hidden="true">
+        <Image
+          src="/cover-seafood.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          style={{ objectFit: 'cover', objectPosition: 'center' }}
+        />
+        <div className="login-bg-overlay" />
+      </div>
+
       {/* Login card */}
       <div className="login-wrapper">
         <div className="login-card">
