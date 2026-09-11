@@ -91,11 +91,11 @@ export async function GET(request: NextRequest) {
         } else {
           const menuData = await prisma.menu.findFirst({
             where: { id: item.menuId, warungId },
-            select: { kategori: true },
+            select: { category: { select: { nama: true } } },
           })
           rekapMap.set(item.namaMenu, {
             namaMenu: item.namaMenu,
-            kategori: menuData?.kategori || 'MAKANAN',
+            kategori: menuData?.category?.nama || 'Lainnya',
             qtyTotal: item.qty,
             pendapatanTotal: item.subtotal,
           })

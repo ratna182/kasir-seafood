@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
 
     const menuCategories = await prisma.menu.findMany({
       where: { id: { in: uniqueMenuIds }, warungId },
-      select: { id: true, kategori: true },
+      select: { id: true, category: { select: { nama: true } } },
     })
-    const kategoriMap = new Map(menuCategories.map(m => [m.id, m.kategori]))
+    const kategoriMap = new Map(menuCategories.map(m => [m.id, m.category?.nama || 'Lainnya']))
 
     const rekapMap = new Map<string, {
       namaMenu: string

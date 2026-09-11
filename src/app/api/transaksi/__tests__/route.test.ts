@@ -39,9 +39,10 @@ const context: AuthContext = {
 const menu = {
   id: 'menu1',
   nama: 'Ikan Bakar',
-  kategori: 'MAKANAN' as const,
   harga: 25000,
   warungId: 'warung1',
+  categoryId: 'cat-1',
+  sortOrder: 0,
   isAktif: true,
   createdAt: new Date(),
   updatedAt: new Date(),
