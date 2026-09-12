@@ -88,21 +88,12 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
           reprint: true,
         })
         
-        // Check printer connection before writing
-        if (printer.status !== 'connected') {
-          alert('Printer tidak terhubung. Silakan hubungkan printer terlebih dahulu.')
-          return
-        }
-        
-        const ok = await printer.write(encoded)
-        if (!ok) {
-          const printerError = (printer as any).error || 'Unknown error'
-          console.error('Print failed:', printerError)
-          alert(`Gagal mengirim data ke printer. Error: ${printerError}. Coba cetak ulang.`)
-        }
+        // Use window.print() for reliable printing on all platforms
+        // Web Bluetooth doesn't work with classic Bluetooth printers like Blueprint ECO 80D
+        window.print()
       } catch (e) {
         console.error('Print error:', e)
-        alert(`Gagal mencetak: ${e instanceof Error ? e.message : 'Unknown error'}. Periksa koneksi printer.`)
+        alert(`Gagal mencetak: ${e instanceof Error ? e.message : 'Unknown error'}`)
       } finally {
         setPrinting(false)
       }
