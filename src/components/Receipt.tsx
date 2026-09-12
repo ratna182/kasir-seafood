@@ -25,7 +25,7 @@ const rupiah = (amount: number) => `Rp ${amount.toLocaleString('id-ID')}`
 export default function Receipt({ transaction, cashier, warungNama, width, preview, reprint }: ReceiptProps) {
   const date = new Date(transaction.createdAt)
   const totalQty = transaction.items.reduce((total, item) => total + item.qty, 0)
-  const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : 'Cash'
+  const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : transaction.metodePembayaran === 'TRANSFER' ? 'Transfer' : 'Cash'
   const itemCount = transaction.items.length
   const isCompact = itemCount > 8
 
@@ -65,6 +65,7 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
         <div className="receipt-row"><span>Total QTY</span><span>{totalQty}</span></div>
         <div className="receipt-row"><span>Subtotal</span><span>{rupiah(transaction.total)}</span></div>
         <div className="receipt-row receipt-grand"><span>Total</span><span>{rupiah(transaction.total)}</span></div>
+        <div className="receipt-row"><span>Pembayaran</span><span>{payment}</span></div>
         <div className="receipt-row"><span>Bayar</span><span>{rupiah(transaction.total)}</span></div>
         <div className="receipt-row"><span>Kembali</span><span>Rp 0</span></div>
       </div>

@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params
     const body = await request.json()
-    const metodePembayaran = body.metodePembayaran === 'QRIS' ? 'QRIS' : body.metodePembayaran === 'CASH' ? 'CASH' : null
+    const metodePembayaran = body.metodePembayaran === 'QRIS' ? 'QRIS' : body.metodePembayaran === 'CASH' ? 'CASH' : body.metodePembayaran === 'TRANSFER' ? 'TRANSFER' : null
 
     if (!metodePembayaran) {
       return NextResponse.json({ success: false, message: 'Metode bayar wajib dipilih.' }, { status: 422 })

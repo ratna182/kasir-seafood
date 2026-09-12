@@ -74,9 +74,19 @@ export async function GET(request: NextRequest) {
 
     let grandTotalQty = 0
     let grandTotalPendapatan = 0
+    let totalCash = 0
+    let totalQRIS = 0
+    let totalTransfer = 0
 
     for (const transaksi of transaksis) {
       grandTotalPendapatan += transaksi.total
+      if (transaksi.metodePembayaran === 'QRIS') {
+        totalQRIS += transaksi.total
+      } else if (transaksi.metodePembayaran === 'TRANSFER') {
+        totalTransfer += transaksi.total
+      } else {
+        totalCash += transaksi.total
+      }
       for (const item of transaksi.items) {
         grandTotalQty += item.qty
 
@@ -112,6 +122,9 @@ export async function GET(request: NextRequest) {
         grandTotalQty,
         grandTotalPendapatan,
         jumlahTransaksi: transaksis.length,
+        totalCash,
+        totalQRIS,
+        totalTransfer,
       },
     })
   } catch (error) {

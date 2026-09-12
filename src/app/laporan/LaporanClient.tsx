@@ -23,6 +23,9 @@ interface LaporanDataLocal {
   grandTotalQty: number
   grandTotalPendapatan: number
   jumlahTransaksi: number
+  totalCash: number
+  totalQRIS: number
+  totalTransfer: number
 }
 
 interface KasirSesiInfo {
@@ -327,6 +330,27 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
             {data ? `Rp ${data.grandTotalPendapatan.toLocaleString('id-ID')}` : '...'}
           </div>
           <div className="text-sm text-muted">Total Pendapatan Hari Ini</div>
+        </div>
+      </div>
+
+      <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="card" style={{ textAlign: 'center', padding: '1rem', borderLeft: '3px solid var(--color-success)' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif" }}>
+            {data ? `Rp ${(data.totalCash || 0).toLocaleString('id-ID')}` : '...'}
+          </div>
+          <div className="text-xs text-muted">Cash</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', padding: '1rem', borderLeft: '3px solid var(--color-warning)' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-warning)', fontFamily: "var(--font-fraunces), serif" }}>
+            {data ? `Rp ${(data.totalQRIS || 0).toLocaleString('id-ID')}` : '...'}
+          </div>
+          <div className="text-xs text-muted">QRIS</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', padding: '1rem', borderLeft: '3px solid var(--color-info)' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-info)', fontFamily: "var(--font-fraunces), serif" }}>
+            {data ? `Rp ${(data.totalTransfer || 0).toLocaleString('id-ID')}` : '...'}
+          </div>
+          <div className="text-xs text-muted">Transfer</div>
         </div>
       </div>
 

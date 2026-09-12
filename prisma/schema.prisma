@@ -161,4 +161,5 @@ enum StatusTransaksi {
 enum MetodePembayaran {
   CASH
   QRIS
+  TRANSFER
 }

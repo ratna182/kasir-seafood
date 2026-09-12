@@ -189,6 +189,9 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
                       <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>
                         #{trx.id.slice(0, 8).toUpperCase()}
                       </span>
+                      <span className={`badge ${trx.metodePembayaran === 'QRIS' ? 'badge-warning' : trx.metodePembayaran === 'TRANSFER' ? 'badge-info' : 'badge-success'}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
+                        {trx.metodePembayaran === 'QRIS' ? 'QRIS' : trx.metodePembayaran === 'TRANSFER' ? 'Transfer' : 'Cash'}
+                      </span>
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
                       {trx.items.map((it, idx) => (
