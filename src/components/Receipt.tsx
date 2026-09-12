@@ -26,9 +26,11 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
   const date = new Date(transaction.createdAt)
   const totalQty = transaction.items.reduce((total, item) => total + item.qty, 0)
   const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : 'Cash'
+  const itemCount = transaction.items.length
+  const isCompact = itemCount > 8
 
   return (
-    <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width}`}>
+    <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width} ${isCompact ? 'compact' : ''}`}>
       <div className="print-header">
         <h2>{warungNama}</h2>
         <p>IG : Seafood08vianjaya.id</p>
@@ -43,12 +45,21 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
       <div className="receipt-items">
         {transaction.items.map((item, index) => (
           <div key={index} className="receipt-item-block">
-            <div className="receipt-item-row">
-              <span>{item.namaMenu}</span>
-              <span>{rupiah(item.subtotal)}</span>
-            </div>
-            <div className="receipt-item-detail">{item.qty} x {rupiah(item.hargaSatuan)}{item.diskonSatuan ? ` -${rupiah(item.diskonSatuan)}` : ''}</div>
-            {item.catatan && <div className="receipt-item-note">{item.catatan}</div>}
+            {isCompact ? (
+              <div className="receipt-item-row">
+                <span>{item.namaMenu} {item.qty}x</span>
+                <span>{rupiah(item.subtotal)}</span>
+              </div>
+            ) : (
+              <>
+                <div className="receipt-item-row">
+                  <span>{item.namaMenu}</span>
+                  <span>{rupiah(item.subtotal)}</span>
+                </div>
+                <div className="receipt-item-detail">{item.qty} x {rupiah(item.hargaSatuan)}{item.diskonSatuan ? ` -${rupiah(item.diskonSatuan)}` : ''}</div>
+                {item.catatan && <div className="receipt-item-note">{item.catatan}</div>}
+              </>
+            )}
           </div>
         ))}
       </div>

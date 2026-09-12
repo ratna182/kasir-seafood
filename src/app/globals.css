@@ -893,6 +893,14 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 .receipt-grand-section { margin-top: 4px; }
 .receipt-width-picker { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 1rem; font-size: 0.8rem; }
 
+/* Compact mode for >8 items */
+.receipt-preview.compact { font-size: 11px; line-height: 1.4; }
+.receipt-preview.compact .print-header h2 { font-size: 14px; }
+.receipt-preview.compact .print-header p { font-size: 11px; }
+.receipt-preview.compact .receipt-item-detail { font-size: 9px; }
+.receipt-preview.compact .receipt-item-note { font-size: 8px; }
+.receipt-preview.compact .receipt-row { font-size: 11px; }
+
 /* ============================================
    PRINT STYLES — THERMAL PRINTER
    ============================================ */
@@ -997,6 +1005,17 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     margin: 0 !important;
     line-height: 1.4 !important;
   }
+
+  /* Compact mode for >8 items */
+  .print-receipt.compact { font-size: 13px !important; }
+  .print-receipt.compact .print-header h2 { font-size: 15px !important; }
+  .print-receipt.compact .print-header p { font-size: 12px !important; }
+  .print-receipt.compact .receipt-item-detail { font-size: 12px !important; }
+  .print-receipt.compact .receipt-item-note { font-size: 11px !important; }
+  .print-receipt.compact .receipt-row { font-size: 13px !important; }
+  .print-receipt.compact .receipt-grand { font-size: 14px !important; }
+  .print-receipt.compact .print-divider { margin: 2px 0 !important; }
+  .print-receipt.compact .receipt-item-block { margin: 1px 0 !important; }
 
   nav, header, .navbar, .btn, button,
   .modal-overlay, input, select,
