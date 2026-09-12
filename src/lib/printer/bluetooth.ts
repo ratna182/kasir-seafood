@@ -77,28 +77,45 @@ class BluetoothPrinter {
       this.lastError = ''
       this.log('Starting connection process...')
 
-      let device: any
+      let device: any = null
 
+      // Try to get already paired devices first (no popup)
       if (savedConfig?.deviceId) {
-        this.log('Trying to reconnect to saved device:', savedConfig.deviceId)
+        this.log('Trying getDevices() for auto-reconnect...')
         try {
-          device = await (navigator as any).bluetooth.requestDevice({
-            filters: [{ deviceId: savedConfig.deviceId }],
-            optionalServices: SERVICE_UUIDS,
-          })
+          const devices = await (navigator as any).bluetooth.getDevices()
+          const savedDevice = devices.find((d: any) => d.id === savedConfig.deviceId)
+          if (savedDevice) {
+            this.log('Found saved device, connecting directly...')
+            device = savedDevice
+          }
         } catch (e) {
-          this.log('Failed to reconnect to saved device, trying all devices')
+          this.log('getDevices() failed:', e)
+        }
+      }
+
+      // If no device found, show device picker
+      if (!device) {
+        this.log('Opening device picker...')
+        if (savedConfig?.deviceId) {
+          try {
+            device = await (navigator as any).bluetooth.requestDevice({
+              filters: [{ deviceId: savedConfig.deviceId }],
+              optionalServices: SERVICE_UUIDS,
+            })
+          } catch (e) {
+            this.log('Filter failed, showing all devices')
+            device = await (navigator as any).bluetooth.requestDevice({
+              acceptAllDevices: true,
+              optionalServices: SERVICE_UUIDS,
+            })
+          }
+        } else {
           device = await (navigator as any).bluetooth.requestDevice({
             acceptAllDevices: true,
             optionalServices: SERVICE_UUIDS,
           })
         }
-      } else {
-        this.log('Scanning for all Bluetooth devices...')
-        device = await (navigator as any).bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: SERVICE_UUIDS,
-        })
       }
 
       this.log('Device selected:', device.name || device.id)
