@@ -3,7 +3,7 @@ import { loadPrinterConfig, savePrinterConfig, clearPrinterConfig } from './stor
 
 type StatusListener = (status: PrinterStatus) => void
 
-// Common service UUIDs for thermal printers
+// Common service UUIDs for thermal printers (BLE)
 const SERVICE_UUIDS = [
   '00001101-0000-1000-8000-00805f9b34fb', // SPP (Serial Port Profile)
   '00001800-0000-1000-8000-00805f9b34fb', // Generic Access
@@ -12,6 +12,8 @@ const SERVICE_UUIDS = [
   '0000fee7-0000-1000-8000-00805f9b34fb', // Another common service
   '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip Transparent UART
   '0000ae30-0000-1000-8000-00805f9b34fb', // Common thermal printer service
+  '0000fff0-0000-1000-8000-00805f9b34fb', // Another common service
+  '0000ff00-0000-1000-8000-00805f9b34fb', // Another common service
 ]
 
 // Common characteristic UUIDs for writing data
@@ -21,6 +23,8 @@ const WRITE_CHARACTERISTIC_UUIDS = [
   '0000ae01-0000-1000-8000-00805f9b34fb', // Common thermal printer characteristic
   '49535343-1e4d-4bd9-ba61-23c647249616', // Microchip TX characteristic
   '49535343-88aa-4dd2-ab56-bff5f7403af7', // Microchip RX characteristic
+  '0000fff1-0000-1000-8000-00805f9b34fb', // Another common characteristic
+  '0000ff01-0000-1000-8000-00805f9b34fb', // Another common characteristic
 ]
 
 class BluetoothPrinter {
@@ -254,7 +258,7 @@ class BluetoothPrinter {
 
     try {
       // Use very small chunk size for better compatibility with thermal printers
-      const CHUNK_SIZE = 32
+      const CHUNK_SIZE = 20
       const totalChunks = Math.ceil(data.length / CHUNK_SIZE)
       
       this.log(`Writing ${data.length} bytes in ${totalChunks} chunks`)
@@ -274,7 +278,7 @@ class BluetoothPrinter {
         } else if (canWriteWithResponse) {
           await this.characteristic.writeValueWithResponse(wakeUp)
         }
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 200))
       } catch (e) {
         this.log('Wake-up signal failed, continuing...')
       }
