@@ -12,6 +12,9 @@ import {
   padRight,
   drawLine,
   formatRupiah,
+  setCharset,
+  setCodePage,
+  setPrintDensity,
 } from './escpos'
 
 export interface ReceiptTransaction {
@@ -65,7 +68,11 @@ export function encodeReceipt(
   const t = data.transaction
   const parts: Uint8Array[] = []
 
+  // Initialize printer with better compatibility settings
   parts.push(initPrinter())
+  parts.push(setCharset(0)) // USA character set
+  parts.push(setCodePage(0)) // CP437 code page
+  parts.push(setPrintDensity(7)) // Default density
   parts.push(setLineSpacing(20))
   parts.push(setFontSize(1, 1))
 

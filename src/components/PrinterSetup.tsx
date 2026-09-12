@@ -16,6 +16,7 @@ export default function PrinterSetup({ open, onClose, onConfigured }: PrinterSet
   const [config, setConfig] = useState<PrinterConfig | null>(null)
   const [width, setWidth] = useState<'58mm' | '80mm'>('80mm')
   const [error, setError] = useState('')
+  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => {
     if (!open) return
@@ -30,18 +31,28 @@ export default function PrinterSetup({ open, onClose, onConfigured }: PrinterSet
 
   const handleScan = useCallback(async () => {
     setError('')
+    setDebugInfo('Memulai scan printer...')
     const cfg = loadPrinterConfig()
-    const ok = await printer.connect(cfg || undefined)
-    if (ok) {
-      const newConfig: PrinterConfig = {
-        deviceId: (printer as any).device?.id || '',
-        deviceName: (printer as any).device?.name || 'Printer Bluetooth',
-        width,
+    
+    try {
+      const ok = await printer.connect(cfg || undefined)
+      if (ok) {
+        const newConfig: PrinterConfig = {
+          deviceId: (printer as any).device?.id || '',
+          deviceName: (printer as any).device?.name || 'Printer Bluetooth',
+          width,
+        }
+        setConfig(newConfig)
+        onConfigured(newConfig)
+        setDebugInfo('Printer berhasil terhubung!')
+      } else {
+        const errorMsg = printer.error || 'Printer tidak ditemukan. Pastikan printer menyala dan dekat.'
+        setError(errorMsg)
+        setDebugInfo(`Gagal: ${errorMsg}`)
       }
-      setConfig(newConfig)
-      onConfigured(newConfig)
-    } else {
-      setError('Printer tidak ditemukan. Pastikan printer menyala dan dekat.')
+    } catch (e) {
+      setError('Terjadi kesalahan saat menghubungkan printer.')
+      setDebugInfo(`Error: ${e instanceof Error ? e.message : String(e)}`)
     }
   }, [width, onConfigured])
 
@@ -50,6 +61,7 @@ export default function PrinterSetup({ open, onClose, onConfigured }: PrinterSet
     setConfig(null)
     clearPrinterConfig()
     onConfigured(null)
+    setDebugInfo('')
   }, [onConfigured])
 
   const handleUseWindowPrint = useCallback(() => {
@@ -103,6 +115,12 @@ export default function PrinterSetup({ open, onClose, onConfigured }: PrinterSet
           </div>
         )}
 
+        {debugInfo && (
+          <div style={{ marginBottom: '1rem', padding: '0.5rem', background: 'var(--color-bg-secondary, #f8f9fa)', borderRadius: '6px', fontSize: '0.75rem', color: '#666', fontFamily: 'monospace' }}>
+            {debugInfo}
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {!config ? (
             <button type="button" onClick={handleScan} disabled={status === 'connecting'} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: 'none', background: 'var(--color-brand)', color: '#fff', fontWeight: 700, fontSize: '0.95rem', cursor: status === 'connecting' ? 'wait' : 'pointer', opacity: status === 'connecting' ? 0.7 : 1 }}>
@@ -119,7 +137,8 @@ export default function PrinterSetup({ open, onClose, onConfigured }: PrinterSet
         </div>
 
         <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--color-text-muted, #999)', textAlign: 'center' }}>
-          Gunakan Chrome di Android atau Windows
+          <p style={{ margin: '0 0 0.25rem' }}>Gunakan Chrome di Android atau Windows</p>
+          <p style={{ margin: 0 }}>Printer: Blueprint ECO 80D/X atau ESC/POS compatible</p>
         </div>
       </div>
     </div>

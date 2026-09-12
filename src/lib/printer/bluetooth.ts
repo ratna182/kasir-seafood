@@ -1,22 +1,55 @@
 import type { PrinterConfig, PrinterStatus } from './types'
-import { SPP_UUID } from './types'
 import { loadPrinterConfig, savePrinterConfig, clearPrinterConfig } from './storage'
 
 type StatusListener = (status: PrinterStatus) => void
+
+// Common service UUIDs for thermal printers
+const SERVICE_UUIDS = [
+  '00001101-0000-1000-8000-00805f9b34fb', // SPP (Serial Port Profile)
+  '00001800-0000-1000-8000-00805f9b34fb', // Generic Access
+  '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute
+  '0000ffe0-0000-1000-8000-00805f9b34fb', // Common BLE service
+  '0000fee7-0000-1000-8000-00805f9b34fb', // Another common service
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip Transparent UART
+  '0000ae30-0000-1000-8000-00805f9b34fb', // Common thermal printer service
+]
+
+// Common characteristic UUIDs for writing data
+const WRITE_CHARACTERISTIC_UUIDS = [
+  '0000ffe1-0000-1000-8000-00805f9b34fb', // Common write characteristic
+  '0000ffe2-0000-1000-8000-00805f9b34fb', // Another write characteristic
+  '0000ae01-0000-1000-8000-00805f9b34fb', // Common thermal printer characteristic
+  '49535343-1e4d-4bd9-ba61-23c647249616', // Microchip TX characteristic
+  '49535343-88aa-4dd2-ab56-bff5f7403af7', // Microchip RX characteristic
+]
 
 class BluetoothPrinter {
   private device: any = null
   private characteristic: any = null
   private listeners: Set<StatusListener> = new Set()
   private currentStatus: PrinterStatus = 'idle'
+  private lastError: string = ''
 
   get status(): PrinterStatus {
     return this.currentStatus
   }
 
+  get error(): string {
+    return this.lastError
+  }
+
   private setStatus(status: PrinterStatus) {
     this.currentStatus = status
     this.listeners.forEach((fn) => fn(status))
+  }
+
+  private log(message: string, ...args: any[]) {
+    console.log(`[BluetoothPrinter] ${message}`, ...args)
+  }
+
+  private logError(message: string, error?: any) {
+    console.error(`[BluetoothPrinter] ${message}`, error)
+    this.lastError = message
   }
 
   onStatusChange(fn: StatusListener): () => void {
@@ -30,56 +63,137 @@ class BluetoothPrinter {
 
   async connect(savedConfig?: PrinterConfig): Promise<boolean> {
     if (!this.isSupported()) {
+      this.logError('Web Bluetooth not supported')
       this.setStatus('unsupported')
       return false
     }
 
     try {
       this.setStatus('connecting')
+      this.lastError = ''
+      this.log('Starting connection process...')
 
       let device: any
 
       if (savedConfig?.deviceId) {
+        this.log('Trying to reconnect to saved device:', savedConfig.deviceId)
         try {
           device = await (navigator as any).bluetooth.requestDevice({
             filters: [{ deviceId: savedConfig.deviceId }],
-            optionalServices: [SPP_UUID],
+            optionalServices: SERVICE_UUIDS,
           })
-        } catch {
+        } catch (e) {
+          this.log('Failed to reconnect to saved device, trying all devices')
           device = await (navigator as any).bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: [SPP_UUID],
+            optionalServices: SERVICE_UUIDS,
           })
         }
       } else {
+        this.log('Scanning for all Bluetooth devices...')
         device = await (navigator as any).bluetooth.requestDevice({
           acceptAllDevices: true,
-          optionalServices: [SPP_UUID],
+          optionalServices: SERVICE_UUIDS,
         })
       }
 
+      this.log('Device selected:', device.name || device.id)
+
       device.addEventListener('gattserverdisconnected', () => {
+        this.log('Device disconnected')
         this.device = null
         this.characteristic = null
         this.setStatus('idle')
       })
 
+      this.log('Connecting to GATT server...')
       const server = await device.gatt.connect()
-      let service: any
+      this.log('GATT server connected')
 
-      try {
-        service = await server.getPrimaryService(SPP_UUID)
-      } catch {
-        const services = await server.getPrimaryServices()
-        service = services[0]
+      // Try to find the correct service
+      let service: any = null
+      let serviceFound = false
+
+      for (const uuid of SERVICE_UUIDS) {
+        try {
+          this.log(`Trying service UUID: ${uuid}`)
+          service = await server.getPrimaryService(uuid)
+          this.log(`Service found: ${uuid}`)
+          serviceFound = true
+          break
+        } catch (e) {
+          this.log(`Service ${uuid} not found, trying next...`)
+        }
       }
 
-      let characteristic: any
-      try {
-        characteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb')
-      } catch {
-        const chars = await service.getCharacteristics()
-        characteristic = chars.find((c: any) => c.properties.write) || chars[0]
+      if (!serviceFound) {
+        this.log('No known service found, trying to get all services...')
+        try {
+          const services = await server.getPrimaryServices()
+          this.log(`Found ${services.length} services`)
+          if (services.length > 0) {
+            service = services[0]
+            this.log('Using first available service')
+          }
+        } catch (e) {
+          this.logError('Failed to get services', e)
+        }
+      }
+
+      if (!service) {
+        this.logError('No service found on device')
+        this.setStatus('idle')
+        return false
+      }
+
+      // Try to find the correct characteristic
+      let characteristic: any = null
+      let characteristicFound = false
+
+      // First try known characteristic UUIDs
+      for (const uuid of WRITE_CHARACTERISTIC_UUIDS) {
+        try {
+          this.log(`Trying characteristic UUID: ${uuid}`)
+          characteristic = await service.getCharacteristic(uuid)
+          this.log(`Characteristic found: ${uuid}`)
+          characteristicFound = true
+          break
+        } catch (e) {
+          this.log(`Characteristic ${uuid} not found, trying next...`)
+        }
+      }
+
+      // If no known characteristic found, try to find any writable characteristic
+      if (!characteristicFound) {
+        this.log('No known characteristic found, scanning all characteristics...')
+        try {
+          const chars = await service.getCharacteristics()
+          this.log(`Found ${chars.length} characteristics`)
+          
+          // Look for writable characteristics
+          for (const char of chars) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              characteristic = char
+              this.log('Found writable characteristic:', char.uuid)
+              characteristicFound = true
+              break
+            }
+          }
+
+          // If no writable characteristic found, use the first one
+          if (!characteristicFound && chars.length > 0) {
+            characteristic = chars[0]
+            this.log('Using first available characteristic:', chars[0].uuid)
+          }
+        } catch (e) {
+          this.logError('Failed to get characteristics', e)
+        }
+      }
+
+      if (!characteristic) {
+        this.logError('No characteristic found on service')
+        this.setStatus('idle')
+        return false
       }
 
       this.device = device
@@ -92,9 +206,11 @@ class BluetoothPrinter {
       }
       savePrinterConfig(config)
 
+      this.log('Connection successful')
       this.setStatus('connected')
       return true
-    } catch {
+    } catch (e) {
+      this.logError('Connection failed', e)
       this.setStatus('idle')
       return false
     }
@@ -105,7 +221,9 @@ class BluetoothPrinter {
       if (this.device?.gatt?.connected) {
         this.device.gatt.disconnect()
       }
-    } catch {}
+    } catch (e) {
+      this.logError('Error during disconnect', e)
+    }
     this.device = null
     this.characteristic = null
     this.setStatus('idle')
@@ -113,23 +231,58 @@ class BluetoothPrinter {
   }
 
   async write(data: Uint8Array): Promise<boolean> {
-    if (!this.characteristic) return false
+    if (!this.characteristic) {
+      this.logError('No characteristic available for writing')
+      return false
+    }
 
     try {
-      const CHUNK_SIZE = 512
+      // Use smaller chunk size for better compatibility
+      const CHUNK_SIZE = 256
+      const totalChunks = Math.ceil(data.length / CHUNK_SIZE)
+      
+      this.log(`Writing ${data.length} bytes in ${totalChunks} chunks`)
+      
       for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE)
-        await this.characteristic.writeValueWithResponse(chunk)
+        const chunkNumber = Math.floor(i / CHUNK_SIZE) + 1
+        
+        try {
+          // Try writeWithResponse first
+          await this.characteristic.writeValueWithResponse(chunk)
+          this.log(`Chunk ${chunkNumber}/${totalChunks} written successfully`)
+        } catch (e) {
+          // If writeWithResponse fails, try writeWithoutResponse
+          try {
+            await this.characteristic.writeValueWithoutResponse(chunk)
+            this.log(`Chunk ${chunkNumber}/${totalChunks} written (no response)`)
+          } catch (e2) {
+            this.logError(`Failed to write chunk ${chunkNumber}`, e2)
+            return false
+          }
+        }
+        
+        // Small delay between chunks to prevent buffer overflow
+        if (i + CHUNK_SIZE < data.length) {
+          await new Promise(resolve => setTimeout(resolve, 10))
+        }
       }
+      
+      this.log('All data written successfully')
       return true
-    } catch {
+    } catch (e) {
+      this.logError('Write failed', e)
       return false
     }
   }
 
   async autoReconnect(): Promise<boolean> {
     const saved = loadPrinterConfig()
-    if (!saved) return false
+    if (!saved) {
+      this.log('No saved printer config found')
+      return false
+    }
+    this.log('Attempting auto-reconnect to:', saved.deviceName)
     return this.connect(saved)
   }
 }
