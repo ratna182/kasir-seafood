@@ -867,7 +867,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   padding: 0.5rem;
   border-radius: 8px;
   font-family: 'Helvetica', 'Arial', sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
   line-height: 1.6;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -883,13 +883,13 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 .receipt-items { text-align: center; }
 .receipt-item-block { margin: 4px 0; text-align: center; }
 .receipt-item-row { display: flex; justify-content: space-between; text-align: center; }
-.receipt-item-detail { font-size: 11px; text-align: center; line-height: 1.5; }
-.receipt-item-note { font-size: 10px; font-style: italic; text-align: center; }
-.receipt-table { width: 100%; border-collapse: collapse; font-size: 12px; font-weight: bold; }
+.receipt-item-detail { font-size: 12px; text-align: center; line-height: 1.5; }
+.receipt-item-note { font-size: 11px; font-style: italic; text-align: center; }
+.receipt-table { width: 100%; border-collapse: collapse; font-size: 13px; font-weight: bold; }
 .receipt-table td { padding: 2px 0; vertical-align: top; text-align: center; }
 .receipt-summary { margin-top: 4px; }
 .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 2px 0; }
-.receipt-grand { font-weight: bold; font-size: 13px; }
+.receipt-grand { font-weight: bold; font-size: 14px; }
 .receipt-grand-section { margin-top: 4px; }
 .receipt-width-picker { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 1rem; font-size: 0.8rem; }
 
@@ -917,7 +917,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   body {
     color: black !important;
     font-family: 'Helvetica', 'Arial', sans-serif !important;
-    font-size: 14px !important;
+    font-size: 15px !important;
     font-weight: bold !important;
     line-height: 1.6 !important;
   }
@@ -934,7 +934,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     margin: 0 !important;
     padding: 0 2mm !important;
     font-family: 'Helvetica', 'Arial', sans-serif !important;
-    font-size: 14px !important;
+    font-size: 15px !important;
     font-weight: bold !important;
     line-height: 1.6 !important;
     color: black !important;
@@ -950,7 +950,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   }
 
   .print-header h2 {
-    font-size: 16px !important;
+    font-size: 18px !important;
     font-weight: bold !important;
     text-transform: uppercase !important;
     margin: 0 0 3px !important;
@@ -959,7 +959,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   }
 
   .print-header p {
-    font-size: 13px !important;
+    font-size: 14px !important;
     font-weight: bold !important;
     margin: 1px 0 !important;
     color: black !important;
@@ -977,17 +977,17 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   .receipt-items { text-align: center !important; }
   .receipt-item-block { margin: 4px 0 !important; text-align: center !important; }
   .receipt-item-row { display: flex !important; justify-content: space-between !important; text-align: center !important; }
-  .receipt-item-detail { font-size: 13px !important; text-align: center !important; line-height: 1.5 !important; }
-  .receipt-item-note { font-size: 12px !important; font-style: italic !important; text-align: center !important; }
+  .receipt-item-detail { font-size: 14px !important; text-align: center !important; line-height: 1.5 !important; }
+  .receipt-item-note { font-size: 13px !important; font-style: italic !important; text-align: center !important; }
   .receipt-summary { margin-top: 6px !important; }
   .receipt-row { display: flex !important; justify-content: space-between !important; text-align: center !important; padding: 2px 0 !important; line-height: 1.6 !important; }
-  .receipt-grand { font-weight: bold !important; font-size: 15px !important; }
+  .receipt-grand { font-weight: bold !important; font-size: 17px !important; }
   .receipt-grand-section { margin-top: 6px !important; }
 
   .print-footer {
     text-align: center !important;
     margin-top: 6px !important;
-    font-size: 13px !important;
+    font-size: 14px !important;
     font-weight: bold !important;
     color: black !important;
     line-height: 1.6 !important;
