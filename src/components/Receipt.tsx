@@ -31,10 +31,6 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
     <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width}`}>
       <div className="print-header">
         <h2>{warungNama}</h2>
-        <p>Jl. Raya Kranggan no.18</p>
-        <p>IG : Seafood08vianjaya.id</p>
-        <p>FB : Seafood08vianjaya</p>
-        <p>TT : Seafood08vianjaya</p>
       </div>
       <div className="print-divider" />
       <div className="receipt-meta">
