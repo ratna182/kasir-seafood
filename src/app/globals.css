@@ -946,56 +946,56 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 
   .print-header {
     text-align: center !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 3px !important;
   }
 
   .print-header h2 {
     font-size: 18px !important;
     font-weight: bold !important;
     text-transform: uppercase !important;
-    margin: 0 0 3px !important;
+    margin: 0 0 2px !important;
     color: black !important;
-    line-height: 1.4 !important;
+    line-height: 1.3 !important;
   }
 
   .print-header p {
     font-size: 14px !important;
     font-weight: bold !important;
-    margin: 1px 0 !important;
+    margin: 0 !important;
     color: black !important;
-    line-height: 1.4 !important;
+    line-height: 1.3 !important;
   }
 
   .print-divider {
     border: none !important;
     border-top: 1px dashed black !important;
-    margin: 6px 0 !important;
+    margin: 3px 0 !important;
   }
 
-  .receipt-meta { text-align: center !important; margin: 4px 0 !important; line-height: 1.6 !important; }
-  .receipt-meta div { margin: 1px 0 !important; }
+  .receipt-meta { text-align: center !important; margin: 2px 0 !important; line-height: 1.4 !important; }
+  .receipt-meta div { margin: 0 !important; }
   .receipt-items { text-align: center !important; }
-  .receipt-item-block { margin: 4px 0 !important; text-align: center !important; }
+  .receipt-item-block { margin: 2px 0 !important; text-align: center !important; }
   .receipt-item-row { display: flex !important; justify-content: space-between !important; text-align: center !important; }
-  .receipt-item-detail { font-size: 14px !important; text-align: center !important; line-height: 1.5 !important; }
+  .receipt-item-detail { font-size: 14px !important; text-align: center !important; line-height: 1.4 !important; }
   .receipt-item-note { font-size: 13px !important; font-style: italic !important; text-align: center !important; }
-  .receipt-summary { margin-top: 6px !important; }
-  .receipt-row { display: flex !important; justify-content: space-between !important; text-align: center !important; padding: 2px 0 !important; line-height: 1.6 !important; }
+  .receipt-summary { margin-top: 3px !important; }
+  .receipt-row { display: flex !important; justify-content: space-between !important; text-align: center !important; padding: 1px 0 !important; line-height: 1.4 !important; }
   .receipt-grand { font-weight: bold !important; font-size: 17px !important; }
-  .receipt-grand-section { margin-top: 6px !important; }
+  .receipt-grand-section { margin-top: 3px !important; }
 
   .print-footer {
     text-align: center !important;
-    margin-top: 6px !important;
+    margin-top: 3px !important;
     font-size: 14px !important;
     font-weight: bold !important;
     color: black !important;
-    line-height: 1.6 !important;
+    line-height: 1.4 !important;
   }
 
   .print-footer p {
-    margin: 1px 0 !important;
-    line-height: 1.6 !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
   }
 
   nav, header, .navbar, .btn, button,

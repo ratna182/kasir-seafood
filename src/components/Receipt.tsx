@@ -37,8 +37,7 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
       </div>
       <div className="print-divider" />
       <div className="receipt-meta">
-        <div>{date.toLocaleDateString('sv-SE')} {date.toLocaleTimeString('id-ID')}</div>
-        <div>Kasir : {cashier}</div>
+        <div>{date.toLocaleDateString('sv-SE')} {date.toLocaleTimeString('id-ID')} | Kasir : {cashier}</div>
       </div>
       <div className="print-divider" />
       <div className="receipt-items">
@@ -57,9 +56,6 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
       <div className="receipt-summary">
         <div className="receipt-row"><span>Total QTY</span><span>{totalQty}</span></div>
         <div className="receipt-row"><span>Subtotal</span><span>{rupiah(transaction.total)}</span></div>
-      </div>
-      <div className="print-divider" />
-      <div className="receipt-summary receipt-grand-section">
         <div className="receipt-row receipt-grand"><span>Total</span><span>{rupiah(transaction.total)}</span></div>
         <div className="receipt-row"><span>Bayar</span><span>{rupiah(transaction.total)}</span></div>
         <div className="receipt-row"><span>Kembali</span><span>Rp 0</span></div>
@@ -67,9 +63,8 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
       <div className="print-divider" />
       <div className="print-footer">
         {reprint && <p>*** CETAK ULANG STRUK RESMI ***</p>}
-        <p>Terima Kasih</p>
-        <p>Selamat Datang Kembali</p>
-        <p>Kritik dan Saran WA : 0852-8000-4508</p>
+        <p>Terima Kasih - Selamat Datang Kembali</p>
+        <p>Kritik Saran WA : 0852-8000-4508</p>
       </div>
     </div>
   )

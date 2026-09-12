@@ -160,23 +160,22 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
               print-color-adjust: exact;
             }
             .print-receipt { width: 100%; padding: 0 2mm; text-align: center; }
-            .print-header { text-align: center; margin-bottom: 6px; }
-            .print-header h2 { font-size: 18px; text-transform: uppercase; margin: 0 0 3px; line-height: 1.4; }
-            .print-header p { font-size: 14px; margin: 1px 0; line-height: 1.4; }
-            .print-divider { border: none; border-top: 1px dashed black; margin: 6px 0; }
-            .receipt-meta { text-align: center; margin: 4px 0; line-height: 1.6; }
-            .receipt-meta div { margin: 1px 0; }
+            .print-header { text-align: center; margin-bottom: 3px; }
+            .print-header h2 { font-size: 18px; text-transform: uppercase; margin: 0 0 2px; line-height: 1.3; }
+            .print-header p { font-size: 14px; margin: 0; line-height: 1.3; }
+            .print-divider { border: none; border-top: 1px dashed black; margin: 3px 0; }
+            .receipt-meta { text-align: center; margin: 2px 0; line-height: 1.4; }
+            .receipt-meta div { margin: 0; }
             .receipt-items { text-align: center; }
-            .receipt-item-block { margin: 4px 0; text-align: center; }
+            .receipt-item-block { margin: 2px 0; text-align: center; }
             .receipt-item-row { display: flex; justify-content: space-between; text-align: center; }
-            .receipt-item-detail { font-size: 14px; text-align: center; line-height: 1.5; }
+            .receipt-item-detail { font-size: 14px; text-align: center; line-height: 1.4; }
             .receipt-item-note { font-size: 13px; font-style: italic; text-align: center; }
-            .receipt-summary { margin-top: 6px; }
-            .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 2px 0; line-height: 1.6; }
+            .receipt-summary { margin-top: 3px; }
+            .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 1px 0; line-height: 1.4; }
             .receipt-grand { font-size: 17px; }
-            .receipt-grand-section { margin-top: 6px; }
-            .print-footer { text-align: center; margin-top: 6px; font-size: 14px; line-height: 1.6; }
-            .print-footer p { margin: 1px 0; line-height: 1.6; }
+            .print-footer { text-align: center; margin-top: 3px; font-size: 14px; line-height: 1.4; }
+            .print-footer p { margin: 0; line-height: 1.4; }
             @media print { body { width: 100%; } .print-receipt { width: 100%; } }
           </style>
         </head>
