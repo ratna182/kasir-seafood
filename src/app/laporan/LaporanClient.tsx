@@ -143,16 +143,7 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
     }
     setPrinting(true)
     try {
-      const encoded = encodeLaporan(
-        data,
-        session.namaLengkap || session.username,
-        session.warungNama,
-        session.warungKode,
-        printerWidth,
-        kasirSesi,
-      )
-      
-      // Use window.print() for reliable printing on all platforms
+      // Always use window.print() for reliable printing
       // Web Bluetooth doesn't work with classic Bluetooth printers like Blueprint ECO 80D
       window.print()
       setFeedback({ type: 'success', message: 'Laporan berhasil dicetak!' })

@@ -236,25 +236,10 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   }
 
   async function handlePrintReceipt() {
-    if (printer.status === 'connected' && completedTransaksi) {
+    if (completedTransaksi) {
       setPrinting(true)
       try {
-        const data: ReceiptTransaction = {
-          id: completedTransaksi.id,
-          nomorMeja: completedTransaksi.nomorMeja,
-           total: completedTransaksi.total,
-          createdAt: completedTransaksi.createdAt,
-          metodePembayaran: completedTransaksi.metodePembayaran,
-          items: completedTransaksi.items,
-        }
-        const encoded = encodeReceipt({
-          transaction: data,
-          cashier: session.namaLengkap || session.username,
-          warungNama: session.warungNama,
-          width: printerWidth,
-        })
-        
-        // Use window.print() for reliable printing on all platforms
+        // Always use window.print() for reliable printing
         // Web Bluetooth doesn't work with classic Bluetooth printers like Blueprint ECO 80D
         window.print()
       } catch (e) {
@@ -263,8 +248,6 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
       } finally {
         setPrinting(false)
       }
-    } else {
-      window.print()
     }
   }
 
