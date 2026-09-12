@@ -874,6 +874,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   margin-bottom: 1rem;
   max-height: 340px;
   overflow-y: auto;
+  text-align: center;
 }
 
 .receipt-preview.receipt-58mm { max-width: 58mm; margin-left: auto; margin-right: auto; }
@@ -936,6 +937,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     line-height: 1.5 !important;
     color: black !important;
     background: white !important;
+    text-align: center !important;
   }
 
   .print-receipt.receipt-58mm { width: 50mm !important; max-width: 50mm !important; }

@@ -239,9 +239,56 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
     if (completedTransaksi) {
       setPrinting(true)
       try {
-        // Always use window.print() for reliable printing
-        // Web Bluetooth doesn't work with classic Bluetooth printers like Blueprint ECO 80D
-        window.print()
+        // Try Bluetooth print first if printer is connected
+        if (printer.status === 'connected') {
+          const receiptEl = document.querySelector('.print-receipt')
+          if (receiptEl) {
+            const printWindow = window.open('', '_blank', 'width=300,height=600')
+            if (printWindow) {
+              printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <title>Print Struk</title>
+                  <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 20px; font-weight: bold; width: 72mm; margin: 0; padding: 2mm; text-align: center; color: black; background: white; }
+                    .print-divider { border: none; border-top: 1px dashed black; margin: 6px 0; }
+                    .receipt-meta { display: flex; justify-content: center; gap: 1rem; font-size: 18px; font-weight: bold; }
+                    .receipt-table { width: 100%; border-collapse: collapse; font-size: 20px; font-weight: bold; }
+                    .receipt-table td { padding: 3px 0; vertical-align: top; }
+                    .receipt-item-name { font-weight: bold; }
+                    .receipt-item-price { font-weight: bold; }
+                    .receipt-item-detail { font-size: 18px; font-weight: bold; }
+                    .receipt-item-note { font-size: 15px; font-weight: bold; font-style: italic; }
+                    .receipt-summary { margin-top: 6px; }
+                    .receipt-total-row { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; padding: 2px 0; }
+                    .receipt-grand { font-weight: bold; font-size: 21px; }
+                    .receipt-grand-section { margin-top: 6px; }
+                    .print-footer { text-align: center; margin-top: 9px; font-size: 18px; font-weight: bold; color: black; }
+                  </style>
+                </head>
+                <body>
+                  ${receiptEl.outerHTML}
+                </body>
+                </html>
+              `)
+              printWindow.document.close()
+              
+              // Wait for content to load then print
+              await new Promise(resolve => setTimeout(resolve, 500))
+              printWindow.print()
+              
+              // Close after a short delay
+              setTimeout(() => {
+                printWindow.close()
+              }, 1000)
+            }
+          }
+        } else {
+          // Fall back to window.print() for regular printing
+          window.print()
+        }
       } catch (e) {
         console.error('Print error:', e)
         setError(`Gagal mencetak: ${e instanceof Error ? e.message : 'Unknown error'}`)

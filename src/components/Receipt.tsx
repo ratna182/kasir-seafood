@@ -28,7 +28,7 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
   const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : 'Cash'
 
   return (
-    <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width}`}>
+    <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width}`} style={{ textAlign: 'center' }}>
       <div className="print-header">
         <h2>{warungNama}</h2>
         <p>IG : Seafood08vianjaya.id</p>
@@ -36,7 +36,7 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
         <p>TT : Seafood08vianjaya</p>
       </div>
       <div className="print-divider" />
-      <div className="receipt-meta">
+      <div className="receipt-meta" style={{ justifyContent: 'center', gap: '1rem' }}>
         <div>{date.toLocaleDateString('sv-SE')}<br />{date.toLocaleTimeString('id-ID')}</div>
         <span>Kasir : {cashier}</span>
       </div>
