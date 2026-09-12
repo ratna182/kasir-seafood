@@ -151,14 +151,24 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
         printerWidth,
         kasirSesi,
       )
+      
+      // Check printer connection before writing
+      if (printer.status !== 'connected') {
+        setFeedback({ type: 'error', message: 'Printer tidak terhubung. Silakan hubungkan printer terlebih dahulu.' })
+        return
+      }
+      
       const ok = await printer.write(encoded)
       if (!ok) {
-        setFeedback({ type: 'error', message: 'Gagal mengirim data ke printer. Coba cetak ulang.' })
+        const printerError = (printer as any).error || 'Unknown error'
+        console.error('Print failed:', printerError)
+        setFeedback({ type: 'error', message: `Gagal mengirim data ke printer. Error: ${printerError}. Coba cetak ulang.` })
       } else {
         setFeedback({ type: 'success', message: 'Laporan berhasil dicetak ke printer thermal!' })
       }
-    } catch {
-      setFeedback({ type: 'error', message: 'Gagal mencetak. Periksa koneksi printer.' })
+    } catch (e) {
+      console.error('Print error:', e)
+      setFeedback({ type: 'error', message: `Gagal mencetak: ${e instanceof Error ? e.message : 'Unknown error'}. Periksa koneksi printer.` })
     } finally {
       setPrinting(false)
     }

@@ -237,34 +237,54 @@ class BluetoothPrinter {
     }
 
     try {
-      // Use smaller chunk size for better compatibility
-      const CHUNK_SIZE = 256
+      // Use very small chunk size for better compatibility with thermal printers
+      const CHUNK_SIZE = 64
       const totalChunks = Math.ceil(data.length / CHUNK_SIZE)
       
       this.log(`Writing ${data.length} bytes in ${totalChunks} chunks`)
       
+      // Check characteristic properties
+      const canWriteWithResponse = this.characteristic.properties.write
+      const canWriteWithoutResponse = this.characteristic.properties.writeWithoutResponse
+      
+      this.log(`Write properties - WithResponse: ${canWriteWithResponse}, WithoutResponse: ${canWriteWithoutResponse}`)
+      
       for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE)
         const chunkNumber = Math.floor(i / CHUNK_SIZE) + 1
+        let writeSuccess = false
         
-        try {
-          // Try writeWithResponse first
-          await this.characteristic.writeValueWithResponse(chunk)
-          this.log(`Chunk ${chunkNumber}/${totalChunks} written successfully`)
-        } catch (e) {
-          // If writeWithResponse fails, try writeWithoutResponse
+        // Try writeWithResponse first if supported
+        if (canWriteWithResponse) {
           try {
-            await this.characteristic.writeValueWithoutResponse(chunk)
-            this.log(`Chunk ${chunkNumber}/${totalChunks} written (no response)`)
-          } catch (e2) {
-            this.logError(`Failed to write chunk ${chunkNumber}`, e2)
-            return false
+            await this.characteristic.writeValueWithResponse(chunk)
+            this.log(`Chunk ${chunkNumber}/${totalChunks} written with response`)
+            writeSuccess = true
+          } catch (e) {
+            this.log(`Chunk ${chunkNumber}/${totalChunks} writeWithResponse failed, trying without response...`)
           }
         }
         
-        // Small delay between chunks to prevent buffer overflow
+        // Try writeWithoutResponse if writeWithResponse failed or not supported
+        if (!writeSuccess && canWriteWithoutResponse) {
+          try {
+            await this.characteristic.writeValueWithoutResponse(chunk)
+            this.log(`Chunk ${chunkNumber}/${totalChunks} written without response`)
+            writeSuccess = true
+          } catch (e) {
+            this.log(`Chunk ${chunkNumber}/${totalChunks} writeWithoutResponse failed`)
+          }
+        }
+        
+        // If both methods failed
+        if (!writeSuccess) {
+          this.logError(`Failed to write chunk ${chunkNumber}/${totalChunks}`)
+          return false
+        }
+        
+        // Delay between chunks - increase for stability
         if (i + CHUNK_SIZE < data.length) {
-          await new Promise(resolve => setTimeout(resolve, 10))
+          await new Promise(resolve => setTimeout(resolve, 50))
         }
       }
       

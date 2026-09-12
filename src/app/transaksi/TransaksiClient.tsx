@@ -242,7 +242,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
         const data: ReceiptTransaction = {
           id: completedTransaksi.id,
           nomorMeja: completedTransaksi.nomorMeja,
-          total: completedTransaksi.total,
+           total: completedTransaksi.total,
           createdAt: completedTransaksi.createdAt,
           metodePembayaran: completedTransaksi.metodePembayaran,
           items: completedTransaksi.items,
@@ -253,12 +253,23 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
           warungNama: session.warungNama,
           width: printerWidth,
         })
+        
+        // Check printer connection before writing
+        if (printer.status !== 'connected') {
+          setError('Printer tidak terhubung. Silakan hubungkan printer terlebih dahulu.')
+          return
+        }
+        
         const ok = await printer.write(encoded)
         if (!ok) {
-          setError('Gagal mengirim data ke printer. Coba cetak ulang.')
+          // Get more detailed error from printer if available
+          const printerError = (printer as any).error || 'Unknown error'
+          console.error('Print failed:', printerError)
+          setError(`Gagal mengirim data ke printer. Error: ${printerError}. Coba cetak ulang.`)
         }
-      } catch {
-        setError('Gagal mencetak. Periksa koneksi printer.')
+      } catch (e) {
+        console.error('Print error:', e)
+        setError(`Gagal mencetak: ${e instanceof Error ? e.message : 'Unknown error'}. Periksa koneksi printer.`)
       } finally {
         setPrinting(false)
       }
