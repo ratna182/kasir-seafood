@@ -239,55 +239,72 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
     if (completedTransaksi) {
       setPrinting(true)
       try {
-        // Try Bluetooth print first if printer is connected
-        if (printer.status === 'connected') {
+        // Open print window directly for thermal printer
+        const printWindow = window.open('', '_blank', 'width=320,height=600')
+        if (printWindow) {
           const receiptEl = document.querySelector('.print-receipt')
-          if (receiptEl) {
-            const printWindow = window.open('', '_blank', 'width=300,height=600')
-            if (printWindow) {
-              printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                  <title>Print Struk</title>
-                  <style>
-                    @page { size: 80mm auto; margin: 0; }
-                    body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 20px; font-weight: bold; width: 72mm; margin: 0; padding: 2mm; text-align: center; color: black; background: white; }
-                    .print-divider { border: none; border-top: 1px dashed black; margin: 6px 0; }
-                    .receipt-meta { display: flex; justify-content: center; gap: 1rem; font-size: 18px; font-weight: bold; }
-                    .receipt-table { width: 100%; border-collapse: collapse; font-size: 20px; font-weight: bold; }
-                    .receipt-table td { padding: 3px 0; vertical-align: top; }
-                    .receipt-item-name { font-weight: bold; }
-                    .receipt-item-price { font-weight: bold; }
-                    .receipt-item-detail { font-size: 18px; font-weight: bold; }
-                    .receipt-item-note { font-size: 15px; font-weight: bold; font-style: italic; }
-                    .receipt-summary { margin-top: 6px; }
-                    .receipt-total-row { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; padding: 2px 0; }
-                    .receipt-grand { font-weight: bold; font-size: 21px; }
-                    .receipt-grand-section { margin-top: 6px; }
-                    .print-footer { text-align: center; margin-top: 9px; font-size: 18px; font-weight: bold; color: black; }
-                  </style>
-                </head>
-                <body>
-                  ${receiptEl.outerHTML}
-                </body>
-                </html>
-              `)
-              printWindow.document.close()
-              
-              // Wait for content to load then print
-              await new Promise(resolve => setTimeout(resolve, 500))
-              printWindow.print()
-              
-              // Close after a short delay
-              setTimeout(() => {
-                printWindow.close()
-              }, 1000)
-            }
-          }
-        } else {
-          // Fall back to window.print() for regular printing
-          window.print()
+          const receiptHTML = receiptEl ? receiptEl.outerHTML : ''
+          
+          printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <title>Cetak Struk</title>
+              <style>
+                @page { 
+                  size: 72mm auto; 
+                  margin: 0; 
+                }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                html, body { 
+                  width: 72mm; 
+                  margin: 0; 
+                  padding: 0;
+                  font-family: 'Helvetica', 'Arial', sans-serif; 
+                  font-size: 20px; 
+                  font-weight: bold; 
+                  color: black; 
+                  background: white;
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                }
+                .print-receipt {
+                  width: 72mm;
+                  padding: 2mm;
+                  text-align: center;
+                }
+                .print-header { text-align: center; margin-bottom: 6px; }
+                .print-header h2 { font-size: 23px; text-transform: uppercase; margin: 0 0 3px; }
+                .print-header p { font-size: 18px; margin: 0; }
+                .print-divider { border: none; border-top: 1px dashed black; margin: 6px 0; }
+                .receipt-meta { display: flex; justify-content: center; gap: 1rem; font-size: 18px; }
+                .receipt-table { width: 100%; border-collapse: collapse; }
+                .receipt-table td { padding: 3px 0; vertical-align: top; }
+                .receipt-item { display: flex; justify-content: space-between; }
+                .receipt-item-name { font-weight: bold; }
+                .receipt-item-price { font-weight: bold; }
+                .receipt-item-detail { font-size: 18px; }
+                .receipt-item-note { font-size: 15px; font-style: italic; }
+                .receipt-summary { margin-top: 6px; }
+                .receipt-total-row { display: flex; justify-content: space-between; font-size: 20px; padding: 2px 0; }
+                .receipt-grand { font-size: 21px; }
+                .receipt-grand-section { margin-top: 6px; }
+                .print-footer { text-align: center; margin-top: 9px; font-size: 18px; }
+              </style>
+            </head>
+            <body>
+              ${receiptHTML}
+            </body>
+            </html>
+          `)
+          printWindow.document.close()
+          
+          // Focus and print
+          printWindow.focus()
+          setTimeout(() => {
+            printWindow.print()
+          }, 300)
         }
       } catch (e) {
         console.error('Print error:', e)
@@ -780,6 +797,18 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
               <span>Ukuran printer</span>
               {(['58mm', '80mm'] as const).map((width) => <button key={width} type="button" onClick={() => setPrinterWidth(width)} className={`btn btn-sm ${printerWidth === width ? 'btn-primary' : 'btn-ghost'}`}>{width}</button>)}
               <PrinterStatusBadge onSetupClick={() => setShowPrinterSetup(true)} />
+            </div>
+
+            {/* Instruksi cetak untuk Android */}
+            <div style={{ background: 'var(--color-accent-soft)', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+              <strong style={{ color: 'var(--color-text-primary)' }}>Cara cetak dari Android:</strong>
+              <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, lineHeight: 1.6 }}>
+                <li>Klik tombol <strong>Cetak Struk</strong> di bawah</li>
+                <li>Di dialog print, ubah dari <strong>"Simpan sebagai PDF"</strong></li>
+                <li>Pilih <strong>printer Bluetooth</strong> kamu (ECO 80D)</li>
+                <li>Ubah ukuran kertas ke <strong>80mm</strong> atau <strong>Roll Paper 80mm</strong></li>
+                <li>Klik <strong>Print</strong></li>
+              </ol>
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem' }}>
