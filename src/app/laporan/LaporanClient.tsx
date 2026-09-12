@@ -134,25 +134,66 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
     } finally { setOpening(false) }
   }
 
-  function handlePrint() { window.print() }
+  function handlePrint() {
+    const printWindow = window.open('', '_blank', 'width=280,height=500')
+    if (printWindow) {
+      const receiptEl = document.querySelector('.print-receipt')
+      const receiptHTML = receiptEl ? receiptEl.outerHTML : ''
+      
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Cetak Laporan</title>
+          <style>
+            @page { size: 72mm auto; margin: 0; }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            html { width: 72mm; }
+            body {
+              width: 72mm; margin: 0; padding: 0;
+              font-family: 'Helvetica', 'Arial', sans-serif;
+              font-size: 20px; font-weight: bold;
+              color: black; background: white;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .print-receipt {
+              width: 72mm; padding: 0 1mm; text-align: center;
+            }
+            .print-header { text-align: center; margin-bottom: 8px; }
+            .print-header h2 { font-size: 24px; text-transform: uppercase; margin: 0 0 4px; line-height: 1.6; }
+            .print-header p { font-size: 18px; margin: 2px 0; line-height: 1.6; }
+            .print-divider { border: none; border-top: 1px dashed black; margin: 8px 0; }
+            .receipt-meta { display: flex; justify-content: center; gap: 0.5rem; font-size: 18px; text-align: center; line-height: 1.8; }
+            .receipt-table { width: 100%; border-collapse: collapse; }
+            .receipt-table td { padding: 4px 0; vertical-align: top; line-height: 1.8; }
+            .receipt-item { display: flex; justify-content: space-between; }
+            .receipt-item-name { font-weight: bold; }
+            .receipt-item-price { font-weight: bold; }
+            .receipt-item-detail { font-size: 18px; line-height: 1.6; }
+            .receipt-item-note { font-size: 15px; font-style: italic; }
+            .receipt-summary { margin-top: 8px; }
+            .receipt-total-row { display: flex; justify-content: space-between; font-size: 20px; padding: 3px 0; line-height: 1.8; }
+            .receipt-grand { font-size: 22px; }
+            .receipt-grand-section { margin-top: 8px; }
+            .print-footer { text-align: center; margin-top: 10px; font-size: 18px; line-height: 1.8; }
+            .print-footer p { margin: 2px 0; line-height: 1.8; }
+            @media print { body { width: 72mm; } .print-receipt { width: 72mm; } }
+          </style>
+        </head>
+        <body>${receiptHTML}</body>
+        </html>
+      `)
+      printWindow.document.close()
+      printWindow.focus()
+      setTimeout(() => { printWindow.print() }, 300)
+    }
+  }
 
   async function handlePrintThermal() {
-    if (printer.status !== 'connected' || !data) {
-      window.print()
-      return
-    }
-    setPrinting(true)
-    try {
-      // Always use window.print() for reliable printing
-      // Web Bluetooth doesn't work with classic Bluetooth printers like Blueprint ECO 80D
-      window.print()
-      setFeedback({ type: 'success', message: 'Laporan berhasil dicetak!' })
-    } catch (e) {
-      console.error('Print error:', e)
-      setFeedback({ type: 'error', message: `Gagal mencetak: ${e instanceof Error ? e.message : 'Unknown error'}` })
-    } finally {
-      setPrinting(false)
-    }
+    handlePrint()
   }
 
   async function handleExportExcel() {

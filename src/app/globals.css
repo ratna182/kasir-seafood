@@ -896,7 +896,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
    PRINT STYLES — THERMAL PRINTER
    ============================================ */
 @page {
-  size: 80mm auto;
+  size: 72mm auto;
   margin: 0;
 }
 
@@ -907,7 +907,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   }
 
   html, body {
-    width: 80mm !important;
+    width: 72mm !important;
     margin: 0 !important;
     padding: 0 !important;
     background: white !important;
@@ -918,6 +918,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     font-family: 'Helvetica', 'Arial', sans-serif !important;
     font-size: 20px !important;
     font-weight: bold !important;
+    line-height: 1.8 !important;
   }
 
   .no-print { display: none !important; }
@@ -930,42 +931,44 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     width: 72mm !important;
     max-width: 72mm !important;
     margin: 0 !important;
-    padding: 2mm !important;
+    padding: 0 1mm !important;
     font-family: 'Helvetica', 'Arial', sans-serif !important;
     font-size: 20px !important;
     font-weight: bold !important;
-    line-height: 1.5 !important;
+    line-height: 1.8 !important;
     color: black !important;
     background: white !important;
     text-align: center !important;
   }
 
-  .print-receipt.receipt-58mm { width: 50mm !important; max-width: 50mm !important; }
+  .print-receipt.receipt-58mm { width: 48mm !important; max-width: 48mm !important; }
 
   .print-header {
     text-align: center !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 8px !important;
   }
 
   .print-header h2 {
-    font-size: 23px !important;
+    font-size: 24px !important;
     font-weight: bold !important;
     text-transform: uppercase !important;
-    margin: 0 0 3px !important;
+    margin: 0 0 4px !important;
     color: black !important;
+    line-height: 1.6 !important;
   }
 
   .print-header p {
     font-size: 18px !important;
     font-weight: bold !important;
-    margin: 0 !important;
+    margin: 2px 0 !important;
     color: black !important;
+    line-height: 1.6 !important;
   }
 
   .print-divider {
     border: none !important;
     border-top: 1px dashed black !important;
-    margin: 6px 0 !important;
+    margin: 8px 0 !important;
   }
 
   .print-table {
@@ -991,18 +994,18 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     vertical-align: top !important;
   }
 
-  .receipt-meta, .receipt-item, .receipt-total, .receipt-summary .receipt-total-row { display: flex !important; justify-content: space-between !important; gap: 0.75rem !important; }
-  .receipt-meta { font-size: 18px !important; font-weight: bold !important; }
+  .receipt-meta, .receipt-item, .receipt-total, .receipt-summary .receipt-total-row { display: flex !important; justify-content: space-between !important; gap: 0.5rem !important; }
+  .receipt-meta { font-size: 18px !important; font-weight: bold !important; text-align: center !important; line-height: 1.8 !important; }
   .receipt-table { width: 100% !important; border-collapse: collapse !important; font-size: 20px !important; font-weight: bold !important; }
-  .receipt-table td { padding: 3px 0 !important; vertical-align: top !important; }
+  .receipt-table td { padding: 4px 0 !important; vertical-align: top !important; line-height: 1.8 !important; }
   .receipt-item-name { font-weight: bold !important; }
   .receipt-item-price { font-weight: bold !important; }
-  .receipt-item-detail { font-size: 18px !important; font-weight: bold !important; }
+  .receipt-item-detail { font-size: 18px !important; font-weight: bold !important; line-height: 1.6 !important; }
   .receipt-item-note { font-size: 15px !important; font-weight: bold !important; }
-  .receipt-summary { margin-top: 6px !important; }
-  .receipt-total-row { font-size: 20px !important; font-weight: bold !important; padding: 2px 0 !important; }
-  .receipt-grand { font-weight: bold !important; font-size: 21px !important; }
-  .receipt-grand-section { margin-top: 6px !important; }
+  .receipt-summary { margin-top: 8px !important; }
+  .receipt-total-row { font-size: 20px !important; font-weight: bold !important; padding: 3px 0 !important; line-height: 1.8 !important; }
+  .receipt-grand { font-weight: bold !important; font-size: 22px !important; }
+  .receipt-grand-section { margin-top: 8px !important; }
 
   .print-table .text-right {
     text-align: right !important;
@@ -1030,10 +1033,16 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 
   .print-footer {
     text-align: center !important;
-    margin-top: 9px !important;
+    margin-top: 10px !important;
     font-size: 18px !important;
     font-weight: bold !important;
     color: black !important;
+    line-height: 1.8 !important;
+  }
+
+  .print-footer p {
+    margin: 2px 0 !important;
+    line-height: 1.8 !important;
   }
 
   nav, header, .navbar, .btn, button,
