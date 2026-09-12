@@ -239,8 +239,8 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
     if (completedTransaksi) {
       setPrinting(true)
       try {
-        // Open print window directly for thermal printer
-        const printWindow = window.open('', '_blank', 'width=320,height=600')
+        // Open print window - small window to match thermal paper
+        const printWindow = window.open('', '_blank', 'width=280,height=500')
         if (printWindow) {
           const receiptEl = document.querySelector('.print-receipt')
           const receiptHTML = receiptEl ? receiptEl.outerHTML : ''
@@ -250,14 +250,22 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
             <html>
             <head>
               <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
               <title>Cetak Struk</title>
               <style>
                 @page { 
                   size: 72mm auto; 
-                  margin: 0; 
+                  margin: 0;
                 }
-                * { box-sizing: border-box; margin: 0; padding: 0; }
-                html, body { 
+                * { 
+                  box-sizing: border-box; 
+                  margin: 0; 
+                  padding: 0; 
+                }
+                html { 
+                  width: 72mm; 
+                }
+                body { 
                   width: 72mm; 
                   margin: 0; 
                   padding: 0;
@@ -275,22 +283,26 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                   text-align: center;
                 }
                 .print-header { text-align: center; margin-bottom: 6px; }
-                .print-header h2 { font-size: 23px; text-transform: uppercase; margin: 0 0 3px; }
-                .print-header p { font-size: 18px; margin: 0; }
-                .print-divider { border: none; border-top: 1px dashed black; margin: 6px 0; }
-                .receipt-meta { display: flex; justify-content: center; gap: 1rem; font-size: 18px; }
+                .print-header h2 { font-size: 22px; text-transform: uppercase; margin: 0 0 2px; }
+                .print-header p { font-size: 16px; margin: 0; }
+                .print-divider { border: none; border-top: 1px dashed black; margin: 4px 0; }
+                .receipt-meta { display: flex; justify-content: center; gap: 0.5rem; font-size: 16px; }
                 .receipt-table { width: 100%; border-collapse: collapse; }
-                .receipt-table td { padding: 3px 0; vertical-align: top; }
+                .receipt-table td { padding: 2px 0; vertical-align: top; }
                 .receipt-item { display: flex; justify-content: space-between; }
                 .receipt-item-name { font-weight: bold; }
                 .receipt-item-price { font-weight: bold; }
-                .receipt-item-detail { font-size: 18px; }
-                .receipt-item-note { font-size: 15px; font-style: italic; }
-                .receipt-summary { margin-top: 6px; }
-                .receipt-total-row { display: flex; justify-content: space-between; font-size: 20px; padding: 2px 0; }
-                .receipt-grand { font-size: 21px; }
-                .receipt-grand-section { margin-top: 6px; }
-                .print-footer { text-align: center; margin-top: 9px; font-size: 18px; }
+                .receipt-item-detail { font-size: 16px; }
+                .receipt-item-note { font-size: 14px; font-style: italic; }
+                .receipt-summary { margin-top: 4px; }
+                .receipt-total-row { display: flex; justify-content: space-between; font-size: 18px; padding: 2px 0; }
+                .receipt-grand { font-size: 20px; }
+                .receipt-grand-section { margin-top: 4px; }
+                .print-footer { text-align: center; margin-top: 6px; font-size: 16px; }
+                @media print {
+                  body { width: 72mm; }
+                  .print-receipt { width: 72mm; }
+                }
               </style>
             </head>
             <body>
@@ -803,11 +815,11 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
             <div style={{ background: 'var(--color-accent-soft)', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
               <strong style={{ color: 'var(--color-text-primary)' }}>Cara cetak dari Android:</strong>
               <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, lineHeight: 1.6 }}>
-                <li>Klik tombol <strong>Cetak Struk</strong> di bawah</li>
-                <li>Di dialog print, ubah dari <strong>"Simpan sebagai PDF"</strong></li>
-                <li>Pilih <strong>printer Bluetooth</strong> kamu (ECO 80D)</li>
-                <li>Ubah ukuran kertas ke <strong>80mm</strong> atau <strong>Roll Paper 80mm</strong></li>
-                <li>Klik <strong>Print</strong></li>
+                <li>Klik <strong>Cetak Struk</strong></li>
+                <li>Pilih printer <strong>Blueprint</strong></li>
+                <li>Tap <strong>"Kertas"</strong> → pilih <strong>"Rol 58mm"</strong> atau <strong>"Rol 80mm"</strong> jika ada</li>
+                <li>Jika tidak ada, pilih <strong>"Lainnya"</strong> → cari ukuran <strong>72mm</strong></li>
+                <li>Jika tidak bisa pilih, langsung klik <strong>Print</strong> saja</li>
               </ol>
             </div>
 
