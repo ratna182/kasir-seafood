@@ -864,12 +864,12 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 .receipt-preview {
   background: #fff;
   color: #000;
-  padding: 0.5rem;
+  padding: 0.3rem;
   border-radius: 8px;
   font-family: 'Helvetica', 'Arial', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: bold;
-  line-height: 1.6;
+  line-height: 1.5;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   margin-bottom: 1rem;
   max-height: 340px;
@@ -878,19 +878,19 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 }
 
 .receipt-preview.receipt-58mm { max-width: 58mm; margin-left: auto; margin-right: auto; }
-.receipt-meta { text-align: center; margin: 4px 0; line-height: 1.6; }
-.receipt-meta div { margin: 1px 0; }
+.receipt-meta { text-align: center; margin: 2px 0; line-height: 1.5; }
+.receipt-meta div { margin: 0; }
 .receipt-items { text-align: center; }
-.receipt-item-block { margin: 4px 0; text-align: center; }
+.receipt-item-block { margin: 2px 0; text-align: center; }
 .receipt-item-row { display: flex; justify-content: space-between; text-align: center; }
-.receipt-item-detail { font-size: 10px; text-align: center; }
-.receipt-item-note { font-size: 9px; font-style: italic; text-align: center; }
-.receipt-table { width: 100%; border-collapse: collapse; font-size: 11px; font-weight: bold; }
-.receipt-table td { padding: 2px 0; vertical-align: top; text-align: center; }
-.receipt-summary { margin-top: 4px; }
+.receipt-item-detail { font-size: 8px; text-align: center; line-height: 1.4; }
+.receipt-item-note { font-size: 7px; font-style: italic; text-align: center; }
+.receipt-table { width: 100%; border-collapse: collapse; font-size: 9px; font-weight: bold; }
+.receipt-table td { padding: 1px 0; vertical-align: top; text-align: center; }
+.receipt-summary { margin-top: 2px; }
 .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 1px 0; }
-.receipt-grand { font-weight: bold; font-size: 12px; }
-.receipt-grand-section { margin-top: 4px; }
+.receipt-grand { font-weight: bold; font-size: 10px; }
+.receipt-grand-section { margin-top: 2px; }
 .receipt-width-picker { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 1rem; font-size: 0.8rem; }
 
 /* ============================================
@@ -917,9 +917,9 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   body {
     color: black !important;
     font-family: 'Helvetica', 'Arial', sans-serif !important;
-    font-size: 18px !important;
+    font-size: 10px !important;
     font-weight: bold !important;
-    line-height: 1.8 !important;
+    line-height: 1.5 !important;
   }
 
   .no-print { display: none !important; }
@@ -932,11 +932,11 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     width: 72mm !important;
     max-width: 72mm !important;
     margin: 0 !important;
-    padding: 0 1mm !important;
+    padding: 0 !important;
     font-family: 'Helvetica', 'Arial', sans-serif !important;
-    font-size: 18px !important;
+    font-size: 10px !important;
     font-weight: bold !important;
-    line-height: 1.8 !important;
+    line-height: 1.5 !important;
     color: black !important;
     background: white !important;
     text-align: center !important;
@@ -946,56 +946,56 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 
   .print-header {
     text-align: center !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 4px !important;
   }
 
   .print-header h2 {
-    font-size: 20px !important;
+    font-size: 11px !important;
     font-weight: bold !important;
     text-transform: uppercase !important;
-    margin: 0 0 3px !important;
+    margin: 0 0 2px !important;
     color: black !important;
-    line-height: 1.6 !important;
+    line-height: 1.4 !important;
   }
 
   .print-header p {
-    font-size: 16px !important;
+    font-size: 9px !important;
     font-weight: bold !important;
-    margin: 1px 0 !important;
+    margin: 0 !important;
     color: black !important;
-    line-height: 1.6 !important;
+    line-height: 1.4 !important;
   }
 
   .print-divider {
     border: none !important;
     border-top: 1px dashed black !important;
-    margin: 6px 0 !important;
+    margin: 4px 0 !important;
   }
 
-  .receipt-meta { text-align: center !important; margin: 4px 0 !important; line-height: 1.8 !important; }
-  .receipt-meta div { margin: 1px 0 !important; }
+  .receipt-meta { text-align: center !important; margin: 2px 0 !important; line-height: 1.5 !important; }
+  .receipt-meta div { margin: 0 !important; }
   .receipt-items { text-align: center !important; }
-  .receipt-item-block { margin: 4px 0 !important; text-align: center !important; }
+  .receipt-item-block { margin: 2px 0 !important; text-align: center !important; }
   .receipt-item-row { display: flex !important; justify-content: space-between !important; text-align: center !important; }
-  .receipt-item-detail { font-size: 16px !important; text-align: center !important; line-height: 1.6 !important; }
-  .receipt-item-note { font-size: 14px !important; font-style: italic !important; text-align: center !important; }
-  .receipt-summary { margin-top: 6px !important; }
-  .receipt-row { display: flex !important; justify-content: space-between !important; text-align: center !important; padding: 2px 0 !important; line-height: 1.8 !important; }
-  .receipt-grand { font-weight: bold !important; font-size: 20px !important; }
-  .receipt-grand-section { margin-top: 6px !important; }
+  .receipt-item-detail { font-size: 9px !important; text-align: center !important; line-height: 1.4 !important; }
+  .receipt-item-note { font-size: 8px !important; font-style: italic !important; text-align: center !important; }
+  .receipt-summary { margin-top: 4px !important; }
+  .receipt-row { display: flex !important; justify-content: space-between !important; text-align: center !important; padding: 1px 0 !important; line-height: 1.5 !important; }
+  .receipt-grand { font-weight: bold !important; font-size: 11px !important; }
+  .receipt-grand-section { margin-top: 4px !important; }
 
   .print-footer {
     text-align: center !important;
-    margin-top: 8px !important;
-    font-size: 16px !important;
+    margin-top: 4px !important;
+    font-size: 9px !important;
     font-weight: bold !important;
     color: black !important;
-    line-height: 1.8 !important;
+    line-height: 1.5 !important;
   }
 
   .print-footer p {
-    margin: 1px 0 !important;
-    line-height: 1.8 !important;
+    margin: 0 !important;
+    line-height: 1.5 !important;
   }
 
   nav, header, .navbar, .btn, button,

@@ -258,29 +258,29 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                 body {
                   width: 72mm; margin: 0; padding: 0;
                   font-family: 'Helvetica', 'Arial', sans-serif;
-                  font-size: 18px; font-weight: bold;
+                  font-size: 10px; font-weight: bold;
                   color: black; background: white;
                   -webkit-print-color-adjust: exact;
                   print-color-adjust: exact;
                 }
-                .print-receipt { width: 72mm; padding: 0 1mm; text-align: center; }
-                .print-header { text-align: center; margin-bottom: 6px; }
-                .print-header h2 { font-size: 20px; text-transform: uppercase; margin: 0 0 3px; line-height: 1.6; }
-                .print-header p { font-size: 16px; margin: 1px 0; line-height: 1.6; }
-                .print-divider { border: none; border-top: 1px dashed black; margin: 6px 0; }
-                .receipt-meta { text-align: center; margin: 4px 0; line-height: 1.8; }
-                .receipt-meta div { margin: 1px 0; }
+                .print-receipt { width: 72mm; padding: 0; text-align: center; }
+                .print-header { text-align: center; margin-bottom: 4px; }
+                .print-header h2 { font-size: 11px; text-transform: uppercase; margin: 0 0 2px; line-height: 1.4; }
+                .print-header p { font-size: 9px; margin: 0; line-height: 1.4; }
+                .print-divider { border: none; border-top: 1px dashed black; margin: 4px 0; }
+                .receipt-meta { text-align: center; margin: 2px 0; line-height: 1.5; }
+                .receipt-meta div { margin: 0; }
                 .receipt-items { text-align: center; }
-                .receipt-item-block { margin: 4px 0; text-align: center; }
+                .receipt-item-block { margin: 2px 0; text-align: center; }
                 .receipt-item-row { display: flex; justify-content: space-between; text-align: center; }
-                .receipt-item-detail { font-size: 16px; text-align: center; line-height: 1.6; }
-                .receipt-item-note { font-size: 14px; font-style: italic; text-align: center; }
-                .receipt-summary { margin-top: 6px; }
-                .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 2px 0; line-height: 1.8; }
-                .receipt-grand { font-size: 20px; }
-                .receipt-grand-section { margin-top: 6px; }
-                .print-footer { text-align: center; margin-top: 8px; font-size: 16px; line-height: 1.8; }
-                .print-footer p { margin: 1px 0; line-height: 1.8; }
+                .receipt-item-detail { font-size: 9px; text-align: center; line-height: 1.4; }
+                .receipt-item-note { font-size: 8px; font-style: italic; text-align: center; }
+                .receipt-summary { margin-top: 4px; }
+                .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 1px 0; line-height: 1.5; }
+                .receipt-grand { font-size: 11px; }
+                .receipt-grand-section { margin-top: 4px; }
+                .print-footer { text-align: center; margin-top: 4px; font-size: 9px; line-height: 1.5; }
+                .print-footer p { margin: 0; line-height: 1.5; }
                 @media print { body { width: 72mm; } .print-receipt { width: 72mm; } }
               </style>
             </head>
