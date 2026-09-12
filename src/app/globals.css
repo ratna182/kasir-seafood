@@ -864,9 +864,9 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 .receipt-preview {
   background: #fff;
   color: #000;
-  padding: 1rem;
+  padding: 1rem 1.5rem;
   border-radius: 8px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: 'Helvetica', 'Arial', sans-serif;
   font-size: 12px;
   font-weight: bold;
   line-height: 1.5;
@@ -903,7 +903,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
   body {
     background: white !important;
     color: black !important;
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'Helvetica', 'Arial', sans-serif !important;
     font-size: 20px !important;
     font-weight: bold !important;
     margin: 0 !important;
@@ -920,8 +920,8 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     width: 72mm !important;
     max-width: 72mm !important;
     margin: 0 auto !important;
-    padding: 3mm !important;
-    font-family: 'Courier New', Courier, monospace !important;
+    padding: 3mm 5mm !important;
+    font-family: 'Helvetica', 'Arial', sans-serif !important;
     font-size: 20px !important;
     font-weight: bold !important;
     line-height: 1.5 !important;
