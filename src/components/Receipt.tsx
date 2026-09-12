@@ -28,7 +28,7 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
   const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : 'Cash'
 
   return (
-    <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width}`} style={{ textAlign: 'center' }}>
+    <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width}`}>
       <div className="print-header">
         <h2>{warungNama}</h2>
         <p>IG : Seafood08vianjaya.id</p>
@@ -36,42 +36,40 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
         <p>TT : Seafood08vianjaya</p>
       </div>
       <div className="print-divider" />
-      <div className="receipt-meta" style={{ justifyContent: 'center', gap: '1rem' }}>
-        <div>{date.toLocaleDateString('sv-SE')}<br />{date.toLocaleTimeString('id-ID')}</div>
-        <span>Kasir : {cashier}</span>
+      <div className="receipt-meta">
+        <div>{date.toLocaleDateString('sv-SE')} {date.toLocaleTimeString('id-ID')}</div>
+        <div>Kasir : {cashier}</div>
       </div>
       <div className="print-divider" />
-      <table className="receipt-table">
-        <tbody>
-          {transaction.items.map((item, index) => (
-            <tr key={index}>
-              <td>
-                <div className="receipt-item"><span className="receipt-item-name">{item.namaMenu}</span><span className="receipt-item-price">{rupiah(item.subtotal)}</span></div>
-                <div className="receipt-item-detail">{item.qty} X {rupiah(item.hargaSatuan)}{item.diskonSatuan ? ` - diskon ${rupiah(item.diskonSatuan)}` : ''}</div>
-                {item.catatan && <div className="receipt-item-note">{item.catatan}</div>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="receipt-items">
+        {transaction.items.map((item, index) => (
+          <div key={index} className="receipt-item-block">
+            <div className="receipt-item-row">
+              <span>{item.namaMenu}</span>
+              <span>{rupiah(item.subtotal)}</span>
+            </div>
+            <div className="receipt-item-detail">{item.qty} x {rupiah(item.hargaSatuan)}{item.diskonSatuan ? ` -${rupiah(item.diskonSatuan)}` : ''}</div>
+            {item.catatan && <div className="receipt-item-note">{item.catatan}</div>}
+          </div>
+        ))}
+      </div>
       <div className="print-divider" />
       <div className="receipt-summary">
-        <div className="receipt-total-row"><span>Total QTY :</span><span>{totalQty}</span></div>
-        <div className="receipt-total-row"><span>Subtotal</span><span>{rupiah(transaction.total)}</span></div>
+        <div className="receipt-row"><span>Total QTY</span><span>{totalQty}</span></div>
+        <div className="receipt-row"><span>Subtotal</span><span>{rupiah(transaction.total)}</span></div>
       </div>
       <div className="print-divider" />
       <div className="receipt-summary receipt-grand-section">
-        <div className="receipt-total-row receipt-grand"><span>Total</span><span>{rupiah(transaction.total)}</span></div>
-        <div className="receipt-total-row"><span>Bayar</span><span>{rupiah(transaction.total)}</span></div>
-        <div className="receipt-total-row"><span>Kembali</span><span>Rp 0</span></div>
+        <div className="receipt-row receipt-grand"><span>Total</span><span>{rupiah(transaction.total)}</span></div>
+        <div className="receipt-row"><span>Bayar</span><span>{rupiah(transaction.total)}</span></div>
+        <div className="receipt-row"><span>Kembali</span><span>Rp 0</span></div>
       </div>
       <div className="print-divider" />
       <div className="print-footer">
         {reprint && <p>*** CETAK ULANG STRUK RESMI ***</p>}
         <p>Terima Kasih</p>
         <p>Selamat Datang Kembali</p>
-        <p>Kritik dan Saran WA</p>
-        <p>0852-8000-4508</p>
+        <p>Kritik dan Saran WA : 0852-8000-4508</p>
       </div>
     </div>
   )

@@ -154,32 +154,29 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
             body {
               width: 72mm; margin: 0; padding: 0;
               font-family: 'Helvetica', 'Arial', sans-serif;
-              font-size: 20px; font-weight: bold;
+              font-size: 18px; font-weight: bold;
               color: black; background: white;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
-            .print-receipt {
-              width: 72mm; padding: 0 1mm; text-align: center;
-            }
-            .print-header { text-align: center; margin-bottom: 8px; }
-            .print-header h2 { font-size: 24px; text-transform: uppercase; margin: 0 0 4px; line-height: 1.6; }
-            .print-header p { font-size: 18px; margin: 2px 0; line-height: 1.6; }
-            .print-divider { border: none; border-top: 1px dashed black; margin: 8px 0; }
-            .receipt-meta { display: flex; justify-content: center; gap: 0.5rem; font-size: 18px; text-align: center; line-height: 1.8; }
-            .receipt-table { width: 100%; border-collapse: collapse; }
-            .receipt-table td { padding: 4px 0; vertical-align: top; line-height: 1.8; }
-            .receipt-item { display: flex; justify-content: space-between; }
-            .receipt-item-name { font-weight: bold; }
-            .receipt-item-price { font-weight: bold; }
-            .receipt-item-detail { font-size: 18px; line-height: 1.6; }
-            .receipt-item-note { font-size: 15px; font-style: italic; }
-            .receipt-summary { margin-top: 8px; }
-            .receipt-total-row { display: flex; justify-content: space-between; font-size: 20px; padding: 3px 0; line-height: 1.8; }
-            .receipt-grand { font-size: 22px; }
-            .receipt-grand-section { margin-top: 8px; }
-            .print-footer { text-align: center; margin-top: 10px; font-size: 18px; line-height: 1.8; }
-            .print-footer p { margin: 2px 0; line-height: 1.8; }
+            .print-receipt { width: 72mm; padding: 0 1mm; text-align: center; }
+            .print-header { text-align: center; margin-bottom: 6px; }
+            .print-header h2 { font-size: 20px; text-transform: uppercase; margin: 0 0 3px; line-height: 1.6; }
+            .print-header p { font-size: 16px; margin: 1px 0; line-height: 1.6; }
+            .print-divider { border: none; border-top: 1px dashed black; margin: 6px 0; }
+            .receipt-meta { text-align: center; margin: 4px 0; line-height: 1.8; }
+            .receipt-meta div { margin: 1px 0; }
+            .receipt-items { text-align: center; }
+            .receipt-item-block { margin: 4px 0; text-align: center; }
+            .receipt-item-row { display: flex; justify-content: space-between; text-align: center; }
+            .receipt-item-detail { font-size: 16px; text-align: center; line-height: 1.6; }
+            .receipt-item-note { font-size: 14px; font-style: italic; text-align: center; }
+            .receipt-summary { margin-top: 6px; }
+            .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 2px 0; line-height: 1.8; }
+            .receipt-grand { font-size: 20px; }
+            .receipt-grand-section { margin-top: 6px; }
+            .print-footer { text-align: center; margin-top: 8px; font-size: 16px; line-height: 1.8; }
+            .print-footer p { margin: 1px 0; line-height: 1.8; }
             @media print { body { width: 72mm; } .print-receipt { width: 72mm; } }
           </style>
         </head>
