@@ -864,7 +864,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 .receipt-preview {
   background: #fff;
   color: #000;
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-radius: 8px;
   font-family: 'Helvetica', 'Arial', sans-serif;
   font-size: 12px;
@@ -920,7 +920,7 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
     width: 72mm !important;
     max-width: 72mm !important;
     margin: 0 auto !important;
-    padding: 3mm 5mm !important;
+    padding: 2mm !important;
     font-family: 'Helvetica', 'Arial', sans-serif !important;
     font-size: 20px !important;
     font-weight: bold !important;

@@ -196,6 +196,22 @@ class BluetoothPrinter {
         return false
       }
 
+      // Try to enable notifications if supported
+      try {
+        if (characteristic.properties.notify) {
+          this.log('Enabling notifications...')
+          await characteristic.startNotifications()
+          this.log('Notifications enabled')
+          
+          // Add event listener for notifications
+          characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
+            this.log('Notification received:', event.target.value)
+          })
+        }
+      } catch (e) {
+        this.log('Failed to enable notifications, continuing...')
+      }
+
       this.device = device
       this.characteristic = characteristic
 
@@ -238,7 +254,7 @@ class BluetoothPrinter {
 
     try {
       // Use very small chunk size for better compatibility with thermal printers
-      const CHUNK_SIZE = 64
+      const CHUNK_SIZE = 32
       const totalChunks = Math.ceil(data.length / CHUNK_SIZE)
       
       this.log(`Writing ${data.length} bytes in ${totalChunks} chunks`)
@@ -249,30 +265,44 @@ class BluetoothPrinter {
       
       this.log(`Write properties - WithResponse: ${canWriteWithResponse}, WithoutResponse: ${canWriteWithoutResponse}`)
       
+      // Send wake-up signal to printer
+      this.log('Sending wake-up signal...')
+      try {
+        const wakeUp = new Uint8Array([0x00])
+        if (canWriteWithoutResponse) {
+          await this.characteristic.writeValueWithoutResponse(wakeUp)
+        } else if (canWriteWithResponse) {
+          await this.characteristic.writeValueWithResponse(wakeUp)
+        }
+        await new Promise(resolve => setTimeout(resolve, 100))
+      } catch (e) {
+        this.log('Wake-up signal failed, continuing...')
+      }
+      
       for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE)
         const chunkNumber = Math.floor(i / CHUNK_SIZE) + 1
         let writeSuccess = false
         
-        // Try writeWithResponse first if supported
-        if (canWriteWithResponse) {
-          try {
-            await this.characteristic.writeValueWithResponse(chunk)
-            this.log(`Chunk ${chunkNumber}/${totalChunks} written with response`)
-            writeSuccess = true
-          } catch (e) {
-            this.log(`Chunk ${chunkNumber}/${totalChunks} writeWithResponse failed, trying without response...`)
-          }
-        }
-        
-        // Try writeWithoutResponse if writeWithResponse failed or not supported
-        if (!writeSuccess && canWriteWithoutResponse) {
+        // Try writeWithoutResponse first (more common for thermal printers)
+        if (canWriteWithoutResponse) {
           try {
             await this.characteristic.writeValueWithoutResponse(chunk)
             this.log(`Chunk ${chunkNumber}/${totalChunks} written without response`)
             writeSuccess = true
           } catch (e) {
             this.log(`Chunk ${chunkNumber}/${totalChunks} writeWithoutResponse failed`)
+          }
+        }
+        
+        // Try writeWithResponse if writeWithoutResponse failed or not supported
+        if (!writeSuccess && canWriteWithResponse) {
+          try {
+            await this.characteristic.writeValueWithResponse(chunk)
+            this.log(`Chunk ${chunkNumber}/${totalChunks} written with response`)
+            writeSuccess = true
+          } catch (e) {
+            this.log(`Chunk ${chunkNumber}/${totalChunks} writeWithResponse failed`)
           }
         }
         
@@ -284,7 +314,7 @@ class BluetoothPrinter {
         
         // Delay between chunks - increase for stability
         if (i + CHUNK_SIZE < data.length) {
-          await new Promise(resolve => setTimeout(resolve, 50))
+          await new Promise(resolve => setTimeout(resolve, 100))
         }
       }
       
