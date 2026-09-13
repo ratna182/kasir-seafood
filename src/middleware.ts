@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decodeSessionToken, COOKIE_OWNER, COOKIE_KASIR } from '@/lib/session'
 
+// NOTE: This middleware file is deprecated in Next.js 16. 
+// Consider migrating to proxy.ts convention for better performance.
+// See: https://nextjs.org/docs/messages/middleware-to-proxy
+
 // Routes yang tidak perlu auth
 const publicRoutes = ['/login', '/api/auth/login']
 

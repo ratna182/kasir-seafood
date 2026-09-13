@@ -14,7 +14,7 @@ describe('Session', () => {
 
   it('should return correct cookie name', () => {
     const cookieName = getSessionCookieName()
-    expect(cookieName).toBe('kasir_session')
+    expect(cookieName).toBe('kasir_session_owner')
   })
 
   it('should encode session token', () => {

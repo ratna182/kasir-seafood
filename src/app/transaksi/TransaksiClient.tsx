@@ -789,8 +789,8 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
               <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, lineHeight: 1.6 }}>
                 <li>Klik <strong>Cetak Struk</strong></li>
                 <li>Pilih printer <strong>Blueprint</strong></li>
-                <li>Tap <strong>"Kertas"</strong> → pilih <strong>"Rol 58mm"</strong> atau <strong>"Rol 80mm"</strong> jika ada</li>
-                <li>Jika tidak ada, pilih <strong>"Lainnya"</strong> → cari ukuran <strong>72mm</strong></li>
+                <li>Tap <strong>&quot;Kertas&quot;</strong> → pilih <strong>&quot;Rol 58mm&quot;</strong> atau <strong>&quot;Rol 80mm&quot;</strong> jika ada</li>
+                <li>Jika tidak ada, pilih <strong>&quot;Lainnya&quot;</strong> → cari ukuran <strong>72mm</strong></li>
                 <li>Jika tidak bisa pilih, langsung klik <strong>Print</strong> saja</li>
               </ol>
             </div>

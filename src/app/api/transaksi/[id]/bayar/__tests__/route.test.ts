@@ -8,6 +8,8 @@ vi.mock('@/lib/prisma', () => ({
 vi.mock('@/lib/auth', () => ({
   getAuthContext: vi.fn(),
   requireRole: vi.fn(),
+  requireKasirAccess: vi.fn(),
+  getKasirWarungId: vi.fn(),
 }))
 
 vi.mock('@/lib/rate-limiter', () => ({
@@ -16,7 +18,7 @@ vi.mock('@/lib/rate-limiter', () => ({
 
 import { POST } from '../route'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, requireRole } from '@/lib/auth'
+import { getAuthContext, requireRole, requireKasirAccess, getKasirWarungId } from '@/lib/auth'
 import type { AuthContext } from '@/lib/auth'
 
 const context: AuthContext = {
@@ -37,12 +39,15 @@ describe('Bayar order API', () => {
     vi.clearAllMocks()
     vi.mocked(getAuthContext).mockReturnValue(context)
     vi.mocked(requireRole).mockReturnValue(null)
+    vi.mocked(requireKasirAccess).mockResolvedValue(null)
+    vi.mocked(getKasirWarungId).mockResolvedValue('warung1')
   })
 
   it('finalizes open order before receipt is rendered', async () => {
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
       transaksi: {
         findFirst: vi.fn().mockResolvedValue({ id: 'trx1', total: 25000, items: [{ id: 'item1' }] }),
+        count: vi.fn().mockResolvedValue(0),
         update: vi.fn().mockResolvedValue({ id: 'trx1', status: 'SELESAI', metodePembayaran: 'CASH', total: 25000, items: [{ id: 'item1' }] }),
       },
     } as never))
@@ -62,7 +67,7 @@ describe('Bayar order API', () => {
   it('rejects invalid payment method', async () => {
     const request = new NextRequest('http://localhost/api/transaksi/trx1/bayar', {
       method: 'POST',
-      body: JSON.stringify({ metodePembayaran: 'TRANSFER' }),
+      body: JSON.stringify({ metodePembayaran: 'INVALID_METHOD' }),
     })
 
     const response = await POST(request, { params: Promise.resolve({ id: 'trx1' }) })

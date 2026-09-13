@@ -39,8 +39,6 @@ export default function MenuManager() {
   const [menuSaving, setMenuSaving] = useState(false)
   const [deletingMenuId, setDeletingMenuId] = useState<string | null>(null)
 
-  useEffect(() => { loadAll() }, [])
-
   async function loadAll() {
     setLoading(true)
     try {
@@ -67,6 +65,8 @@ export default function MenuManager() {
       showFeedback('error', 'Koneksi ke server gagal')
     } finally { setLoading(false) }
   }
+
+  useEffect(() => { loadAll() }, [])
 
   async function handleSyncMenus() {
     setSyncing(true)

@@ -1,4 +1,5 @@
 import type { PrinterConfig, PrinterStatus } from './types'
+import type { BluetoothDevice, BluetoothRemoteGATTCharacteristic, BluetoothRemoteGATTService } from './bluetooth-types'
 import { loadPrinterConfig, savePrinterConfig, clearPrinterConfig } from './storage'
 
 type StatusListener = (status: PrinterStatus) => void
@@ -28,8 +29,8 @@ const WRITE_CHARACTERISTIC_UUIDS = [
 ]
 
 class BluetoothPrinter {
-  private device: any = null
-  private characteristic: any = null
+  private device: BluetoothDevice | null = null
+  private characteristic: BluetoothRemoteGATTCharacteristic | null = null
   private listeners: Set<StatusListener> = new Set()
   private currentStatus: PrinterStatus = 'idle'
   private lastError: string = ''
@@ -47,11 +48,11 @@ class BluetoothPrinter {
     this.listeners.forEach((fn) => fn(status))
   }
 
-  private log(message: string, ...args: any[]) {
+  private log(message: string, ...args: unknown[]) {
     console.log(`[BluetoothPrinter] ${message}`, ...args)
   }
 
-  private logError(message: string, error?: any) {
+  private logError(message: string, error?: unknown) {
     console.error(`[BluetoothPrinter] ${message}`, error)
     this.lastError = message
   }
@@ -62,7 +63,7 @@ class BluetoothPrinter {
   }
 
   isSupported(): boolean {
-    return typeof navigator !== 'undefined' && !!(navigator as any).bluetooth
+    return typeof navigator !== 'undefined' && !!navigator.bluetooth
   }
 
   async connect(savedConfig?: PrinterConfig): Promise<boolean> {
@@ -77,14 +78,14 @@ class BluetoothPrinter {
       this.lastError = ''
       this.log('Starting connection process...')
 
-      let device: any = null
+      let device: BluetoothDevice | null = null
 
       // Try to get already paired devices first (no popup)
       if (savedConfig?.deviceId) {
         this.log('Trying getDevices() for auto-reconnect...')
         try {
-          const devices = await (navigator as any).bluetooth.getDevices()
-          const savedDevice = devices.find((d: any) => d.id === savedConfig.deviceId)
+          const devices = await navigator.bluetooth!.getDevices()
+          const savedDevice = devices.find((d) => d.id === savedConfig.deviceId)
           if (savedDevice) {
             this.log('Found saved device, connecting directly...')
             device = savedDevice
@@ -99,19 +100,19 @@ class BluetoothPrinter {
         this.log('Opening device picker...')
         if (savedConfig?.deviceId) {
           try {
-            device = await (navigator as any).bluetooth.requestDevice({
+            device = await navigator.bluetooth!.requestDevice({
               filters: [{ deviceId: savedConfig.deviceId }],
               optionalServices: SERVICE_UUIDS,
             })
           } catch (e) {
             this.log('Filter failed, showing all devices')
-            device = await (navigator as any).bluetooth.requestDevice({
+            device = await navigator.bluetooth!.requestDevice({
               acceptAllDevices: true,
               optionalServices: SERVICE_UUIDS,
             })
           }
         } else {
-          device = await (navigator as any).bluetooth.requestDevice({
+          device = await navigator.bluetooth!.requestDevice({
             acceptAllDevices: true,
             optionalServices: SERVICE_UUIDS,
           })
@@ -128,11 +129,11 @@ class BluetoothPrinter {
       })
 
       this.log('Connecting to GATT server...')
-      const server = await device.gatt.connect()
+      const server = await device.gatt!.connect()
       this.log('GATT server connected')
 
       // Try to find the correct service
-      let service: any = null
+      let service: BluetoothRemoteGATTService | null = null
       let serviceFound = false
 
       for (const uuid of SERVICE_UUIDS) {
@@ -168,7 +169,7 @@ class BluetoothPrinter {
       }
 
       // Try to find the correct characteristic
-      let characteristic: any = null
+      let characteristic: BluetoothRemoteGATTCharacteristic | null = null
       let characteristicFound = false
 
       // First try known characteristic UUIDs
@@ -225,8 +226,8 @@ class BluetoothPrinter {
           this.log('Notifications enabled')
           
           // Add event listener for notifications
-          characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
-            this.log('Notification received:', event.target.value)
+          characteristic.addEventListener('characteristicvaluechanged', (event) => {
+            this.log('Notification received:', event)
           })
         }
       } catch (e) {
@@ -240,6 +241,7 @@ class BluetoothPrinter {
         deviceId: device.id,
         deviceName: device.name || 'Printer Bluetooth',
         width: savedConfig?.width || '80mm',
+        connectionType: 'bluetooth',
       }
       savePrinterConfig(config)
 

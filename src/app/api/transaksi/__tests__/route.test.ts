@@ -13,6 +13,8 @@ vi.mock('@/lib/prisma', () => ({
 vi.mock('@/lib/auth', () => ({
   getAuthContext: vi.fn(),
   requireRole: vi.fn(),
+  requireKasirAccess: vi.fn(),
+  getKasirWarungId: vi.fn(),
 }))
 
 vi.mock('@/lib/rate-limiter', () => ({
@@ -21,7 +23,7 @@ vi.mock('@/lib/rate-limiter', () => ({
 
 import { GET, POST } from '../route'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, requireRole } from '@/lib/auth'
+import { getAuthContext, requireRole, requireKasirAccess, getKasirWarungId } from '@/lib/auth'
 import type { AuthContext } from '@/lib/auth'
 
 const context: AuthContext = {
@@ -46,6 +48,7 @@ const menu = {
   isAktif: true,
   createdAt: new Date(),
   updatedAt: new Date(),
+  warungMenus: [{ harga: 25000 }],
 }
 
 describe('Transaksi held order API', () => {
@@ -53,6 +56,8 @@ describe('Transaksi held order API', () => {
     vi.clearAllMocks()
     vi.mocked(getAuthContext).mockReturnValue(context)
     vi.mocked(requireRole).mockReturnValue(null)
+    vi.mocked(requireKasirAccess).mockResolvedValue(null)
+    vi.mocked(getKasirWarungId).mockResolvedValue('warung1')
     vi.mocked(prisma.kasirSesi.findUnique).mockResolvedValue(null)
   })
 

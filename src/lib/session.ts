@@ -10,7 +10,19 @@ export interface SessionUser {
   warungKode: string | null
 }
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'default-secret-change-me'
+function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SESSION_SECRET environment variable is required in production')
+    }
+    console.warn('[SESSION] Using default secret - SET SESSION_SECRET in .env for production!')
+    return 'dev-only-default-secret-change-me'
+  }
+  return secret
+}
+
+const SESSION_SECRET = getSessionSecret()
 
 // Cookie names — owner & kasir terpisah supaya bisa buka di tab berbeda
 export const COOKIE_OWNER = 'kasir_session_owner'
