@@ -18,16 +18,19 @@ interface ReceiptProps {
   width: PrinterWidth
   preview?: boolean
   reprint?: boolean
+  uangDiterima?: number
+  kembalian?: number
 }
 
 const rupiah = (amount: number) => `Rp ${amount.toLocaleString('id-ID')}`
 
-export default function Receipt({ transaction, cashier, warungNama, width, preview, reprint }: ReceiptProps) {
+export default function Receipt({ transaction, cashier, warungNama, width, preview, reprint, uangDiterima, kembalian }: ReceiptProps) {
   const date = new Date(transaction.createdAt)
   const totalQty = transaction.items.reduce((total, item) => total + item.qty, 0)
   const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : transaction.metodePembayaran === 'TRANSFER' ? 'Transfer' : 'Cash'
   const itemCount = transaction.items.length
   const isCompact = itemCount > 8
+  const isCash = transaction.metodePembayaran === 'CASH'
 
   return (
     <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width} ${isCompact ? 'compact' : ''}`}>
@@ -66,8 +69,12 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
         <div className="receipt-row"><span>Subtotal</span><span>{rupiah(transaction.total)}</span></div>
         <div className="receipt-row receipt-grand"><span>Total</span><span>{rupiah(transaction.total)}</span></div>
         <div className="receipt-row"><span>Pembayaran</span><span>{payment}</span></div>
-        <div className="receipt-row"><span>Bayar</span><span>{rupiah(transaction.total)}</span></div>
-        <div className="receipt-row"><span>Kembali</span><span>Rp 0</span></div>
+        {isCash && uangDiterima !== undefined && (
+          <>
+            <div className="receipt-row"><span>Tunai</span><span>{rupiah(uangDiterima)}</span></div>
+            <div className="receipt-row"><span>Kembali</span><span>{rupiah(kembalian ?? 0)}</span></div>
+          </>
+        )}
       </div>
       <div className="print-divider" />
       <div className="print-footer">

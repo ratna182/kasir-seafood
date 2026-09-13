@@ -10,6 +10,7 @@ import { printer } from '@/lib/printer/bluetooth'
 import { loadPrinterConfig } from '@/lib/printer/storage'
 import { encodeReceipt } from '@/lib/printer/receipt-encoder'
 import type { PrinterConfig } from '@/lib/printer/types'
+import { hitungKembalian, generateQuickAmounts } from '@/lib/payment/cash'
 
 interface Menu {
   id: string
@@ -88,6 +89,8 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [uangDiterima, setUangDiterima] = useState<number | ''>('')
+  const [kembalianResult, setKembalianResult] = useState<ReturnType<typeof hitungKembalian> | null>(null)
 
   useEffect(() => {
     const saved = loadPrinterConfig()
@@ -127,6 +130,23 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
     return grouped
   }, [filteredMenus])
 
+  const quickAmounts = useMemo(() => {
+    if (!selectedOrder) return []
+    return generateQuickAmounts(selectedOrder.total)
+  }, [selectedOrder?.total])
+
+  useEffect(() => {
+    if (metodePembayaran !== 'CASH' || !selectedOrder) {
+      setKembalianResult(null)
+      return
+    }
+    if (uangDiterima === '' || uangDiterima < 0) {
+      setKembalianResult(null)
+      return
+    }
+    setKembalianResult(hitungKembalian(uangDiterima, selectedOrder.total))
+  }, [uangDiterima, selectedOrder?.total, metodePembayaran])
+
   const loadActiveOrders = useCallback(async () => {
     const res = await fetch('/api/transaksi/open')
     const data = await res.json()
@@ -144,6 +164,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
     setNomorMeja(order.nomorMeja)
     setError('')
     setSuccess('')
+    setUangDiterima('')
   }
 
   function addToCart(menu: Menu) {
@@ -196,6 +217,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
     setSelectedOrder(null)
     setError('')
     setSuccess('')
+    setUangDiterima('')
   }
 
   const grandTotal = useMemo(() => cart.reduce((sum, item) => sum + itemUnitPrice(item) * item.qty, 0), [cart])
@@ -336,14 +358,23 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   async function handlePayOrder() {
     if (!selectedOrder) return
     if (cart.length > 0) { setError('Simpan tambahan item dulu sebelum bayar.'); return }
+    if (metodePembayaran === 'CASH' && kembalianResult && !kembalianResult.isValid) {
+      setError(kembalianResult.message)
+      return
+    }
     setError('')
     setSuccess('')
     setPaying(true)
     try {
+      const body: Record<string, unknown> = { metodePembayaran }
+      if (metodePembayaran === 'CASH' && typeof uangDiterima === 'number') {
+        body.uangDiterima = uangDiterima
+        body.kembalian = kembalianResult?.kembalian ?? 0
+      }
       const res = await fetch(`/api/transaksi/${selectedOrder.id}/bayar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metodePembayaran }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (data.success) {
@@ -729,10 +760,57 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                     </button>
                   ))}
                 </div>
+
+                {metodePembayaran === 'CASH' && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>
+                      Uang Diterima
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="500"
+                      placeholder="Masukkan jumlah uang"
+                      value={uangDiterima}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setUangDiterima(val === '' ? '' : Number(val))
+                      }}
+                      className="form-input"
+                      style={{ fontSize: '1.25rem', padding: '0.75rem', width: '100%', fontWeight: 700 }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                      {quickAmounts.map((amount) => (
+                        <button
+                          key={amount}
+                          type="button"
+                          onClick={() => setUangDiterima(amount)}
+                          className={`btn btn-sm ${uangDiterima === amount ? 'btn-primary' : 'btn-ghost'}`}
+                          style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+                        >
+                          {amount === selectedOrder.total ? 'Uang Pas' : `Rp ${amount.toLocaleString('id-ID')}`}
+                        </button>
+                      ))}
+                    </div>
+                    {kembalianResult && (
+                      <div style={{
+                        fontSize: '1.5rem',
+                        fontWeight: 800,
+                        color: kembalianResult.isValid ? 'var(--color-success)' : 'var(--color-danger)',
+                        marginTop: '0.75rem',
+                        textAlign: 'center',
+                        fontFamily: 'var(--font-fraunces), serif'
+                      }}>
+                        {kembalianResult.message}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={handlePayOrder}
-                  disabled={paying || cart.length > 0 || selectedOrder.items.length === 0}
+                  disabled={paying || cart.length > 0 || selectedOrder.items.length === 0 || (metodePembayaran === 'CASH' && kembalianResult !== null && !kembalianResult.isValid)}
                   className="btn btn-success w-full"
                   style={{ justifyContent: 'center', fontWeight: 700 }}
                 >
@@ -776,7 +854,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
               </p>
             </div>
 
-            <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} preview />
+            <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} preview uangDiterima={typeof uangDiterima === 'number' ? uangDiterima : undefined} kembalian={kembalianResult?.kembalian} />
             <div className="receipt-width-picker">
               <span>Ukuran printer</span>
               {(['58mm', '80mm'] as const).map((width) => <button key={width} type="button" onClick={() => setPrinterWidth(width)} className={`btn btn-sm ${printerWidth === width ? 'btn-primary' : 'btn-ghost'}`}>{width}</button>)}
@@ -809,7 +887,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
 
       <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
 
-      {completedTransaksi && <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} />}
+      {completedTransaksi && <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} uangDiterima={typeof uangDiterima === 'number' ? uangDiterima : undefined} kembalian={kembalianResult?.kembalian} />}
     </div>
   )
 }

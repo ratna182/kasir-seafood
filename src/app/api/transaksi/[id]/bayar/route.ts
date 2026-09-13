@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
+import { apiRateLimiter } from '@/lib/rate-limiter'
 
 const DAILY_TRANSACTION_LIMIT = 150
 
@@ -16,6 +17,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const { id } = await params
+    
+    const rateLimitKey = `bayar:${warungId}:${id}`
+    const { allowed } = apiRateLimiter.check(rateLimitKey)
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Terlalu banyak request. Coba lagi sebentar.' },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const metodePembayaran = body.metodePembayaran === 'QRIS' ? 'QRIS' : body.metodePembayaran === 'CASH' ? 'CASH' : body.metodePembayaran === 'TRANSFER' ? 'TRANSFER' : null
 

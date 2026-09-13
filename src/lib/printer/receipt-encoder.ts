@@ -62,6 +62,8 @@ export function encodeReceipt(
     warungNama: string | null
     width: '58mm' | '80mm'
     reprint?: boolean
+    uangDiterima?: number
+    kembalian?: number
   },
 ): Uint8Array {
   const w = CHAR_WIDTHS[data.width]
@@ -118,8 +120,12 @@ export function encodeReceipt(
   parts.push(encodeLine(drawLine(w), true))
 
   parts.push(encodeLine(`Total      ${formatRupiah(t.total)}`, true, 'left', 2))
-  parts.push(encodeLine(`Bayar      ${formatRupiah(t.total)}`, true))
-  parts.push(encodeLine(`Kembali    Rp 0`, true))
+  
+  const isCash = t.metodePembayaran === 'CASH'
+  if (isCash && data.uangDiterima !== undefined) {
+    parts.push(encodeLine(`Tunai      ${formatRupiah(data.uangDiterima)}`, true))
+    parts.push(encodeLine(`Kembali    ${formatRupiah(data.kembalian ?? 0)}`, true))
+  }
 
   parts.push(encodeLine(drawLine(w), true))
 
