@@ -1,0 +1,68 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { NextRequest } from 'next/server'
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    kasirSesi: { findFirst: vi.fn() },
+    transaksi: { findMany: vi.fn() },
+    warung: { findUnique: vi.fn() },
+    menu: { findMany: vi.fn() },
+  },
+}))
+
+vi.mock('@/lib/auth', () => ({
+  getAuthContext: vi.fn(() => ({
+    user: { id: 'kasir1', role: 'KASIR' },
+    warungId: 'warung1',
+  })),
+  isOwner: vi.fn(() => false),
+  requireWarungAccess: vi.fn(() => null),
+}))
+
+import { GET } from '../route'
+import { prisma } from '@/lib/prisma'
+
+describe('Current cashier session report', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.warung.findUnique).mockResolvedValue({
+      id: 'warung1',
+      nama: 'Seafood 08',
+      kode: 'VJ08-1',
+      createdAt: new Date(),
+    })
+    vi.mocked(prisma.menu.findMany).mockResolvedValue([])
+  })
+
+  it('starts every total at zero after cashier reopens', async () => {
+    const reopenedAt = new Date('2026-09-14T05:00:00.000Z')
+    vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue({
+      id: 'session1',
+      warungId: 'warung1',
+      tanggal: new Date('2026-09-14'),
+      ditutupOleh: 'kasir1',
+      ditutupPada: new Date('2026-09-14T04:00:00.000Z'),
+      dibukaKembaliPada: reopenedAt,
+      totalTransaksi: 2,
+      totalPendapatan: 375000,
+    })
+    vi.mocked(prisma.transaksi.findMany).mockResolvedValue([])
+
+    const response = await GET(new NextRequest('http://localhost/api/laporan/harian'))
+    const result = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(result.data).toEqual(expect.objectContaining({
+      jumlahTransaksi: 0,
+      grandTotalQty: 0,
+      grandTotalPendapatan: 0,
+      totalCash: 0,
+      totalQRIS: 0,
+      totalTransfer: 0,
+      rekap: [],
+    }))
+    expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ createdAt: expect.objectContaining({ gte: reopenedAt }) }),
+    }))
+  })
+})

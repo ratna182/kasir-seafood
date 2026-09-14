@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, isOwner, requireWarungAccess } from '@/lib/auth'
+import { getKasirSessionState } from '@/lib/kasir-session'
 
 // GET /api/laporan/harian — rekap penjualan hari ini per menu
 // Query params: warung_id (required untuk owner, optional untuk kasir)
@@ -33,16 +34,26 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    const state = await getKasirSessionState(prisma, warungId)
+    let sessionStart = state.sessionStart
 
-    // Ambil semua transaksi SELESAI hari ini
+    if (state.isClosed && state.latest) {
+      const previousSession = await prisma.kasirSesi.findFirst({
+        where: {
+          warungId,
+          tanggal: state.today,
+          ditutupPada: { lt: state.latest.ditutupPada },
+        },
+        orderBy: { ditutupPada: 'desc' },
+      })
+      sessionStart = previousSession?.dibukaKembaliPada ?? state.today
+    }
+
+    // Laporan layar mengikuti sesi kasir; laporan ekspor tetap menyimpan seluruh histori tanggal.
     const transaksis = await prisma.transaksi.findMany({
       where: {
         warungId,
-        tanggal: { gte: today, lt: tomorrow },
+        createdAt: { gte: sessionStart, lt: state.tomorrow },
         status: 'SELESAI',
       },
       include: {
@@ -116,7 +127,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        tanggal: today.toISOString().split('T')[0],
+        tanggal: state.today.toISOString().split('T')[0],
         warung,
         rekap,
         grandTotalQty,
