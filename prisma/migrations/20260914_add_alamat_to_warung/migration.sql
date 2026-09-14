@@ -8,3 +8,6 @@ END $$;
 
 -- Update kasir Antarsari
 UPDATE "warungs" SET "alamat" = 'Jl. Pangeran Antasari No.20' WHERE "nama" ILIKE '%antarsari%';
+
+-- Update kasir Kranggan
+UPDATE "warungs" SET "alamat" = 'Jl. Raya Kranggan No. 18' WHERE "kode" = 'VJ08-1';

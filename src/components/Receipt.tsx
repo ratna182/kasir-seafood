@@ -34,28 +34,18 @@ export default function Receipt({ transaction, cashier, warungNama, warungAlamat
   const itemCount = transaction.items.length
   const isCompact = itemCount > 8
   const isCash = transaction.metodePembayaran === 'CASH'
-  const isKrangganKasir = username === 'kasir1' && warungKode === 'VJ08-1'
 
   return (
     <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width} ${isCompact ? 'compact' : ''}`}>
       <div className="print-header">
-        {isKrangganKasir ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="receipt-logo" src="/logo-struk.webp" alt="Seafood 08 Vian Jaya" />
-            <p>Jl. Raya Kranggan No. 18</p>
-            <div className="receipt-socials">
-              <p>IG : Seafood08vianjaya.id</p>
-              <p>FB : Seafood08vianjaya</p>
-              <p>TT : Seafood08vianjaya</p>
-            </div>
-          </>
-        ) : (
-          <>
-            <h2>{warungNama}</h2>
-            {warungAlamat && <p>{warungAlamat}</p>}
-          </>
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="receipt-logo" src="/logo-struk.webp" alt="Seafood 08 Vian Jaya" />
+        {warungAlamat && <p>{warungAlamat}</p>}
+        <div className="receipt-socials">
+          <p>IG : Seafood08vianjaya.id</p>
+          <p>FB : Seafood08vianjaya</p>
+          <p>TT : Seafood08vianjaya</p>
+        </div>
       </div>
       <div className="print-divider" />
       <div className="receipt-meta">
@@ -99,19 +89,10 @@ export default function Receipt({ transaction, cashier, warungNama, warungAlamat
       <div className="print-divider" />
       <div className="print-footer">
         {reprint && <p>*** CETAK ULANG STRUK RESMI ***</p>}
-        {isKrangganKasir ? (
-          <>
-            <p>Terimakasih</p>
-            <p>Selamat Datang Kembali</p>
-            <p>Kritik &amp; Saran</p>
-            <p className="receipt-contact"><b className="receipt-social-icon">WA</b> 0852-8000-4508</p>
-          </>
-        ) : (
-          <>
-            <p>Terima Kasih - Selamat Datang Kembali</p>
-            <p>Kritik Saran WA : 0852-8000-4508</p>
-          </>
-        )}
+        <p>Terimakasih</p>
+        <p>Selamat Datang Kembali</p>
+        <p>Kritik &amp; Saran</p>
+        <p className="receipt-contact"><b className="receipt-social-icon">WA</b> 0852-8000-4508</p>
       </div>
     </div>
   )
