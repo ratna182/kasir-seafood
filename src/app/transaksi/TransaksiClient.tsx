@@ -86,6 +86,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   const [printerWidth, setPrinterWidth] = useState<PrinterWidth>('80mm')
   const [menus, setMenus] = useState<Menu[]>(initialMenus)
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
+  const [qtyPickerMenuId, setQtyPickerMenuId] = useState<string | null>(null)
 
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
@@ -683,23 +684,32 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                       </div>
                       {item.catatan && <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.catatan}</div>}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', position: 'relative' }}>
                       <button type="button" onClick={() => updateQty(item.menuId, -1)} className="btn btn-ghost btn-sm qty-stepper">
                         <Minus size={14} />
                       </button>
-                      <span style={{ minWidth: '22px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums' }}>
+                      <button type="button" onClick={() => setQtyPickerMenuId(qtyPickerMenuId === item.menuId ? null : item.menuId)} style={{ minWidth: '28px', minHeight: '28px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums', background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', padding: '2px 6px', color: 'var(--color-text-primary)' }}>
                         {item.qty}
-                      </span>
+                      </button>
                       <button type="button" onClick={() => updateQty(item.menuId, 1)} className="btn btn-ghost btn-sm qty-stepper">
                         <Plus size={14} />
                       </button>
+                      {qtyPickerMenuId === item.menuId && (
+                        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', zIndex: 100, background: 'var(--color-base)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                            <button key={n} type="button" onClick={() => { setCart((prev) => prev.map((ci) => ci.menuId === item.menuId ? { ...ci, qty: n } : ci)); setQtyPickerMenuId(null) }} style={{ minWidth: '40px', minHeight: '36px', border: 'none', borderRadius: 'var(--radius-sm)', background: item.qty === n ? 'var(--color-brand)' : 'transparent', color: item.qty === n ? '#fff' : 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', textAlign: 'center' }}>
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div style={{ textAlign: 'right', minWidth: '70px' }}>
                       <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
                         Rp {(itemUnitPrice(item) * item.qty).toLocaleString('id-ID')}
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                        <button type="button" onClick={() => setEditingCartItem(item)} style={{ background: 'none', border: 'none', color: 'var(--color-brand)', cursor: 'pointer', padding: '4px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)' }} title="Atur harga, diskon, atau catatan"><Pencil size={20} /></button>
+                        <button type="button" onClick={() => setEditingCartItem(item)} style={{ background: 'none', border: 'none', color: 'var(--color-brand)', cursor: 'pointer', padding: '6px', minWidth: '42px', minHeight: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)' }} title="Atur harga, diskon, atau catatan"><Pencil size={24} /></button>
                         <button type="button" onClick={() => removeFromCart(item.menuId)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}>Hapus</button>
                       </div>
                     </div>
