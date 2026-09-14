@@ -34,16 +34,18 @@ interface RiwayatClientProps {
   session: {
     warungNama: string | null
     warungKode: string | null
+    warungAlamat?: string | null
     namaLengkap?: string | null
     username: string
     role: string
   }
+  warungAlamat?: string | null
   initialTransaksis: Transaksi[]
   initialStartDate?: string
   initialEndDate?: string
 }
 
-export default function RiwayatClient({ session, initialTransaksis, initialStartDate, initialEndDate }: RiwayatClientProps) {
+export default function RiwayatClient({ session, warungAlamat, initialTransaksis, initialStartDate, initialEndDate }: RiwayatClientProps) {
   const [transaksis] = useState<Transaksi[]>(initialTransaksis)
   const [search, setSearch] = useState('')
   const [selectedTransaksi, setSelectedTransaksi] = useState<Transaksi | null>(null)
@@ -235,7 +237,7 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
               </button>
             </div>
 
-            <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} width={printerWidth} preview reprint />
+            <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} warungAlamat={warungAlamat} width={printerWidth} preview reprint />
             <div className="receipt-width-picker">
               <span>Ukuran printer</span>
               {(['58mm', '80mm'] as const).map((width) => <button key={width} type="button" onClick={() => setPrinterWidth(width)} className={`btn btn-sm ${printerWidth === width ? 'btn-primary' : 'btn-ghost'}`}>{width}</button>)}
@@ -254,7 +256,7 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
 
       <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
 
-      {selectedTransaksi && <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} width={printerWidth} reprint />}
+      {selectedTransaksi && <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} warungAlamat={warungAlamat} width={printerWidth} reprint />}
     </div>
   )
 }

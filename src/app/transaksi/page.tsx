@@ -18,13 +18,16 @@ export default async function TransaksiPage() {
   if (!session) redirect('/login')
   
   const ownerWarung = session.role === 'OWNER'
-    ? await prisma.warung.findUnique({ where: { kode: 'VJ08-1' }, select: { id: true, nama: true, kode: true } })
+    ? await prisma.warung.findUnique({ where: { kode: 'VJ08-1' }, select: { id: true, nama: true, kode: true, alamat: true } })
     : null
   const activeSession = ownerWarung
-    ? { ...session, warungId: ownerWarung.id, warungNama: ownerWarung.nama, warungKode: ownerWarung.kode }
+    ? { ...session, warungId: ownerWarung.id, warungNama: ownerWarung.nama, warungKode: ownerWarung.kode, warungAlamat: ownerWarung.alamat }
     : session
 
   if (!activeSession.warungId) redirect('/login')
+
+  const warung = !ownerWarung ? await prisma.warung.findUnique({ where: { id: activeSession.warungId }, select: { alamat: true } }) : null
+  const warungAlamat = ownerWarung?.alamat ?? warung?.alamat ?? null
 
   const kasirState = await getKasirSessionState(prisma, activeSession.warungId)
 

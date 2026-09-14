@@ -58,6 +58,7 @@ interface TransaksiClientProps {
   session: {
     warungNama: string | null
     warungKode: string | null
+    warungAlamat?: string | null
     namaLengkap?: string | null
     username: string
     role: string
@@ -877,7 +878,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
               </p>
             </div>
 
-            <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} width={printerWidth} preview uangDiterima={typeof uangDiterima === 'number' ? uangDiterima : undefined} kembalian={kembalianResult?.kembalian} />
+            <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} warungAlamat={session.warungAlamat} width={printerWidth} preview uangDiterima={typeof uangDiterima === 'number' ? uangDiterima : undefined} kembalian={kembalianResult?.kembalian} />
             <div className="receipt-width-picker">
               <span>Ukuran printer</span>
               {(['58mm', '80mm'] as const).map((width) => <button key={width} type="button" onClick={() => setPrinterWidth(width)} className={`btn btn-sm ${printerWidth === width ? 'btn-primary' : 'btn-ghost'}`}>{width}</button>)}
@@ -910,7 +911,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
 
       <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
 
-      {completedTransaksi && <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} width={printerWidth} uangDiterima={typeof uangDiterima === 'number' ? uangDiterima : undefined} kembalian={kembalianResult?.kembalian} />}
+      {completedTransaksi && <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} warungAlamat={session.warungAlamat} width={printerWidth} uangDiterima={typeof uangDiterima === 'number' ? uangDiterima : undefined} kembalian={kembalianResult?.kembalian} />}
     </div>
   )
 }

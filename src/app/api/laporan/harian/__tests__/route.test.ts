@@ -29,6 +29,7 @@ describe('Current cashier session report', () => {
       id: 'warung1',
       nama: 'Seafood 08',
       kode: 'VJ08-1',
+      alamat: null,
       createdAt: new Date(),
     })
     vi.mocked(prisma.menu.findMany).mockResolvedValue([])

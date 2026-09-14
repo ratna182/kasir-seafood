@@ -60,6 +60,7 @@ export function encodeReceipt(
     transaction: ReceiptTransaction
     cashier: string
     warungNama: string | null
+    warungAlamat?: string | null
     username?: string
     warungKode?: string | null
     width: '58mm' | '80mm'
@@ -93,6 +94,9 @@ export function encodeReceipt(
     parts.push(encodeLine(centerText('TT : Seafood08vianjaya', w), true, 'center'))
   } else {
     parts.push(encodeLine(centerText(data.warungNama || 'WARUNG', w), true, 'center', 2))
+    if (data.warungAlamat) {
+      parts.push(encodeLine(centerText(data.warungAlamat, w), true, 'center'))
+    }
   }
 
   parts.push(encodeLine(drawLine(w), true))

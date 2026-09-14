@@ -14,6 +14,7 @@ model Warung {
   id            String          @id @default(uuid())
   nama          String          @unique
   kode          String          @unique
+  alamat        String?
   createdAt     DateTime        @default(now()) @map("created_at")
 
   users         User[]

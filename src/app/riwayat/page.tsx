@@ -52,11 +52,13 @@ export default async function RiwayatPage({
     })),
   }))
 
+  const warung = session.warungId ? await prisma.warung.findUnique({ where: { id: session.warungId }, select: { alamat: true } }) : null
+
   return (
     <div className="app-container">
       <Navbar session={session} activePage="riwayat" />
       <div className="content-area">
-        <RiwayatClient session={session} initialTransaksis={serialized} initialStartDate={mulai} initialEndDate={sampai} />
+        <RiwayatClient session={session} warungAlamat={warung?.alamat ?? null} initialTransaksis={serialized} initialStartDate={mulai} initialEndDate={sampai} />
       </div>
     </div>
   )

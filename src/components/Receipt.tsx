@@ -15,6 +15,7 @@ interface ReceiptProps {
   transaction: ReceiptTransaction
   cashier: string
   warungNama: string | null
+  warungAlamat?: string | null
   username?: string
   warungKode?: string | null
   width: PrinterWidth
@@ -26,7 +27,7 @@ interface ReceiptProps {
 
 const rupiah = (amount: number) => `Rp ${amount.toLocaleString('id-ID')}`
 
-export default function Receipt({ transaction, cashier, warungNama, username, warungKode, width, preview, reprint, uangDiterima, kembalian }: ReceiptProps) {
+export default function Receipt({ transaction, cashier, warungNama, warungAlamat, username, warungKode, width, preview, reprint, uangDiterima, kembalian }: ReceiptProps) {
   const date = new Date(transaction.createdAt)
   const totalQty = transaction.items.reduce((total, item) => total + item.qty, 0)
   const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : transaction.metodePembayaran === 'TRANSFER' ? 'Transfer' : 'Cash'
@@ -49,7 +50,12 @@ export default function Receipt({ transaction, cashier, warungNama, username, wa
               <p>TT : Seafood08vianjaya</p>
             </div>
           </>
-        ) : <h2>{warungNama}</h2>}
+        ) : (
+          <>
+            <h2>{warungNama}</h2>
+            {warungAlamat && <p>{warungAlamat}</p>}
+          </>
+        )}
       </div>
       <div className="print-divider" />
       <div className="receipt-meta">
