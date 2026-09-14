@@ -88,7 +88,7 @@ export function encodeReceipt(
   if (isKrangganKasir) {
     parts.push(encodeLine(centerText('Seafood 08 Vian Jaya', w), true, 'center', 2))
     parts.push(encodeLine(centerText('Jl. Raya Kranggan No. 18', w), true, 'center'))
-    parts.push(encodeLine(centerText('IG : Seafood08vianjaya', w), true, 'center'))
+    parts.push(encodeLine(centerText('IG : Seafood08vianjaya.id', w), true, 'center'))
     parts.push(encodeLine(centerText('FB : Seafood08vianjaya', w), true, 'center'))
     parts.push(encodeLine(centerText('TT : Seafood08vianjaya', w), true, 'center'))
   } else {

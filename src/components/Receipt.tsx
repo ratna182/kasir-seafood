@@ -44,7 +44,7 @@ export default function Receipt({ transaction, cashier, warungNama, username, wa
             <img className="receipt-logo" src="/logo-struk.webp" alt="Seafood 08 Vian Jaya" />
             <p>Jl. Raya Kranggan No. 18</p>
             <div className="receipt-socials">
-              <p>IG : Seafood08vianjaya</p>
+              <p>IG : Seafood08vianjaya.id</p>
               <p>FB : Seafood08vianjaya</p>
               <p>TT : Seafood08vianjaya</p>
             </div>
