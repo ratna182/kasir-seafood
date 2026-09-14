@@ -287,7 +287,9 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                 }
                 .print-receipt { width: 100%; padding: 0 2mm; text-align: center; }
                 .print-header { text-align: center; margin-bottom: 3px; }
-                .receipt-logo { display: block; width: 180px; height: 180px; max-width: 90%; object-fit: contain; margin: 0 auto 3px; }
+                .receipt-logo { display: block; width: 1.7cm; height: 1.7cm; object-fit: contain; margin: 0 auto 3px; }
+                .receipt-socials { text-align: center; }
+                .receipt-socials p { display: block; margin: 0; text-align: center; }
                 .print-header h2 { font-size: 18px; text-transform: uppercase; margin: 0 0 2px; line-height: 1.3; }
                 .print-header p { font-size: 14px; margin: 0; line-height: 1.3; }
                 .print-divider { border: none; border-top: 1px dashed black; margin: 3px 0; }
