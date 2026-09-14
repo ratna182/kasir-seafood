@@ -16,10 +16,18 @@ interface RekapItem {
   pendapatanTotal: number
 }
 
+interface TransaksiItem {
+  nomorMeja: string
+  total: number
+  metodePembayaran: string
+  createdAt: string
+}
+
 interface LaporanDataLocal {
   tanggal: string
-  warung: { id: string; nama: string; kode: string }
+  warung: { id: string; nama: string; kode: string; alamat?: string | null }
   rekap: RekapItem[]
+  transaksi: TransaksiItem[]
   grandTotalQty: number
   grandTotalPendapatan: number
   jumlahTransaksi: number
@@ -175,42 +183,48 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <title>Cetak Laporan</title>
           <style>
-            @page { size: 72mm auto; margin: 0; }
+            @page { size: auto; margin: 0; }
             * { box-sizing: border-box; margin: 0; padding: 0; }
-            html, body { width: 72mm; margin: 0; padding: 0; }
+            html, body { width: 100%; margin: 0; padding: 0; }
             body {
-              width: 72mm; margin: 0; padding: 1mm 2mm;
+              width: 100%; margin: 0; padding: 0 2mm;
               font-family: 'Helvetica', 'Arial', sans-serif;
-              font-size: 11px; font-weight: bold;
+              font-size: 15px; font-weight: bold;
               color: black; background: white;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
-            .print-receipt { width: 72mm; padding: 1mm 2mm; }
-            .print-header { text-align: center; margin-bottom: 2px; }
-            .print-header h2 { font-size: 13px; text-transform: uppercase; margin: 0; line-height: 1.2; }
-            .print-divider { border: none; border-top: 1px dashed black; margin: 2px 0; }
-            .receipt-meta { text-align: center; margin: 1px 0; line-height: 1.2; }
-            .receipt-items { text-align: left; }
-            .receipt-item-row { display: flex; justify-content: space-between; padding: 0.5px 0; line-height: 1.2; font-size: 10px; }
-            .receipt-item-row span:first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .receipt-item-row span:last-child { text-align: right; min-width: 70px; }
-            .receipt-summary { margin-top: 2px; }
-            .receipt-row { display: flex; justify-content: space-between; padding: 0.5px 0; line-height: 1.2; font-size: 10px; }
-            .receipt-grand { font-size: 12px; font-weight: 800; }
-            .print-footer { text-align: center; margin-top: 2px; font-size: 9px; line-height: 1.2; }
-            .print-footer p { margin: 0; }
-            .print-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 2px; }
+            .print-receipt { width: 100%; padding: 0 2mm; text-align: center; }
+            .print-header { text-align: center; margin-bottom: 3px; }
+            .receipt-logo { display: block; width: 1.7cm; height: 1.7cm; object-fit: contain; margin: 0 auto 3px; }
+            .receipt-socials { text-align: center; }
+            .receipt-socials p { display: block; margin: 0; text-align: center; }
+            .print-header h2 { font-size: 18px; text-transform: uppercase; margin: 0 0 2px; line-height: 1.3; }
+            .print-header p { font-size: 14px; margin: 0; line-height: 1.3; }
+            .print-divider { border: none; border-top: 1px dashed black; margin: 3px 0; }
+            .receipt-meta { text-align: center; margin: 2px 0; line-height: 1.4; }
+            .receipt-meta div { margin: 0; }
+            .receipt-items { text-align: center; }
+            .receipt-item-block { margin: 2px 0; text-align: center; }
+            .receipt-item-row { display: flex; justify-content: space-between; text-align: center; }
+            .receipt-item-detail { font-size: 14px; text-align: center; line-height: 1.4; }
+            .receipt-item-note { font-size: 13px; font-style: italic; text-align: center; }
+            .receipt-summary { margin-top: 3px; }
+            .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 1px 0; line-height: 1.4; }
+            .receipt-grand { font-size: 17px; }
+            .print-footer { text-align: center; margin-top: 3px; margin-bottom: 0; padding-bottom: 0; font-size: 14px; line-height: 1.4; }
+            .print-footer p { margin: 0; line-height: 1.4; }
+            .print-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 2px; }
             .print-table { page-break-inside: auto; }
             .print-table thead { display: table-header-group; }
             .print-table tr { page-break-inside: avoid; break-inside: avoid; }
-            .print-table th, .print-table td { padding: 0.5px 0; line-height: 1.2; overflow-wrap: anywhere; }
-            .print-table th { border-bottom: 1px dashed black; font-size: 9px; }
+            .print-table th, .print-table td { padding: 1px 0; line-height: 1.4; overflow-wrap: anywhere; }
+            .print-table th { border-bottom: 1px dashed black; font-size: 13px; }
             .text-right { text-align: right; }
-            .print-total { margin-top: 2px; border-top: 1px dashed black; padding-top: 2px; }
-            .print-total-row { display: flex; justify-content: space-between; font-size: 10px; line-height: 1.3; }
-            .print-total-row.grand { font-size: 12px; font-weight: 800; margin-top: 1px; }
-            @media print { body { width: 72mm; height: auto; } .print-receipt { width: 72mm; height: auto; } }
+            .print-total { margin-top: 3px; border-top: 1px dashed black; padding-top: 3px; }
+            .print-total-row { display: flex; justify-content: space-between; font-size: 14px; line-height: 1.4; }
+            .print-total-row.grand { font-size: 17px; font-weight: 800; margin-top: 1px; }
+            @media print { body { width: 100%; } .print-receipt { width: 100%; } }
           </style>
         </head>
         <body>${receiptHTML}</body>
@@ -480,25 +494,46 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
       {data && (
         <div className="print-only print-receipt">
           <div className="print-header">
-            <h2>LAPORAN PENJUALAN HARIAN</h2>
-            <p>{session.warungNama}</p>
-            <p>Kode Cabang: {session.warungKode}</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="receipt-logo" src="/logo-struk.webp" alt="Seafood 08 Vian Jaya" style={{ display: 'block', width: '1.7cm', height: '1.7cm', objectFit: 'contain', margin: '0 auto 3px' }} />
+            {data.warung.alamat && <p>{data.warung.alamat}</p>}
+            <div className="receipt-socials">
+              <p>IG : Seafood08vianjaya.id</p>
+              <p>FB : Seafood08vianjaya</p>
+              <p>TT : Seafood08vianjaya</p>
+            </div>
           </div>
           <div className="print-divider" />
-          <div style={{ fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Tanggal: {data.tanggal}</span>
-            <span>Shift: Hari Ini</span>
+          <div style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'center', marginBottom: '4px' }}>LAPORAN PENJUALAN HARIAN</div>
+          <div className="print-divider" />
+          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+            <div>Tanggal: {data.tanggal}</div>
+            <div>Dicetak: {new Date().toLocaleTimeString('id-ID')} | Kasir: {session.namaLengkap || session.username}</div>
+            {kasirSesi && (
+              <>
+                <div>Status: SUDAH DITUTUP</div>
+                <div>Pkl: {new Date(kasirSesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+              </>
+            )}
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Dicetak: {new Date().toLocaleTimeString('id-ID')}</span>
-            <span>Kasir: {session.namaLengkap || session.username}</span>
-          </div>
-          {kasirSesi && (
-            <div style={{ fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Status: SUDAH DITUTUP</span>
-              <span>Pkl: {new Date(kasirSesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-          )}
+          <div className="print-divider" />
+          <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>DAFTAR TRANSAKSI</div>
+          <div className="print-divider" />
+          <table className="print-table">
+            <thead><tr><th>MEJA</th><th>WAKTU</th><th>METODE</th><th className="text-right">TOTAL</th></tr></thead>
+            <tbody>
+              {data.transaksi.map((tx, idx) => (
+                <tr key={idx}>
+                  <td>{tx.nomorMeja}</td>
+                  <td>{new Date(tx.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
+                  <td>{tx.metodePembayaran === 'QRIS' ? 'QRIS' : tx.metodePembayaran === 'TRANSFER' ? 'TRSF' : 'CASH'}</td>
+                  <td className="text-right">{tx.total.toLocaleString('id-ID')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="print-divider" />
+          <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>REKAP MENU</div>
           <div className="print-divider" />
           <table className="print-table">
             <thead><tr><th>MENU</th><th className="text-right">QTY</th><th className="text-right">TOTAL</th></tr></thead>
@@ -512,6 +547,15 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
               ))}
             </tbody>
           </table>
+          <div className="print-divider" />
+          <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>TOTAL PER METODE BAYAR</div>
+          <div className="print-divider" />
+          <div className="print-total">
+            <div className="print-total-row"><span>CASH</span><span>Rp {data.totalCash.toLocaleString('id-ID')}</span></div>
+            <div className="print-total-row"><span>QRIS</span><span>Rp {data.totalQRIS.toLocaleString('id-ID')}</span></div>
+            <div className="print-total-row"><span>TRANSFER</span><span>Rp {data.totalTransfer.toLocaleString('id-ID')}</span></div>
+          </div>
+          <div className="print-divider" />
           <div className="print-total">
             <div className="print-total-row"><span>Total Qty:</span><span>{data.grandTotalQty} item</span></div>
             <div className="print-total-row"><span>Total Transaksi:</span><span>{data.jumlahTransaksi} transaksi</span></div>
@@ -519,7 +563,7 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
           </div>
           <div className="print-divider" />
           <div className="print-footer">
-            <p>*** REKAPITULASI PENJUALAN RESMI ***</p>
+            <p>*** REKAPITULASI RESMI ***</p>
             <p>Kasir Vian Jaya 08</p>
           </div>
         </div>

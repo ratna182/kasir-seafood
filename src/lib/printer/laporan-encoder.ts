@@ -20,13 +20,24 @@ export interface LaporanRekapItem {
   pendapatanTotal: number
 }
 
+export interface LaporanTransaksi {
+  nomorMeja: string
+  total: number
+  metodePembayaran: string
+  createdAt: string
+}
+
 export interface LaporanData {
   tanggal: string
-  warung: { id: string; nama: string; kode: string }
+  warung: { id: string; nama: string; kode: string; alamat?: string | null }
   rekap: LaporanRekapItem[]
+  transaksi: LaporanTransaksi[]
   grandTotalQty: number
   grandTotalPendapatan: number
   jumlahTransaksi: number
+  totalCash: number
+  totalQRIS: number
+  totalTransfer: number
 }
 
 function centerText(text: string, width: number): string {
@@ -51,6 +62,7 @@ export function encodeLaporan(
   cashierName: string,
   warungNama: string | null,
   warungKode: string | null,
+  warungAlamat: string | null,
   width: '58mm' | '80mm',
   kasirSesi?: { ditutupPada: string; ditutupOleh: string } | null,
 ): Uint8Array {
@@ -61,12 +73,18 @@ export function encodeLaporan(
   parts.push(setLineSpacing(20))
   parts.push(setFontSize(1, 1))
 
-  parts.push(encodeLine(centerText('LAPORAN PENJUALAN', w), true, 'center', 2))
-  parts.push(encodeLine(centerText('HARIAN', w), true, 'center', 2))
-  parts.push(encodeLine(centerText(warungNama || 'WARUNG', w), true, 'center'))
-  if (warungKode) {
-    parts.push(encodeLine(centerText(`Kode: ${warungKode}`, w), true, 'center'))
+  // Header sama seperti struk customer
+  parts.push(encodeLine(centerText('Seafood 08 Vian Jaya', w), true, 'center', 2))
+  if (warungAlamat) {
+    parts.push(encodeLine(centerText(warungAlamat, w), true, 'center'))
   }
+  parts.push(encodeLine(centerText('IG : Seafood08vianjaya.id', w), true, 'center'))
+  parts.push(encodeLine(centerText('FB : Seafood08vianjaya', w), true, 'center'))
+  parts.push(encodeLine(centerText('TT : Seafood08vianjaya', w), true, 'center'))
+
+  parts.push(encodeLine(drawLine(w), true))
+
+  parts.push(encodeLine(centerText('LAPORAN PENJUALAN HARIAN', w), true, 'center', 2))
 
   parts.push(encodeLine(drawLine(w), true))
 
@@ -81,6 +99,25 @@ export function encodeLaporan(
 
   parts.push(encodeLine(drawLine(w), true))
 
+  // Daftar transaksi dengan metode bayar
+  parts.push(encodeLine(centerText('DAFTAR TRANSAKSI', w), true, 'center'))
+  parts.push(encodeLine(drawLine(w), true))
+
+  for (const tx of data.transaksi) {
+    const metode = tx.metodePembayaran === 'QRIS' ? 'QRIS' : tx.metodePembayaran === 'TRANSFER' ? 'TRSF' : 'CASH'
+    const time = new Date(tx.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    const totalStr = `Rp ${tx.total.toLocaleString('id-ID')}`
+    const label = `${tx.nomorMeja} ${time} [${metode}]`
+    const leftWidth = w - totalStr.length - 1
+    parts.push(encodeLine(padRight(label, Math.max(1, leftWidth)) + totalStr, true))
+  }
+
+  parts.push(encodeLine(drawLine(w), true))
+
+  // Rekap per menu
+  parts.push(encodeLine(centerText('REKAP MENU', w), true, 'center'))
+  parts.push(encodeLine(drawLine(w), true))
+
   for (const item of data.rekap) {
     const qtyStr = String(item.qtyTotal)
     const totalStr = `Rp ${item.pendapatanTotal.toLocaleString('id-ID')}`
@@ -88,6 +125,17 @@ export function encodeLaporan(
     const nameLine = padRight(item.namaMenu, Math.max(1, leftWidth)) + qtyStr + ' ' + totalStr
     parts.push(encodeLine(nameLine, true))
   }
+
+  parts.push(encodeLine(drawLine(w), true))
+
+  // Total per metode bayar
+  parts.push(encodeLine(centerText('TOTAL PER METODE BAYAR', w), true, 'center'))
+  const cashStr = `Rp ${data.totalCash.toLocaleString('id-ID')}`
+  const qrisStr = `Rp ${data.totalQRIS.toLocaleString('id-ID')}`
+  const trsfStr = `Rp ${data.totalTransfer.toLocaleString('id-ID')}`
+  parts.push(encodeLine(padRight('CASH', Math.max(1, w - cashStr.length)) + cashStr, true))
+  parts.push(encodeLine(padRight('QRIS', Math.max(1, w - qrisStr.length)) + qrisStr, true))
+  parts.push(encodeLine(padRight('TRANSFER', Math.max(1, w - trsfStr.length)) + trsfStr, true))
 
   parts.push(encodeLine(drawLine(w), true))
 

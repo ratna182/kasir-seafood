@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Ambil info warung
     const warung = await prisma.warung.findUnique({
       where: { id: warungId },
-      select: { id: true, nama: true, kode: true },
+      select: { id: true, nama: true, kode: true, alamat: true },
     })
 
     // Rekap per menu - batch fetch semua kategori sekaligus (anti N+1)
@@ -130,6 +130,12 @@ export async function GET(request: NextRequest) {
         tanggal: state.today.toISOString().split('T')[0],
         warung,
         rekap,
+        transaksi: transaksis.map(t => ({
+          nomorMeja: t.nomorMeja,
+          total: t.total,
+          metodePembayaran: t.metodePembayaran || 'CASH',
+          createdAt: t.createdAt.toISOString(),
+        })),
         grandTotalQty,
         grandTotalPendapatan,
         jumlahTransaksi: transaksis.length,
