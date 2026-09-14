@@ -53,7 +53,7 @@ describe('Cashier session lifecycle', () => {
     const create = vi.fn()
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
       kasirSesi: { findFirst: vi.fn().mockResolvedValue(null), create },
-      transaksi: { findFirst: vi.fn().mockResolvedValue({ id: 'open1' }) },
+      transaksi: { findMany: vi.fn().mockResolvedValue([{ nomorMeja: 'Meja 7' }]) },
     } as never))
 
     const response = await tutupKasir(new NextRequest('http://localhost/api/kasir/tutup', { method: 'POST' }))
@@ -61,19 +61,23 @@ describe('Cashier session lifecycle', () => {
 
     expect(response.status).toBe(409)
     expect(data.message).toContain('belum dibayar')
+    expect(data.message).toContain('Meja 7')
     expect(create).not.toHaveBeenCalled()
   })
 
   it('summarizes only paid transactions from the current session', async () => {
     const reopenedAt = new Date('2026-09-14T05:00:00.000Z')
     const create = vi.fn().mockImplementation(({ data }) => ({ id: 'session2', ...data }))
-    const findMany = vi.fn().mockResolvedValue([{ total: 20000 }, { total: 30000 }])
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 })
+    const findMany = vi.fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 20000 }, { total: 30000 }])
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
       kasirSesi: {
         findFirst: vi.fn().mockResolvedValue({ ...closedSession, dibukaKembaliPada: reopenedAt }),
         create,
       },
-      transaksi: { findFirst: vi.fn().mockResolvedValue(null), findMany },
+      transaksi: { findMany, updateMany },
     } as never))
 
     const response = await tutupKasir(new NextRequest('http://localhost/api/kasir/tutup', { method: 'POST' }))
@@ -82,9 +86,13 @@ describe('Cashier session lifecycle', () => {
     expect(response.status).toBe(201)
     expect(data.data.totalTransaksi).toBe(2)
     expect(data.data.totalPendapatan).toBe(50000)
-    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+    expect(findMany).toHaveBeenLastCalledWith(expect.objectContaining({
       where: expect.objectContaining({ createdAt: expect.objectContaining({ gte: reopenedAt }) }),
     }))
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { warungId: 'warung1', status: 'OPEN', createdAt: { lt: reopenedAt } },
+      data: { status: 'BATAL' },
+    })
   })
 
   it('reopens by timestamping the summary instead of deleting it', async () => {

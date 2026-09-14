@@ -26,11 +26,20 @@ export async function POST(request: NextRequest) {
       const state = await getKasirSessionState(tx, warungId, closedAt)
       if (state.isClosed) return { status: 'ALREADY_CLOSED' as const, state }
 
-      const openOrder = await tx.transaksi.findFirst({
-        where: { warungId, status: 'OPEN' },
-        select: { id: true },
+      const openOrders = await tx.transaksi.findMany({
+        where: {
+          warungId,
+          status: 'OPEN',
+          createdAt: { gte: state.sessionStart },
+        },
+        select: { nomorMeja: true },
       })
-      if (openOrder) return { status: 'OPEN_ORDERS' as const }
+      if (openOrders.length > 0) return { status: 'OPEN_ORDERS' as const, openOrders }
+
+      await tx.transaksi.updateMany({
+        where: { warungId, status: 'OPEN', createdAt: { lt: state.sessionStart } },
+        data: { status: 'BATAL' },
+      })
 
       const transaksis = await tx.transaksi.findMany({
         where: {
@@ -65,9 +74,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (result.status === 'OPEN_ORDERS') {
+      const meja = result.openOrders.map((order) => order.nomorMeja).join(', ')
       return NextResponse.json({
         success: false,
-        message: 'Masih ada pesanan yang belum dibayar. Selesaikan atau hapus semua pesanan sebelum tutup kasir.',
+        message: `Masih ada pesanan yang belum dibayar di ${meja}. Selesaikan atau hapus pesanan tersebut sebelum tutup kasir.`,
       }, { status: 409 })
     }
 
