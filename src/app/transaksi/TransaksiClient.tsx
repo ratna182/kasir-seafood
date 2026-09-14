@@ -86,6 +86,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   const [printerWidth, setPrinterWidth] = useState<PrinterWidth>('80mm')
   const [menus, setMenus] = useState<Menu[]>(initialMenus)
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
+
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
@@ -170,7 +171,6 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   function addToCart(menu: Menu) {
     if (isKasirClosed) return
     const existing = cart.find((item) => item.menuId === menu.id)
-    setEditingCartItem(existing ? { ...existing, qty: existing.qty + 1 } : { menuId: menu.id, nama: menu.nama, harga: menu.harga, qty: 1, diskonSatuan: 0, catatan: '' })
     setCart((prev) => {
       const current = prev.find((item) => item.menuId === menu.id)
       if (current) {
