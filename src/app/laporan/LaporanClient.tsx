@@ -151,7 +151,7 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <title>Cetak Laporan</title>
           <style>
-            @page { margin: 0; }
+            @page { size: 72mm auto; margin: 0; }
             * { box-sizing: border-box; margin: 0; padding: 0; }
             html, body { width: 72mm; margin: 0; padding: 0; }
             body {
@@ -177,13 +177,16 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
             .print-footer { text-align: center; margin-top: 2px; font-size: 9px; line-height: 1.2; }
             .print-footer p { margin: 0; }
             .print-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 2px; }
-            .print-table th, .print-table td { padding: 0.5px 0; line-height: 1.2; }
+            .print-table { page-break-inside: auto; }
+            .print-table thead { display: table-header-group; }
+            .print-table tr { page-break-inside: avoid; break-inside: avoid; }
+            .print-table th, .print-table td { padding: 0.5px 0; line-height: 1.2; overflow-wrap: anywhere; }
             .print-table th { border-bottom: 1px dashed black; font-size: 9px; }
             .text-right { text-align: right; }
             .print-total { margin-top: 2px; border-top: 1px dashed black; padding-top: 2px; }
             .print-total-row { display: flex; justify-content: space-between; font-size: 10px; line-height: 1.3; }
             .print-total-row.grand { font-size: 12px; font-weight: 800; margin-top: 1px; }
-            @media print { body { width: 72mm; } .print-receipt { width: 72mm; } }
+            @media print { body { width: 72mm; height: auto; } .print-receipt { width: 72mm; height: auto; } }
           </style>
         </head>
         <body>${receiptHTML}</body>

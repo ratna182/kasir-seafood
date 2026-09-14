@@ -85,7 +85,7 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
               <meta name="viewport" content="width=device-width, initial-scale=1">
               <title>Cetak Struk</title>
               <style>
-                @page { size: A6; margin: 0; }
+                @page { size: auto; margin: 0; }
                 * { box-sizing: border-box; margin: 0; padding: 0; }
                 html, body { width: 100%; margin: 0; padding: 0; }
                 body {
@@ -111,7 +111,7 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
                 .receipt-summary { margin-top: 3px; }
                 .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 1px 0; line-height: 1.4; }
                 .receipt-grand { font-size: 17px; }
-                .print-footer { text-align: center; margin-top: 3px; font-size: 14px; line-height: 1.4; }
+                .print-footer { text-align: center; margin-top: 3px; margin-bottom: 0; padding-bottom: 0; font-size: 14px; line-height: 1.4; }
                 .print-footer p { margin: 0; line-height: 1.4; }
                 @media print { body { width: 100%; } .print-receipt { width: 100%; } }
               </style>
@@ -232,7 +232,7 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
               </button>
             </div>
 
-            <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} preview reprint />
+            <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} width={printerWidth} preview reprint />
             <div className="receipt-width-picker">
               <span>Ukuran printer</span>
               {(['58mm', '80mm'] as const).map((width) => <button key={width} type="button" onClick={() => setPrinterWidth(width)} className={`btn btn-sm ${printerWidth === width ? 'btn-primary' : 'btn-ghost'}`}>{width}</button>)}
@@ -251,7 +251,7 @@ export default function RiwayatClient({ session, initialTransaksis, initialStart
 
       <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
 
-      {selectedTransaksi && <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} warungNama={session.warungNama} width={printerWidth} reprint />}
+      {selectedTransaksi && <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} width={printerWidth} reprint />}
     </div>
   )
 }

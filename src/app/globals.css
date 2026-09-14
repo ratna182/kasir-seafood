@@ -895,6 +895,11 @@ input[type='checkbox']:checked::after { transform: rotate(45deg) scale(1); }
 
 /* Compact mode for >8 items */
 .receipt-preview.compact { font-size: 11px; line-height: 1.4; }
+.receipt-logo { display: block; width: 52mm; max-width: 90%; height: auto; margin: 0 auto 3px; }
+.receipt-socials { display: grid; gap: 1px; justify-content: center; margin-top: 2px; font-size: 11px; line-height: 1.25; }
+.receipt-socials span, .receipt-contact { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.receipt-social-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; font-size: 10px; font-weight: 800; }
+.print-footer { margin-bottom: 0; padding-bottom: 0; }
 .receipt-preview.compact .print-header h2 { font-size: 14px; }
 .receipt-preview.compact .print-header p { font-size: 11px; }
 .receipt-preview.compact .receipt-item-detail { font-size: 9px; }

@@ -60,6 +60,8 @@ export function encodeReceipt(
     transaction: ReceiptTransaction
     cashier: string
     warungNama: string | null
+    username?: string
+    warungKode?: string | null
     width: '58mm' | '80mm'
     reprint?: boolean
     uangDiterima?: number
@@ -69,6 +71,7 @@ export function encodeReceipt(
   const w = CHAR_WIDTHS[data.width]
   const t = data.transaction
   const parts: Uint8Array[] = []
+  const isKrangganKasir = data.username === 'kasir1' && data.warungKode === 'VJ08-1'
 
   // Initialize printer with better compatibility settings
   parts.push(initPrinter())
@@ -82,11 +85,15 @@ export function encodeReceipt(
     parts.push(encodeLine(centerText('*** CETAK ULANG STRUK RESMI ***', w), true, 'center', 1))
   }
 
-  parts.push(encodeLine(centerText(data.warungNama || 'WARUNG', w), true, 'center', 2))
-  parts.push(encodeLine(centerText('Jl. Raya Kranggan no.18', w), true, 'center'))
-  parts.push(encodeLine(centerText('IG : Seafood08vianjaya.id', w), true, 'center'))
-  parts.push(encodeLine(centerText('FB : Seafood08vianjaya', w), true, 'center'))
-  parts.push(encodeLine(centerText('TT : Seafood08vianjaya', w), true, 'center'))
+  if (isKrangganKasir) {
+    parts.push(encodeLine(centerText('Seafood 08 Vian Jaya', w), true, 'center', 2))
+    parts.push(encodeLine(centerText('Jl. Raya Kranggan No. 18', w), true, 'center'))
+    parts.push(encodeLine(centerText('IG  Seafood08vianjaya.id', w), true, 'center'))
+    parts.push(encodeLine(centerText('FB  seafood08vianjaya', w), true, 'center'))
+    parts.push(encodeLine(centerText('TT  seafood08vianjaya', w), true, 'center'))
+  } else {
+    parts.push(encodeLine(centerText(data.warungNama || 'WARUNG', w), true, 'center', 2))
+  }
 
   parts.push(encodeLine(drawLine(w), true))
 
@@ -129,13 +136,20 @@ export function encodeReceipt(
 
   parts.push(encodeLine(drawLine(w), true))
 
-  parts.push(encodeLine(centerText('Terima Kasih', w), true, 'center'))
-  parts.push(encodeLine(centerText('Selamat Datang Kembali', w), true, 'center'))
-  parts.push(encodeLine(centerText('Kritik dan Saran WA', w), true, 'center'))
-  parts.push(encodeLine(centerText('0852-8000-4508', w), true, 'center'))
+  if (isKrangganKasir) {
+    parts.push(encodeLine(centerText('Terimakasih', w), true, 'center'))
+    parts.push(encodeLine(centerText('Selamat Datang Kembali', w), true, 'center'))
+    parts.push(encodeLine(centerText('Kritik & Saran', w), true, 'center'))
+    parts.push(encodeLine(centerText('WA 0852-8000-4508', w), true, 'center'))
+  } else {
+    parts.push(encodeLine(centerText('Terima Kasih', w), true, 'center'))
+    parts.push(encodeLine(centerText('Selamat Datang Kembali', w), true, 'center'))
+    parts.push(encodeLine(centerText('Kritik dan Saran WA', w), true, 'center'))
+    parts.push(encodeLine(centerText('0852-8000-4508', w), true, 'center'))
+  }
 
   parts.push(setLineSpacing(30))
-  parts.push(feedAndCut(3))
+  parts.push(feedAndCut(1))
 
   return compose(...parts)
 }

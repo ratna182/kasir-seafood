@@ -113,7 +113,7 @@ export function encodeLaporan(
   parts.push(encodeLine(centerText('Kasir Vian Jaya 08', w), true, 'center'))
 
   parts.push(setLineSpacing(30))
-  parts.push(feedAndCut(3))
+  parts.push(feedAndCut(1))
 
   return compose(...parts)
 }

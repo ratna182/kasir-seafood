@@ -3,10 +3,10 @@ import type { PrinterConfig, PrinterStatus, IMinPrinterSDK } from './types'
 type StatusListener = (status: PrinterStatus) => void
 
 /**
- * iMin D4 505 Built-in Printer SDK
+ * iMin D4-504 Built-in Printer SDK
  * 
  * This integrates with iMin's native Android printer service via WebView bridge.
- * The iMin D4 505 has a built-in thermal printer that requires:
+ * The iMin D4-504 has a built-in thermal printer that requires:
  * - iMin Print SDK (AIDL service) for native Android
  * - WebView bridge for web-based applications
  * 
@@ -197,7 +197,7 @@ class IMinPrinter implements IMinPrinterSDK {
 
   // Helper: Cut paper
   async cutPaper(): Promise<boolean> {
-    return this.printEscPos([ESCPOS.FEED_LINES(3), ESCPOS.CUT_PAPER])
+    return this.printEscPos([ESCPOS.FEED_LINES(1), ESCPOS.CUT_PAPER])
   }
 
   private combineUint8Arrays(arrays: Uint8Array[]): Uint8Array {

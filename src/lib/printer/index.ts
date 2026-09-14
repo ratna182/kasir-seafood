@@ -114,7 +114,7 @@ class UnifiedPrinter {
     if (result) {
       const config: PrinterConfig = {
         deviceId: 'imin-built-in',
-        deviceName: 'iMin D4 505 Built-in Printer',
+        deviceName: 'iMin D4-504 Built-in Printer',
         width: '80mm',
         connectionType: 'imin',
       }
@@ -249,7 +249,7 @@ class UnifiedPrinter {
     }
     
     // Feed and cut
-    commands.push(new Uint8Array([0x1B, 0x64, 3])) // Feed 3 lines
+    commands.push(new Uint8Array([0x1B, 0x64, 1])) // Feed 1 line before auto-cut
     commands.push(new Uint8Array([0x1D, 0x56, 0x42, 0x00])) // Cut paper
     
     // Combine all commands

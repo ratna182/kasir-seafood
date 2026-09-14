@@ -15,6 +15,8 @@ interface ReceiptProps {
   transaction: ReceiptTransaction
   cashier: string
   warungNama: string | null
+  username?: string
+  warungKode?: string | null
   width: PrinterWidth
   preview?: boolean
   reprint?: boolean
@@ -24,18 +26,30 @@ interface ReceiptProps {
 
 const rupiah = (amount: number) => `Rp ${amount.toLocaleString('id-ID')}`
 
-export default function Receipt({ transaction, cashier, warungNama, width, preview, reprint, uangDiterima, kembalian }: ReceiptProps) {
+export default function Receipt({ transaction, cashier, warungNama, username, warungKode, width, preview, reprint, uangDiterima, kembalian }: ReceiptProps) {
   const date = new Date(transaction.createdAt)
   const totalQty = transaction.items.reduce((total, item) => total + item.qty, 0)
   const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : transaction.metodePembayaran === 'TRANSFER' ? 'Transfer' : 'Cash'
   const itemCount = transaction.items.length
   const isCompact = itemCount > 8
   const isCash = transaction.metodePembayaran === 'CASH'
+  const isKrangganKasir = username === 'kasir1' && warungKode === 'VJ08-1'
 
   return (
     <div className={`${preview ? 'receipt-preview' : 'print-only print-receipt'} receipt-${width} ${isCompact ? 'compact' : ''}`}>
       <div className="print-header">
-        <h2>{warungNama}</h2>
+        {isKrangganKasir ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="receipt-logo" src="/logo-struk.webp" alt="Seafood 08 Vian Jaya" />
+            <p>Jl. Raya Kranggan No. 18</p>
+            <div className="receipt-socials">
+              <span><b className="receipt-social-icon">IG</b> Seafood08vianjaya.id</span>
+              <span><b className="receipt-social-icon">f</b> seafood08vianjaya</span>
+              <span><b className="receipt-social-icon">TT</b> seafood08vianjaya</span>
+            </div>
+          </>
+        ) : <h2>{warungNama}</h2>}
       </div>
       <div className="print-divider" />
       <div className="receipt-meta">
@@ -79,8 +93,19 @@ export default function Receipt({ transaction, cashier, warungNama, width, previ
       <div className="print-divider" />
       <div className="print-footer">
         {reprint && <p>*** CETAK ULANG STRUK RESMI ***</p>}
-        <p>Terima Kasih - Selamat Datang Kembali</p>
-        <p>Kritik Saran WA : 0852-8000-4508</p>
+        {isKrangganKasir ? (
+          <>
+            <p>Terimakasih</p>
+            <p>Selamat Datang Kembali</p>
+            <p>Kritik &amp; Saran</p>
+            <p className="receipt-contact"><b className="receipt-social-icon">WA</b> 0852-8000-4508</p>
+          </>
+        ) : (
+          <>
+            <p>Terima Kasih - Selamat Datang Kembali</p>
+            <p>Kritik Saran WA : 0852-8000-4508</p>
+          </>
+        )}
       </div>
     </div>
   )
