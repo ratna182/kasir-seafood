@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
+import { getKasirSessionState } from '@/lib/kasir-session'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,8 +23,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const transaksi = await prisma.$transaction(async (tx) => {
+      const state = await getKasirSessionState(tx, warungId)
+      if (state.isClosed) return 'CLOSED'
+
       const item = await tx.transaksiItem.findFirst({
-        where: { id, transaksi: { warungId, status: 'OPEN' } },
+        where: { id, transaksi: { warungId, status: 'OPEN', createdAt: { gte: state.sessionStart } } },
       })
 
       if (!item) return null
@@ -49,6 +53,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ success: false, message: 'Item order aktif tidak ditemukan.' }, { status: 404 })
     }
 
+    if (transaksi === 'CLOSED') {
+      return NextResponse.json({ success: false, message: 'Kasir sudah ditutup.' }, { status: 409 })
+    }
+
     return NextResponse.json({ success: true, data: transaksi })
   } catch (error) {
     console.error('[PATCH /api/transaksi/items/[id]]', error)
@@ -69,8 +77,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const { id } = await params
     const transaksi = await prisma.$transaction(async (tx) => {
+      const state = await getKasirSessionState(tx, warungId)
+      if (state.isClosed) return 'CLOSED'
+
       const item = await tx.transaksiItem.findFirst({
-        where: { id, transaksi: { warungId, status: 'OPEN' } },
+        where: { id, transaksi: { warungId, status: 'OPEN', createdAt: { gte: state.sessionStart } } },
       })
 
       if (!item) return null
@@ -91,6 +102,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (!transaksi) {
       return NextResponse.json({ success: false, message: 'Item order aktif tidak ditemukan.' }, { status: 404 })
+    }
+
+    if (transaksi === 'CLOSED') {
+      return NextResponse.json({ success: false, message: 'Kasir sudah ditutup.' }, { status: 409 })
     }
 
     return NextResponse.json({ success: true, data: transaksi })

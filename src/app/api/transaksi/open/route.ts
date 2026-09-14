@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
+import { getKasirSessionState } from '@/lib/kasir-session'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +15,18 @@ export async function GET(request: NextRequest) {
     }
 
     const nomorMeja = request.nextUrl.searchParams.get('nomorMeja')?.trim()
+    const state = await getKasirSessionState(prisma, warungId)
+    if (state.isClosed) {
+      return NextResponse.json({ success: true, data: nomorMeja ? null : [] })
+    }
+
     const transaksis = await prisma.transaksi.findMany({
-      where: { warungId, status: 'OPEN', ...(nomorMeja ? { nomorMeja } : {}) },
+      where: {
+        warungId,
+        status: 'OPEN',
+        createdAt: { gte: state.sessionStart },
+        ...(nomorMeja ? { nomorMeja } : {}),
+      },
       include: { items: { orderBy: { createdAt: 'asc' } } },
       orderBy: { updatedAt: 'desc' },
     })

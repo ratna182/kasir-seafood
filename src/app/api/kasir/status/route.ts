@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, requireRole } from '@/lib/auth'
+import { getKasirSessionState } from '@/lib/kasir-session'
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,26 +24,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 })
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const sesi = await prisma.kasirSesi.findUnique({
-      where: {
-        warungId_tanggal: {
-          warungId: warungId!,
-          tanggal: today,
-        },
-      },
-    })
+    const state = await getKasirSessionState(prisma, warungId!)
+    const sesi = state.latest
 
     return NextResponse.json({
       success: true,
       data: {
-        hariIni: today.toISOString().split('T')[0],
-        sudahTutup: !!sesi,
-        ditutupPada: sesi?.ditutupPada || null,
-        totalTransaksi: sesi?.totalTransaksi || 0,
-        totalPendapatan: sesi?.totalPendapatan || 0,
+        hariIni: state.today.toISOString().split('T')[0],
+        sudahTutup: state.isClosed,
+        ditutupPada: state.isClosed ? sesi?.ditutupPada : null,
+        totalTransaksi: state.isClosed ? sesi?.totalTransaksi || 0 : 0,
+        totalPendapatan: state.isClosed ? sesi?.totalPendapatan || 0 : 0,
       },
     })
   } catch (error) {

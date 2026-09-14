@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useEffectEvent } from 'react'
 import { FileSpreadsheet, FileText, Printer, Lock, AlertTriangle } from 'lucide-react'
 import PrinterSetup from '@/components/PrinterSetup'
 import PrinterStatusBadge from '@/components/PrinterStatus'
@@ -74,10 +74,29 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
     }
   }, [])
 
+  const refreshSelectedWarung = useEffectEvent(() => {
+    fetchLaporan()
+    checkKasirStatus()
+  })
+
   useEffect(() => {
     if (isOwner && !selectedWarungId) return
-    fetchLaporan()
-  }, [selectedWarungId])
+    refreshSelectedWarung()
+  }, [isOwner, selectedWarungId])
+
+  async function checkKasirStatus() {
+    const params = isOwner ? `?warungId=${encodeURIComponent(selectedWarungId)}` : ''
+    const res = await fetch(`/api/kasir/status${params}`)
+    const result = await res.json()
+    if (!result.success) return
+
+    setKasirSesi(result.data.sudahTutup ? {
+      ditutupPada: result.data.ditutupPada,
+      ditutupOleh: 'Kasir',
+      totalTransaksi: result.data.totalTransaksi,
+      totalPendapatan: result.data.totalPendapatan,
+    } : null)
+  }
 
   async function fetchLaporan() {
     setLoading(true)
@@ -97,7 +116,12 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
   async function handleTutupKasir() {
     setClosing(true)
     try {
-      const res = await fetch('/api/kasir/tutup', { method: 'POST' })
+      const warungId = isOwner ? selectedWarungId : session.warungId
+      const res = await fetch('/api/kasir/tutup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ warungId }),
+      })
       const result = await res.json()
       if (result.success) {
         setKasirSesi({ ditutupPada: result.data.ditutupPada, ditutupOleh: session.namaLengkap || session.username, totalTransaksi: result.data.totalTransaksi, totalPendapatan: result.data.totalPendapatan })

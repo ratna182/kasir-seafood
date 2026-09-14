@@ -33,6 +33,8 @@ export default async function LaporanPage() {
        FROM kasir_sesis ks
        JOIN users u ON u.id = ks.ditutup_oleh
        WHERE ks.warung_id = $1 AND ks.tanggal = $2
+         AND ks.dibuka_kembali_pada IS NULL
+       ORDER BY ks.ditutup_pada DESC
        LIMIT 1`,
           session.warungId,
           today

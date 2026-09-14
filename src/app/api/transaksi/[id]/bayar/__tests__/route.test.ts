@@ -45,6 +45,7 @@ describe('Bayar order API', () => {
 
   it('finalizes open order before receipt is rendered', async () => {
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
+      kasirSesi: { findFirst: vi.fn().mockResolvedValue(null) },
       transaksi: {
         findFirst: vi.fn().mockResolvedValue({ id: 'trx1', total: 25000, items: [{ id: 'item1' }] }),
         count: vi.fn().mockResolvedValue(0),

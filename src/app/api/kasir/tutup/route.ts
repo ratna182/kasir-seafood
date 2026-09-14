@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
+import { getKasirSessionState } from '@/lib/kasir-session'
 
 // POST /api/kasir/tutup — tutup kasir hari ini (kasir only)
 export async function POST(request: NextRequest) {
@@ -11,64 +13,71 @@ export async function POST(request: NextRequest) {
     const authError = await requireKasirAccess(context)
     if (authError) return authError
 
-    const warungId = await getKasirWarungId(context)
+    const body = await request.json().catch(() => ({}))
+    const warungId = context?.user.role === 'OWNER'
+      ? body.warungId?.toString()
+      : await getKasirWarungId(context)
     if (!warungId) {
-      return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
+      return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    const closedAt = new Date()
+    const result = await prisma.$transaction(async (tx) => {
+      const state = await getKasirSessionState(tx, warungId, closedAt)
+      if (state.isClosed) return { status: 'ALREADY_CLOSED' as const, state }
 
-    // Cek apakah sudah ditutup
-    const existing = await prisma.kasirSesi.findUnique({
-      where: {
-        warungId_tanggal: {
+      const openOrder = await tx.transaksi.findFirst({
+        where: { warungId, status: 'OPEN' },
+        select: { id: true },
+      })
+      if (openOrder) return { status: 'OPEN_ORDERS' as const }
+
+      const transaksis = await tx.transaksi.findMany({
+        where: {
           warungId,
-          tanggal: today,
+          createdAt: { gte: state.sessionStart, lte: closedAt },
+          status: 'SELESAI',
         },
-      },
-    })
+        select: { total: true },
+      })
+      const totalTransaksi = transaksis.length
+      const totalPendapatan = transaksis.reduce((sum, transaksi) => sum + transaksi.total, 0)
 
-    if (existing) {
+      const sesi = await tx.kasirSesi.create({
+        data: {
+          warungId,
+          tanggal: state.today,
+          ditutupOleh: context!.user.id,
+          ditutupPada: closedAt,
+          totalTransaksi,
+          totalPendapatan,
+        },
+      })
+
+      return { status: 'CLOSED' as const, sesi, totalTransaksi, totalPendapatan, today: state.today }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
+    if (result.status === 'ALREADY_CLOSED') {
       return NextResponse.json({
         success: false,
-        message: `Kasir hari ini sudah ditutup pada ${new Date(existing.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}.`,
+        message: `Kasir sudah ditutup pada ${new Date(result.state.latest!.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}.`,
       }, { status: 409 })
     }
 
-    // Hitung total transaksi dan pendapatan hari ini
-    const transaksis = await prisma.transaksi.findMany({
-      where: {
-        warungId,
-        tanggal: { gte: today, lt: tomorrow },
-        status: 'SELESAI',
-      },
-      select: { total: true },
-    })
-
-    const totalTransaksi = transaksis.length
-    const totalPendapatan = transaksis.reduce((sum: number, t: { total: number }) => sum + t.total, 0)
-
-    // Buat record tutup kasir
-    const sesi = await prisma.kasirSesi.create({
-      data: {
-        warungId,
-        tanggal: today,
-        ditutupOleh: context?.user.id ?? '',
-        totalTransaksi,
-        totalPendapatan,
-      },
-    })
+    if (result.status === 'OPEN_ORDERS') {
+      return NextResponse.json({
+        success: false,
+        message: 'Masih ada pesanan yang belum dibayar. Selesaikan atau hapus semua pesanan sebelum tutup kasir.',
+      }, { status: 409 })
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        tanggal: today.toISOString().split('T')[0],
-        ditutupPada: sesi.ditutupPada,
-        totalTransaksi,
-        totalPendapatan,
+        tanggal: result.today.toISOString().split('T')[0],
+        ditutupPada: result.sesi.ditutupPada,
+        totalTransaksi: result.totalTransaksi,
+        totalPendapatan: result.totalPendapatan,
       },
     }, { status: 201 })
   } catch (error) {

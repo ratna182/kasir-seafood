@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
+import { getKasirSessionState } from '@/lib/kasir-session'
 import Navbar from '@/components/Navbar'
 import TransaksiClient from './TransaksiClient'
 
@@ -25,14 +26,9 @@ export default async function TransaksiPage() {
 
   if (!activeSession.warungId) redirect('/login')
 
-  // Cek apakah kasir sudah tutup hari ini
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const kasirState = await getKasirSessionState(prisma, activeSession.warungId)
 
-  const [kasirSesi, menus, warungMenus, activeOrders] = await Promise.all([
-    prisma.kasirSesi.findUnique({
-      where: { warungId_tanggal: { warungId: activeSession.warungId, tanggal: today } },
-    }),
+  const [menus, warungMenus, activeOrders] = await Promise.all([
     prisma.menu.findMany({
       where: { warungId: activeSession.warungId, isAktif: true },
       include: { category: { select: { id: true, nama: true } } },
@@ -42,7 +38,11 @@ export default async function TransaksiPage() {
       where: { warungId: activeSession.warungId },
     }),
     prisma.transaksi.findMany({
-      where: { warungId: activeSession.warungId, status: 'OPEN' },
+      where: {
+        warungId: activeSession.warungId,
+        status: 'OPEN',
+        createdAt: { gte: kasirState.sessionStart },
+      },
       include: { items: { orderBy: { createdAt: 'asc' } } },
       orderBy: { updatedAt: 'desc' },
     }),
@@ -59,7 +59,7 @@ export default async function TransaksiPage() {
     category: m.category,
   }))
 
-  const serializedActiveOrders = activeOrders.map((order) => ({
+  const serializedActiveOrders = (kasirState.isClosed ? [] : activeOrders).map((order) => ({
     id: order.id,
     nomorMeja: order.nomorMeja,
     total: order.total,
@@ -87,7 +87,7 @@ export default async function TransaksiPage() {
           session={activeSession}
           menus={serializedMenus}
           initialActiveOrders={serializedActiveOrders}
-          isKasirClosed={!!kasirSesi}
+          isKasirClosed={kasirState.isClosed}
         />
       </div>
     </div>

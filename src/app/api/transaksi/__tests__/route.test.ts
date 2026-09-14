@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    kasirSesi: { findUnique: vi.fn() },
+    kasirSesi: { findFirst: vi.fn() },
     menu: { findMany: vi.fn() },
     transaksi: { findMany: vi.fn() },
     $transaction: vi.fn(),
@@ -58,7 +58,7 @@ describe('Transaksi held order API', () => {
     vi.mocked(requireRole).mockReturnValue(null)
     vi.mocked(requireKasirAccess).mockResolvedValue(null)
     vi.mocked(getKasirWarungId).mockResolvedValue('warung1')
-    vi.mocked(prisma.kasirSesi.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue(null)
   })
 
   it('rejects empty table number', async () => {
@@ -77,6 +77,7 @@ describe('Transaksi held order API', () => {
   it('creates an open order when table has no active order', async () => {
     vi.mocked(prisma.menu.findMany).mockResolvedValue([menu])
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
+      kasirSesi: { findFirst: vi.fn().mockResolvedValue(null) },
       transaksi: {
         findFirst: vi.fn().mockResolvedValue(null),
         create: vi.fn().mockResolvedValue({ id: 'trx1', nomorMeja: 'Meja 1', status: 'OPEN', total: 25000, items: [] }),
@@ -104,7 +105,48 @@ describe('Transaksi held order API', () => {
     expect(response.status).toBe(200)
     expect(data.data).toEqual([])
     expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ status: 'SELESAI' }),
+      where: expect.objectContaining({ status: 'SELESAI', createdAt: expect.any(Object) }),
     }))
+  })
+
+  it('starts reopened session without prior transactions', async () => {
+    const reopenedAt = new Date('2026-09-14T05:00:00.000Z')
+    vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue({
+      id: 'session1',
+      warungId: 'warung1',
+      tanggal: new Date('2026-09-14'),
+      ditutupOleh: 'kasir1',
+      ditutupPada: new Date('2026-09-14T04:00:00.000Z'),
+      dibukaKembaliPada: reopenedAt,
+      totalTransaksi: 2,
+      totalPendapatan: 50000,
+    })
+    vi.mocked(prisma.transaksi.findMany).mockResolvedValue([])
+
+    const response = await GET(new NextRequest('http://localhost/api/transaksi'))
+
+    expect(response.status).toBe(200)
+    expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ createdAt: expect.objectContaining({ gte: reopenedAt }) }),
+    }))
+  })
+
+  it('returns no transactions while cashier is closed', async () => {
+    vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue({
+      id: 'session1',
+      warungId: 'warung1',
+      tanggal: new Date('2026-09-14'),
+      ditutupOleh: 'kasir1',
+      ditutupPada: new Date(),
+      dibukaKembaliPada: null,
+      totalTransaksi: 2,
+      totalPendapatan: 50000,
+    })
+
+    const response = await GET(new NextRequest('http://localhost/api/transaksi'))
+    const data = await response.json()
+
+    expect(data.data).toEqual([])
+    expect(prisma.transaksi.findMany).not.toHaveBeenCalled()
   })
 })

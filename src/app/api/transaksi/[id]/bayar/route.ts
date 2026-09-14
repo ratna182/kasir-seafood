@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
 import { apiRateLimiter } from '@/lib/rate-limiter'
+import { getKasirSessionState } from '@/lib/kasir-session'
 
 const DAILY_TRANSACTION_LIMIT = 150
 
@@ -35,20 +36,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const transaksi = await prisma.$transaction(async (tx) => {
+      const state = await getKasirSessionState(tx, warungId)
+      if (state.isClosed) return 'CLOSED'
+
       const openOrder = await tx.transaksi.findFirst({
-        where: { id, warungId, status: 'OPEN' },
+        where: { id, warungId, status: 'OPEN', createdAt: { gte: state.sessionStart } },
         include: { items: { orderBy: { createdAt: 'asc' } } },
       })
 
       if (!openOrder) return null
       if (openOrder.items.length === 0 || openOrder.total < 1) return 'EMPTY'
 
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
       const completedToday = await tx.transaksi.count({
-        where: { warungId, status: 'SELESAI', tanggal: { gte: today, lt: tomorrow } },
+        where: {
+          warungId,
+          status: 'SELESAI',
+          createdAt: { gte: state.sessionStart, lt: state.tomorrow },
+        },
       })
       if (completedToday >= DAILY_TRANSACTION_LIMIT) return 'LIMIT'
 
@@ -61,6 +65,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (!transaksi) {
       return NextResponse.json({ success: false, message: 'Order aktif tidak ditemukan.' }, { status: 404 })
+    }
+
+    if (transaksi === 'CLOSED') {
+      return NextResponse.json({ success: false, message: 'Kasir sudah ditutup.' }, { status: 409 })
     }
 
     if (transaksi === 'EMPTY') {

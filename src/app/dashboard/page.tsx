@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
+import { getKasirSessionState } from '@/lib/kasir-session'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 import { BarChart3, UtensilsCrossed, Users, ClipboardList, ScrollText, Plus } from 'lucide-react'
@@ -188,21 +189,21 @@ export default async function DashboardPage() {
   // Dashboard KASIR
   const warungId = session.warungId as string
 
-  const [kasirSesi, jumlahTransaksiHariIni, totalPendapatanHariIni] = await Promise.all([
-    prisma.kasirSesi.findUnique({
-      where: { warungId_tanggal: { warungId, tanggal: today } },
-    }),
-    prisma.transaksi.count({
-      where: { warungId, tanggal: { gte: today, lt: tomorrow }, status: 'SELESAI' },
-    }),
-    prisma.transaksi.aggregate({
-      where: { warungId, tanggal: { gte: today, lt: tomorrow }, status: 'SELESAI' },
-      _sum: { total: true },
-    }),
-  ])
+  const kasirState = await getKasirSessionState(prisma, warungId)
+  const [jumlahTransaksiHariIni, totalPendapatan] = kasirState.isClosed
+    ? [kasirState.latest!.totalTransaksi, kasirState.latest!.totalPendapatan]
+    : await Promise.all([
+        prisma.transaksi.count({
+          where: { warungId, createdAt: { gte: kasirState.sessionStart }, status: 'SELESAI' },
+        }),
+        prisma.transaksi.aggregate({
+          where: { warungId, createdAt: { gte: kasirState.sessionStart }, status: 'SELESAI' },
+          _sum: { total: true },
+        }).then((result) => result._sum.total || 0),
+      ])
 
-  const sudahTutup = !!kasirSesi
-  const totalPendapatan = totalPendapatanHariIni._sum.total || 0
+  const sudahTutup = kasirState.isClosed
+  const kasirSesi = kasirState.latest
 
   return (
     <div className="app-container">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
+import { getKasirSessionState } from '@/lib/kasir-session'
 
 type IncomingItem = {
   menuId: string
@@ -9,14 +10,6 @@ type IncomingItem = {
   hargaSatuan?: number
   diskonSatuan?: number
   catatan?: string
-}
-
-function todayRange() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  return { today, tomorrow }
 }
 
 function isUniqueOpenOrderError(error: unknown) {
@@ -33,18 +26,6 @@ export async function POST(request: NextRequest) {
     const warungId = await getKasirWarungId(context)
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
-    }
-
-    const { today } = todayRange()
-    const kasirSesiTutup = await prisma.kasirSesi.findUnique({
-      where: { warungId_tanggal: { warungId, tanggal: today } },
-    })
-
-    if (kasirSesiTutup) {
-      return NextResponse.json({
-        success: false,
-        message: 'Kasir sudah ditutup. Transaksi baru dapat dibuat mulai besok.',
-      }, { status: 409 })
     }
 
     const body = await request.json()
@@ -109,8 +90,11 @@ export async function POST(request: NextRequest) {
     const addedTotal = processedItems.reduce((sum, item) => sum + item.subtotal, 0)
 
     const transaksi = await prisma.$transaction(async (tx) => {
+      const state = await getKasirSessionState(tx, warungId)
+      if (state.isClosed) return 'CLOSED' as const
+
       const existing = await tx.transaksi.findFirst({
-        where: { warungId, nomorMeja, status: 'OPEN' },
+        where: { warungId, nomorMeja, status: 'OPEN', createdAt: { gte: state.sessionStart } },
       })
 
       if (!existing) {
@@ -120,7 +104,7 @@ export async function POST(request: NextRequest) {
             nomorMeja,
             status: 'OPEN',
             total: addedTotal,
-            tanggal: today,
+            tanggal: state.today,
             items: { create: processedItems },
           },
           include: { items: { orderBy: { createdAt: 'asc' } } },
@@ -136,7 +120,14 @@ export async function POST(request: NextRequest) {
         data: { total: existing.total + addedTotal },
         include: { items: { orderBy: { createdAt: 'asc' } } },
       })
-    })
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
+    if (transaksi === 'CLOSED') {
+      return NextResponse.json({
+        success: false,
+        message: 'Kasir sudah ditutup. Buka sesi kasir baru untuk mulai bertransaksi.',
+      }, { status: 409 })
+    }
 
     return NextResponse.json({ success: true, data: transaksi }, { status: 201 })
   } catch (error) {
@@ -167,9 +158,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
 
-    const { today, tomorrow } = todayRange()
+    const state = await getKasirSessionState(prisma, warungId)
+    if (state.isClosed) {
+      return NextResponse.json({ success: true, data: [] })
+    }
+
     const transaksis = await prisma.transaksi.findMany({
-      where: { warungId, tanggal: { gte: today, lt: tomorrow }, status: 'SELESAI' },
+      where: {
+        warungId,
+        createdAt: { gte: state.sessionStart, lt: state.tomorrow },
+        status: 'SELESAI',
+      },
       include: { items: { orderBy: { createdAt: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     })

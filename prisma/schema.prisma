@@ -132,18 +132,19 @@ model TransaksiItem {
 }
 
 model KasirSesi {
-  id               String   @id @default(uuid())
-  warungId         String   @map("warung_id")
-  tanggal          DateTime @map("tanggal") @db.Date
-  ditutupOleh      String   @map("ditutup_oleh")
-  ditutupPada      DateTime @default(now()) @map("ditutup_pada")
-  totalTransaksi   Int      @map("total_transaksi")
-  totalPendapatan  Int      @map("total_pendapatan")
+  id                  String    @id @default(uuid())
+  warungId            String    @map("warung_id")
+  tanggal             DateTime  @map("tanggal") @db.Date
+  ditutupOleh         String    @map("ditutup_oleh")
+  ditutupPada         DateTime  @default(now()) @map("ditutup_pada")
+  dibukaKembaliPada   DateTime? @map("dibuka_kembali_pada")
+  totalTransaksi      Int       @map("total_transaksi")
+  totalPendapatan     Int       @map("total_pendapatan")
 
   warung Warung @relation(fields: [warungId], references: [id])
   user   User   @relation(fields: [ditutupOleh], references: [id])
 
-  @@unique([warungId, tanggal])
+  @@index([warungId, tanggal, ditutupPada])
   @@map("kasir_sesis")
 }
 

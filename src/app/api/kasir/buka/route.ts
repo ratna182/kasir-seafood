@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
+import { getKasirSessionState } from '@/lib/kasir-session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,27 +24,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const openedAt = new Date()
+    const result = await prisma.$transaction(async (tx) => {
+      const state = await getKasirSessionState(tx, warungId, openedAt)
+      if (!state.latest || !state.isClosed) return false
 
-    const existing = await prisma.kasirSesi.findUnique({
-      where: { warungId_tanggal: { warungId, tanggal: today } },
-    })
+      const updated = await tx.kasirSesi.updateMany({
+        where: { id: state.latest.id, dibukaKembaliPada: null },
+        data: { dibukaKembaliPada: openedAt },
+      })
+      return updated.count === 1
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
-    if (!existing) {
+    if (!result) {
       return NextResponse.json({
         success: false,
-        message: 'Kasir hari ini belum ditutup, tidak perlu dibuka.',
+        message: 'Kasir hari ini sudah terbuka.',
       }, { status: 409 })
     }
 
-    await prisma.kasirSesi.delete({
-      where: { warungId_tanggal: { warungId, tanggal: today } },
-    })
-
     return NextResponse.json({
       success: true,
-      message: 'Kasir hari ini berhasil dibuka kembali.',
+      message: 'Kasir berhasil dibuka dengan sesi transaksi baru.',
     })
   } catch (error) {
     console.error('[POST /api/kasir/buka]', error)
