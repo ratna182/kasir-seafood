@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState, useEffect } from 'react'
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Search, ShoppingCart, X, Minus, Plus, Printer, CreditCard, Banknote, CheckCircle, Trash2, Pencil } from 'lucide-react'
 import Receipt, { type PrinterWidth, type ReceiptTransaction } from '@/components/Receipt'
@@ -87,6 +87,8 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   const [menus, setMenus] = useState<Menu[]>(initialMenus)
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
   const [qtyPickerMenuId, setQtyPickerMenuId] = useState<string | null>(null)
+  const [qtyPickerPos, setQtyPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const qtyBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
@@ -102,6 +104,13 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
       printer.autoReconnect()
     }
   }, [])
+
+  useEffect(() => {
+    if (!qtyPickerMenuId) return
+    const handler = () => setQtyPickerMenuId(null)
+    window.addEventListener('click', handler)
+    return () => window.removeEventListener('click', handler)
+  }, [qtyPickerMenuId])
 
   const filteredMenus = useMemo(() => {
     return menus.filter((menu) => {
@@ -684,25 +693,16 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                       </div>
                       {item.catatan && <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.catatan}</div>}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', position: 'relative' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <button type="button" onClick={() => updateQty(item.menuId, -1)} className="btn btn-ghost btn-sm qty-stepper">
                         <Minus size={14} />
                       </button>
-                      <button type="button" onClick={() => setQtyPickerMenuId(qtyPickerMenuId === item.menuId ? null : item.menuId)} style={{ minWidth: '28px', minHeight: '28px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums', background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', padding: '2px 6px', color: 'var(--color-text-primary)' }}>
+                      <button type="button" ref={(el) => { if (el) qtyBtnRefs.current.set(item.menuId, el) }} onClick={(e) => { e.stopPropagation(); if (qtyPickerMenuId === item.menuId) { setQtyPickerMenuId(null) } else { const btn = qtyBtnRefs.current.get(item.menuId); if (btn) { const r = btn.getBoundingClientRect(); setQtyPickerPos({ top: r.top - 4, left: r.left + r.width / 2 }); setQtyPickerMenuId(item.menuId) } } }} style={{ minWidth: '28px', minHeight: '28px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums', background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', padding: '2px 6px', color: 'var(--color-text-primary)' }}>
                         {item.qty}
                       </button>
                       <button type="button" onClick={() => updateQty(item.menuId, 1)} className="btn btn-ghost btn-sm qty-stepper">
                         <Plus size={14} />
                       </button>
-                      {qtyPickerMenuId === item.menuId && (
-                        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', zIndex: 100, background: 'var(--color-base)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
-                          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-                            <button key={n} type="button" onClick={() => { setCart((prev) => prev.map((ci) => ci.menuId === item.menuId ? { ...ci, qty: n } : ci)); setQtyPickerMenuId(null) }} style={{ minWidth: '40px', minHeight: '36px', border: 'none', borderRadius: 'var(--radius-sm)', background: item.qty === n ? 'var(--color-brand)' : 'transparent', color: item.qty === n ? '#fff' : 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', textAlign: 'center' }}>
-                              {n}
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
                     <div style={{ textAlign: 'right', minWidth: '70px' }}>
                       <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
@@ -834,6 +834,16 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
           </div>
         </div>
       </div>
+
+      {qtyPickerMenuId && (
+        <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', zIndex: 1100, background: 'var(--color-base)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: '2px', transform: 'translate(-50%, -100%)', top: qtyPickerPos.top + 'px', left: qtyPickerPos.left + 'px' }}>
+          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+            <button key={n} type="button" onClick={() => { setCart((prev) => prev.map((ci) => ci.menuId === qtyPickerMenuId ? { ...ci, qty: n } : ci)); setQtyPickerMenuId(null) }} style={{ minWidth: '44px', minHeight: '38px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', color: 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', textAlign: 'center' }}>
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
 
       {editingCartItem && (
         <div className="modal-overlay no-print" style={{ position: 'fixed', inset: 0, background: 'rgba(51, 51, 51, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000 }} onClick={(event) => { if (event.target === event.currentTarget) setEditingCartItem(null) }}>
