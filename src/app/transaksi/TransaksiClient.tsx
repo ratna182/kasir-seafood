@@ -699,7 +699,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                         Rp {(itemUnitPrice(item) * item.qty).toLocaleString('id-ID')}
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                        <button type="button" onClick={() => setEditingCartItem(item)} style={{ background: 'none', border: 'none', color: 'var(--color-brand)', cursor: 'pointer', padding: 0 }} title="Atur harga, diskon, atau catatan"><Pencil size={13} /></button>
+                        <button type="button" onClick={() => setEditingCartItem(item)} style={{ background: 'none', border: 'none', color: 'var(--color-brand)', cursor: 'pointer', padding: '4px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)' }} title="Atur harga, diskon, atau catatan"><Pencil size={20} /></button>
                         <button type="button" onClick={() => removeFromCart(item.menuId)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}>Hapus</button>
                       </div>
                     </div>
