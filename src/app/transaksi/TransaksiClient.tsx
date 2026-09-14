@@ -3,13 +3,11 @@
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Search, ShoppingCart, X, Minus, Plus, Printer, CreditCard, Banknote, CheckCircle, Trash2, Pencil } from 'lucide-react'
-import Receipt, { type PrinterWidth, type ReceiptTransaction } from '@/components/Receipt'
+import Receipt, { type PrinterWidth } from '@/components/Receipt'
 import PrinterSetup from '@/components/PrinterSetup'
 import PrinterStatusBadge from '@/components/PrinterStatus'
 import { printer } from '@/lib/printer/bluetooth'
 import { loadPrinterConfig } from '@/lib/printer/storage'
-import { encodeReceipt } from '@/lib/printer/receipt-encoder'
-import type { PrinterConfig } from '@/lib/printer/types'
 import { hitungKembalian, generateQuickAmounts } from '@/lib/payment/cash'
 
 interface Menu {
@@ -85,13 +83,13 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   const [completedTransaksi, setCompletedTransaksi] = useState<CompletedTransaksi | null>(null)
   const [showReceiptModal, setShowReceiptModal] = useState(false)
   const [printerWidth, setPrinterWidth] = useState<PrinterWidth>('80mm')
-  const [menus, setMenus] = useState<Menu[]>(initialMenus)
+  const [menus] = useState<Menu[]>(initialMenus)
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
   const [qtyPickerMenuId, setQtyPickerMenuId] = useState<string | null>(null)
   const [qtyPickerPos, setQtyPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const [qtyPickerPlacement, setQtyPickerPlacement] = useState<'above' | 'below'>('above')
   const qtyBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
-  const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [uangDiterima, setUangDiterima] = useState<number | ''>('')
@@ -100,7 +98,6 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
   useEffect(() => {
     const saved = loadPrinterConfig()
     if (saved) {
-      setPrinterConfig(saved)
       setPrinterWidth(saved.width)
       printer.autoReconnect()
     }
@@ -181,7 +178,6 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
 
   function addToCart(menu: Menu) {
     if (isKasirClosed) return
-    const existing = cart.find((item) => item.menuId === menu.id)
     setCart((prev) => {
       const current = prev.find((item) => item.menuId === menu.id)
       if (current) {
@@ -698,7 +694,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                       <button type="button" onClick={() => updateQty(item.menuId, -1)} className="btn btn-ghost btn-sm qty-stepper">
                         <Minus size={14} />
                       </button>
-                      <button type="button" ref={(el) => { if (el) qtyBtnRefs.current.set(item.menuId, el) }} onClick={(e) => { e.stopPropagation(); if (qtyPickerMenuId === item.menuId) { setQtyPickerMenuId(null) } else { const btn = qtyBtnRefs.current.get(item.menuId); if (btn) { const r = btn.getBoundingClientRect(); setQtyPickerPos({ top: r.top - 4, left: r.left + r.width / 2 }); setQtyPickerMenuId(item.menuId) } } }} style={{ minWidth: '28px', minHeight: '28px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums', background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', padding: '2px 6px', color: 'var(--color-text-primary)' }}>
+                      <button type="button" ref={(el) => { if (el) qtyBtnRefs.current.set(item.menuId, el) }} onClick={(e) => { e.stopPropagation(); if (qtyPickerMenuId === item.menuId) { setQtyPickerMenuId(null) } else { const btn = qtyBtnRefs.current.get(item.menuId); if (btn) { const r = btn.getBoundingClientRect(); const above = r.top > Math.min(420, window.innerHeight * 0.6); setQtyPickerPlacement(above ? 'above' : 'below'); setQtyPickerPos({ top: above ? r.top - 4 : r.bottom + 4, left: r.left + r.width / 2 }); setQtyPickerMenuId(item.menuId) } } }} style={{ minWidth: '28px', minHeight: '28px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums', background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', padding: '2px 6px', color: 'var(--color-text-primary)' }}>
                         {item.qty}
                       </button>
                       <button type="button" onClick={() => updateQty(item.menuId, 1)} className="btn btn-ghost btn-sm qty-stepper">
@@ -837,7 +833,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
       </div>
 
       {qtyPickerMenuId && (
-        <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', zIndex: 1100, background: 'var(--color-base)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: '2px', transform: 'translate(-50%, -100%)', top: qtyPickerPos.top + 'px', left: qtyPickerPos.left + 'px' }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', zIndex: 1100, background: 'var(--color-base)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: 'min(70vh, 420px)', overflowY: 'auto', transform: qtyPickerPlacement === 'above' ? 'translate(-50%, -100%)' : 'translateX(-50%)', top: qtyPickerPos.top + 'px', left: qtyPickerPos.left + 'px' }}>
           {[1,2,3,4,5,6,7,8,9,10].map((n) => (
             <button key={n} type="button" onClick={() => { setCart((prev) => prev.map((ci) => ci.menuId === qtyPickerMenuId ? { ...ci, qty: n } : ci)); setQtyPickerMenuId(null) }} style={{ minWidth: '44px', minHeight: '38px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', color: 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', textAlign: 'center' }}>
               {n}
@@ -909,7 +905,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
         </div>
       )}
 
-      <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
+      <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { if (config) setPrinterWidth(config.width) }} />
 
       {completedTransaksi && <Receipt transaction={completedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} warungAlamat={session.warungAlamat} width={printerWidth} uangDiterima={typeof uangDiterima === 'number' ? uangDiterima : undefined} kembalian={kembalianResult?.kembalian} />}
     </div>

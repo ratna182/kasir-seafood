@@ -27,7 +27,7 @@ interface ReceiptProps {
 
 const rupiah = (amount: number) => `Rp ${amount.toLocaleString('id-ID')}`
 
-export default function Receipt({ transaction, cashier, warungNama, warungAlamat, username, warungKode, width, preview, reprint, uangDiterima, kembalian }: ReceiptProps) {
+export default function Receipt({ transaction, cashier, warungAlamat, width, preview, reprint, uangDiterima, kembalian }: ReceiptProps) {
   const date = new Date(transaction.createdAt)
   const totalQty = transaction.items.reduce((total, item) => total + item.qty, 0)
   const payment = transaction.metodePembayaran === 'QRIS' ? 'QRIS' : transaction.metodePembayaran === 'TRANSFER' ? 'Transfer' : 'Cash'

@@ -4,10 +4,9 @@ import { useState, useEffect, useEffectEvent } from 'react'
 import { FileSpreadsheet, FileText, Printer, Lock, AlertTriangle } from 'lucide-react'
 import PrinterSetup from '@/components/PrinterSetup'
 import PrinterStatusBadge from '@/components/PrinterStatus'
-import { printer } from '@/lib/printer/bluetooth'
+import { printer } from '@/lib/printer'
 import { loadPrinterConfig } from '@/lib/printer/storage'
-import { encodeLaporan, type LaporanData } from '@/lib/printer/laporan-encoder'
-import type { PrinterConfig } from '@/lib/printer/types'
+import { encodeLaporan } from '@/lib/printer/laporan-encoder'
 
 interface RekapItem {
   namaMenu: string
@@ -68,7 +67,6 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [selectedWarungId, setSelectedWarungId] = useState(session.warungId || '')
   const isOwner = session.role === 'OWNER'
-  const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [printerWidth, setPrinterWidth] = useState<'58mm' | '80mm'>('80mm')
@@ -76,7 +74,6 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
   useEffect(() => {
     const saved = loadPrinterConfig()
     if (saved) {
-      setPrinterConfig(saved)
       setPrinterWidth(saved.width)
       printer.autoReconnect()
     }
@@ -237,7 +234,27 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
   }
 
   async function handlePrintThermal() {
-    handlePrint()
+    if (!data) return
+    setPrinting(true)
+    try {
+      const success = await printer.print(encodeLaporan(
+        data,
+        session.namaLengkap || session.username,
+        data.warung.alamat ?? null,
+        printerWidth,
+        kasirSesi,
+      ))
+      if (success) {
+        setFeedback({ type: 'success', message: 'Laporan berhasil dicetak.' })
+      } else {
+        handlePrint()
+        setFeedback({ type: 'error', message: 'Printer belum terhubung. Jendela print dibuka.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Gagal mencetak laporan.' })
+    } finally {
+      setPrinting(false)
+    }
   }
 
   async function handleExportExcel() {
@@ -569,7 +586,7 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
         </div>
       )}
 
-      <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
+      <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { if (config) setPrinterWidth(config.width) }} />
     </div>
   )
 }

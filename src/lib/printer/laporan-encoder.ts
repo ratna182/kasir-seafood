@@ -1,4 +1,3 @@
-import type { PrinterConfig } from './types'
 import { CHAR_WIDTHS } from './types'
 import {
   initPrinter,
@@ -60,8 +59,6 @@ function encodeLine(text: string, bold: boolean = true, align: 'left' | 'center'
 export function encodeLaporan(
   data: LaporanData,
   cashierName: string,
-  warungNama: string | null,
-  warungKode: string | null,
   warungAlamat: string | null,
   width: '58mm' | '80mm',
   kasirSesi?: { ditutupPada: string; ditutupOleh: string } | null,

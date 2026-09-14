@@ -87,7 +87,7 @@ export default async function TransaksiPage() {
       <Navbar session={session} activePage="transaksi" />
       <div className="content-area">
         <TransaksiClient
-          session={activeSession}
+          session={{ ...activeSession, warungAlamat }}
           menus={serializedMenus}
           initialActiveOrders={serializedActiveOrders}
           isKasirClosed={kasirState.isClosed}
