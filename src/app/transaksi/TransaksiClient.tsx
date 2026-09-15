@@ -490,7 +490,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                 style={{ width: '100%', paddingLeft: '36px' }}
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
               <button type="button" onClick={() => { setActiveCategoryId(null); document.getElementById('menu-list')?.scrollIntoView({ behavior: 'smooth' }) }}
                 className={`btn btn-sm ${activeCategoryId === null ? 'btn-primary' : 'btn-ghost'}`}>
                 Semua ({menus.filter((m) => m.isAktif).length})
@@ -637,7 +637,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                   disabled={isKasirClosed}
                   className="btn btn-ghost btn-sm"
                   style={{
-                    fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap',
                     background: nomorMeja === table ? 'var(--color-brand)' : 'var(--color-surface-raised)',
                     color: nomorMeja === table ? '#fff' : 'var(--color-text-secondary)',
                   }}
