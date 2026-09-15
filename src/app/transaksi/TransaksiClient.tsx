@@ -68,10 +68,12 @@ interface TransaksiClientProps {
 
 const QUICK_TABLES = ['Meja 1', 'Meja 2', 'Meja 3', 'Meja 4', 'Meja 5', 'Meja 6', 'Meja 7', 'Meja 8', 'Meja 9', 'Meja 10', 'Meja 11', 'Meja 12', 'Meja 13', 'Meja 14', 'Meja 15', 'Meja 16', 'Meja 17', 'Meja 18', 'Meja 19', 'Meja 20', 'Meja 21', 'Meja 22', 'Meja 23', 'Meja 24', 'Meja 25', 'Bungkus']
 const LESEHAN = Array.from({ length: 10 }, (_, index) => `Lesehan ${index + 1}`)
+const TABLE_SECTION_GAP = '__table-section-gap__'
 
 export default function TransaksiClient({ session, menus: initialMenus, initialActiveOrders, isKasirClosed }: TransaksiClientProps) {
   const isKranggan = session.username.toLowerCase().includes('kranggan') || session.warungNama?.toLowerCase().includes('kranggan')
-  const quickTables = session.username === 'kasir1' || isKranggan ? [...QUICK_TABLES, ...LESEHAN] : QUICK_TABLES
+  const hasLesehan = session.username === 'kasir1' || isKranggan
+  const quickTables = hasLesehan ? [...LESEHAN, TABLE_SECTION_GAP, ...QUICK_TABLES] : QUICK_TABLES
   const [cart, setCart] = useState<CartItem[]>([])
   const [nomorMeja, setNomorMeja] = useState('')
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
@@ -616,8 +618,10 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
               style={{ marginBottom: '0.5rem', width: '100%' }}
               disabled={isKasirClosed}
             />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-              {quickTables.map((table) => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(86px, 1fr))', gap: '0.35rem' }}>
+              {quickTables.map((table) => table === TABLE_SECTION_GAP ? (
+                <div key={table} style={{ gridColumn: '1 / -1', height: '0.35rem' }} aria-hidden="true" />
+              ) : (
                 <button
                   key={table}
                   type="button"
