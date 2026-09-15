@@ -490,7 +490,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                 style={{ width: '100%', paddingLeft: '36px' }}
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))', gap: '0.5rem' }}>
               <button type="button" onClick={() => { setActiveCategoryId(null); document.getElementById('menu-list')?.scrollIntoView({ behavior: 'smooth' }) }}
                 className={`btn btn-sm ${activeCategoryId === null ? 'btn-primary' : 'btn-ghost'}`}>
                 Semua ({menus.filter((m) => m.isAktif).length})
