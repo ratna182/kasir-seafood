@@ -475,6 +475,10 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
         {/* KOLOM KIRI: MENU PICKER */}
         <div>
           <div className="card" style={{ padding: '1rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', paddingBottom: '0.65rem', borderBottom: '1px solid var(--color-border)' }}>
+              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Menu Utama</h2>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>{menus.length} menu</span>
+            </div>
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
               <input
@@ -620,7 +624,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
             />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(86px, 1fr))', gap: '0.35rem' }}>
               {quickTables.map((table) => table === TABLE_SECTION_GAP ? (
-                <div key={table} style={{ gridColumn: '1 / -1', height: '0.35rem' }} aria-hidden="true" />
+                <div key={table} style={{ gridColumn: '1 / -1', height: '0.75rem' }} aria-hidden="true" />
               ) : (
                 <button
                   key={table}
