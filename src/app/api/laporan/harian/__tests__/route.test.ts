@@ -101,4 +101,30 @@ describe('Current cashier session report', () => {
       expect.objectContaining({ aktivitas: 'BUKA_KASIR', kasir: 'kasir2' }),
     ])
   })
+
+  it('includes cashier login activities', async () => {
+    vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.transaksi.findMany).mockResolvedValue([])
+    vi.mocked(prisma.activityLog.findMany).mockResolvedValue([
+      {
+        id: 'log-login',
+        userId: 'kasir1',
+        warungId: 'warung1',
+        aktivitas: 'LOGIN',
+        detail: 'Kasir berhasil login',
+        createdAt: new Date('2026-09-14T09:30:00.000Z'),
+        user: { namaLengkap: 'Kasir Satu', username: 'kasir1' },
+      },
+    ] as never)
+
+    const response = await GET(new NextRequest('http://localhost/api/laporan/harian'))
+    const result = await response.json()
+
+    expect(result.data.aktivitasKasir).toEqual([
+      expect.objectContaining({ aktivitas: 'LOGIN', kasir: 'Kasir Satu', detail: 'Kasir berhasil login' }),
+    ])
+    expect(prisma.activityLog.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ aktivitas: { in: ['LOGIN', 'BUKA_KASIR', 'TUTUP_KASIR'] } }),
+    }))
+  })
 })

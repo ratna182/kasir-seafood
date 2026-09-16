@@ -561,16 +561,17 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
           <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>AKTIVITAS KASIR</div>
           <div className="print-divider" />
           {data.aktivitasKasir.length === 0 ? (
-            <div style={{ fontSize: '13px', fontWeight: 'bold' }}>Tidak ada aktivitas buka/tutup kasir</div>
+            <div style={{ fontSize: '13px', fontWeight: 'bold' }}>Tidak ada aktivitas login/buka/tutup kasir</div>
           ) : (
             <table className="print-table">
-              <thead><tr><th>WAKTU</th><th>AKTIVITAS</th><th>KASIR</th></tr></thead>
+              <thead><tr><th>WAKTU</th><th>AKTIVITAS</th><th>KASIR</th><th>DETAIL</th></tr></thead>
               <tbody>
                 {data.aktivitasKasir.map((aktivitas, idx) => (
                   <tr key={idx}>
                     <td>{new Date(aktivitas.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>{aktivitas.aktivitas === 'BUKA_KASIR' ? 'BUKA KASIR' : 'TUTUP KASIR'}</td>
+                    <td>{aktivitas.aktivitas === 'LOGIN' ? 'LOGIN KASIR' : aktivitas.aktivitas === 'BUKA_KASIR' ? 'BUKA KASIR' : 'TUTUP KASIR'}</td>
                     <td>{aktivitas.kasir}</td>
+                    <td>{aktivitas.detail || '-'}</td>
                   </tr>
                 ))}
               </tbody>

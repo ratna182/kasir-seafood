@@ -109,7 +109,11 @@ export function encodeLaporan(
     parts.push(encodeLine('Tidak ada aktivitas', true))
   } else {
     for (const aktivitas of data.aktivitasKasir) {
-      const jenis = aktivitas.aktivitas === 'BUKA_KASIR' ? 'BUKA KASIR' : 'TUTUP KASIR'
+      const jenis = aktivitas.aktivitas === 'LOGIN'
+        ? 'LOGIN KASIR'
+        : aktivitas.aktivitas === 'BUKA_KASIR'
+          ? 'BUKA KASIR'
+          : 'TUTUP KASIR'
       parts.push(encodeLine(`${new Date(aktivitas.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} ${jenis}`, true))
       parts.push(encodeLine(`Kasir: ${aktivitas.kasir}`, true))
       if (aktivitas.detail) parts.push(encodeLine(aktivitas.detail, true))

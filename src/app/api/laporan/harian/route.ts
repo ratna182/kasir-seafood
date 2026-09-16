@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       where: {
         warungId,
         createdAt: { gte: state.today, lt: state.tomorrow },
-        aktivitas: { in: ['BUKA_KASIR', 'TUTUP_KASIR'] },
+        aktivitas: { in: ['LOGIN', 'BUKA_KASIR', 'TUTUP_KASIR'] },
       },
       include: { user: { select: { namaLengkap: true, username: true } } },
       orderBy: { createdAt: 'asc' },
