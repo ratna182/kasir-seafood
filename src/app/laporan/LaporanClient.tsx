@@ -493,11 +493,11 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
             <tbody>
               <tr>
                 <td style={{ fontWeight: 'bold' }}>Buka Kasir</td>
-                <td className="text-right">{data.aktivitasKasir.find(a => a.aktivitas === 'BUKA_KASIR') ? new Date(data.aktivitasKasir.find(a => a.aktivitas === 'BUKA_KASIR')!.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                <td className="text-right">{(() => { const a = data.aktivitasKasir.findLast(x => x.aktivitas === 'BUKA_KASIR'); return a ? new Date(a.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-' })()}</td>
               </tr>
               <tr>
                 <td style={{ fontWeight: 'bold' }}>Tutup Kasir</td>
-                <td className="text-right">{kasirSesi ? new Date(kasirSesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                <td className="text-right">{(() => { const a = data.aktivitasKasir.findLast(x => x.aktivitas === 'TUTUP_KASIR'); return a ? new Date(a.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-' })()}</td>
               </tr>
             </tbody>
           </table>
