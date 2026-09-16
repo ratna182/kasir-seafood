@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { getKasirSessionState } from '@/lib/kasir-session'
+import { getSession } from '@/lib/session'
 import Navbar from '@/components/Navbar'
 import LaporanClient from './LaporanClient'
 
@@ -139,15 +140,19 @@ export default async function LaporanPage() {
       }
     : null
 
+  // Deteksi role dari session cookie — owner tetap dapat navbar lengkap
+  const session = await getSession()
+  const role = session?.role === 'OWNER' ? 'OWNER' : 'KASIR'
+
   return (
     <div className="app-container">
       <Navbar
         session={{
           warungNama: defaultWarung.nama,
           warungKode: defaultWarung.kode,
-          namaLengkap: defaultWarung.nama,
-          username: defaultWarung.kode,
-          role: 'KASIR',
+          namaLengkap: session?.namaLengkap ?? defaultWarung.nama,
+          username: session?.username ?? defaultWarung.kode,
+          role,
         }}
         activePage="laporan"
       />
