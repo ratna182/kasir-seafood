@@ -463,25 +463,20 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
             </tbody>
           </table>
           <div className="print-divider" />
-          <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>AKTIVITAS KASIR</div>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>DETAIL KASIR</div>
           <div className="print-divider" />
-          {data.aktivitasKasir.length === 0 ? (
-            <div style={{ fontSize: '13px', fontWeight: 'bold' }}>Tidak ada aktivitas login/buka/tutup kasir</div>
-          ) : (
-            <table className="print-table">
-              <thead><tr><th>WAKTU</th><th>AKTIVITAS</th><th>KASIR</th><th>DETAIL</th></tr></thead>
-              <tbody>
-                {data.aktivitasKasir.map((aktivitas, idx) => (
-                  <tr key={idx}>
-                    <td>{new Date(aktivitas.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>{aktivitas.aktivitas === 'LOGIN' ? 'LOGIN KASIR' : aktivitas.aktivitas === 'BUKA_KASIR' ? 'BUKA KASIR' : 'TUTUP KASIR'}</td>
-                    <td>{aktivitas.kasir}</td>
-                    <td>{aktivitas.detail || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <table className="print-table">
+            <tbody>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Buka Kasir</td>
+                <td className="text-right">{data.aktivitasKasir.find(a => a.aktivitas === 'BUKA_KASIR') ? new Date(data.aktivitasKasir.find(a => a.aktivitas === 'BUKA_KASIR')!.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Tutup Kasir</td>
+                <td className="text-right">{kasirSesi ? new Date(kasirSesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+              </tr>
+            </tbody>
+          </table>
           <div className="print-divider" />
           <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>REKAP MENU</div>
           <div className="print-divider" />
