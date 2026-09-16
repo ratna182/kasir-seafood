@@ -8,14 +8,16 @@ export const metadata = {
   description: 'Rekapitulasi penjualan harian dan penutupan shift kasir.',
 }
 
-export default async function LaporanPage() {
-  // Tanpa login — langsung query warung pertama dari DB
-  const warung = await prisma.warung.findFirst({
-    orderBy: { nama: 'asc' },
-    select: { id: true, nama: true, kode: true },
-  })
+interface WarungOption { id: string; nama: string; kode: string }
 
-  if (!warung) {
+export default async function LaporanPage() {
+  // Query semua warung + warung pertama sebagai default
+  const [warungs, defaultWarung] = await Promise.all([
+    prisma.warung.findMany({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } }),
+    prisma.warung.findFirst({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } }),
+  ])
+
+  if (!defaultWarung) {
     return (
       <div className="app-container">
         <div className="content-area" style={{ padding: '3rem', textAlign: 'center' }}>
@@ -29,13 +31,13 @@ export default async function LaporanPage() {
   today.setHours(0, 0, 0, 0)
 
   // Ambil status kasir hari ini
-  const state = await getKasirSessionState(prisma, warung.id)
+  const state = await getKasirSessionState(prisma, defaultWarung.id)
   let sessionStart = state.sessionStart
 
   if (state.isClosed && state.latest) {
     const previousSession = await prisma.kasirSesi.findFirst({
       where: {
-        warungId: warung.id,
+        warungId: defaultWarung.id,
         tanggal: state.today,
         ditutupPada: { lt: state.latest.ditutupPada },
       },
@@ -47,7 +49,7 @@ export default async function LaporanPage() {
   // Ambil data laporan
   const transaksis = await prisma.transaksi.findMany({
     where: {
-      warungId: warung.id,
+      warungId: defaultWarung.id,
       createdAt: { gte: sessionStart, lt: state.tomorrow },
       status: 'SELESAI',
     },
@@ -56,7 +58,7 @@ export default async function LaporanPage() {
 
   const aktivitasKasir = await prisma.activityLog.findMany({
     where: {
-      warungId: warung.id,
+      warungId: defaultWarung.id,
       createdAt: { gte: state.today, lt: state.tomorrow },
       aktivitas: { in: ['LOGIN', 'BUKA_KASIR', 'TUTUP_KASIR'] },
     },
@@ -66,7 +68,7 @@ export default async function LaporanPage() {
 
   const uniqueMenuIds = [...new Set(transaksis.flatMap(t => t.items.map(i => i.menuId)))]
   const menuCategories = await prisma.menu.findMany({
-    where: { id: { in: uniqueMenuIds }, warungId: warung.id },
+    where: { id: { in: uniqueMenuIds }, warungId: defaultWarung.id },
     select: { id: true, category: { select: { nama: true } } },
   })
   const kategoriMap = new Map(menuCategories.map(m => [m.id, m.category?.nama || 'Lainnya']))
@@ -107,7 +109,7 @@ export default async function LaporanPage() {
 
   const laporanData = {
     tanggal: state.today.toISOString().split('T')[0],
-    warung: { id: warung.id, nama: warung.nama, kode: warung.kode, alamat: null },
+    warung: { id: defaultWarung.id, nama: defaultWarung.nama, kode: defaultWarung.kode, alamat: null },
     rekap,
     transaksi: transaksis.map(t => ({
       nomorMeja: t.nomorMeja,
@@ -142,19 +144,20 @@ export default async function LaporanPage() {
     <div className="app-container">
       <Navbar
         session={{
-          warungNama: warung.nama,
-          warungKode: warung.kode,
-          namaLengkap: warung.nama,
-          username: warung.kode,
+          warungNama: defaultWarung.nama,
+          warungKode: defaultWarung.kode,
+          namaLengkap: defaultWarung.nama,
+          username: defaultWarung.kode,
           role: 'KASIR',
         }}
         activePage="laporan"
       />
       <div className="content-area">
         <LaporanClient
-          warungId={warung.id}
-          warungNama={warung.nama}
-          warungKode={warung.kode}
+          warungId={defaultWarung.id}
+          warungNama={defaultWarung.nama}
+          warungKode={defaultWarung.kode}
+          warungs={warungs}
           initialData={laporanData}
           initialKasirSesi={kasirSesi}
         />

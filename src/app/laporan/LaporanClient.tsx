@@ -50,15 +50,18 @@ interface KasirSesiInfo {
   totalPendapatan: number
 }
 
+interface WarungOption { id: string; nama: string; kode: string }
+
 interface LaporanClientProps {
   warungId: string
   warungNama: string
   warungKode: string
+  warungs: WarungOption[]
   initialData: LaporanDataLocal | null
   initialKasirSesi: KasirSesiInfo | null
 }
 
-export default function LaporanClient({ warungId, warungNama, warungKode, initialData, initialKasirSesi }: LaporanClientProps) {
+export default function LaporanClient({ warungId, warungNama, warungKode, warungs, initialData, initialKasirSesi }: LaporanClientProps) {
   const [data, setData] = useState<LaporanDataLocal | null>(initialData)
   const [loading, setLoading] = useState(!initialData)
   const [kasirSesi, setKasirSesi] = useState<KasirSesiInfo | null>(initialKasirSesi)
@@ -66,6 +69,9 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
   const [closing, setClosing] = useState(false)
   const [opening, setOpening] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [selectedWarungId, setSelectedWarungId] = useState(warungId)
+  const [currentWarungNama, setCurrentWarungNama] = useState(warungNama)
+  const [showWarungDropdown, setShowWarungDropdown] = useState(false)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [printerWidth, setPrinterWidth] = useState<'58mm' | '80mm'>('80mm')
@@ -78,10 +84,39 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
     }
   }, [])
 
+  // Refetch data saat warung berubah (owner mode)
+  useEffect(() => {
+    if (selectedWarungId === warungId) return // skip initial load
+    async function refetch() {
+      setLoading(true)
+      try {
+        const params = new URLSearchParams({ warung_id: selectedWarungId })
+        const [laporanRes, statusRes] = await Promise.all([
+          fetch(`/api/laporan/harian?${params}`),
+          fetch(`/api/kasir/status?${params}`),
+        ])
+        const laporanResult = await laporanRes.json()
+        const statusResult = await statusRes.json()
+        if (laporanResult.success) setData(laporanResult.data)
+        if (statusResult.success) {
+          setKasirSesi(statusResult.data.sudahTutup ? {
+            ditutupPada: statusResult.data.ditutupPada,
+            ditutupOleh: 'Kasir',
+            totalTransaksi: statusResult.data.totalTransaksi,
+            totalPendapatan: statusResult.data.totalPendapatan,
+          } : null)
+        }
+      } catch {
+        setFeedback({ type: 'error', message: 'Gagal memuat data cabang' })
+      } finally { setLoading(false) }
+    }
+    refetch()
+  }, [selectedWarungId, warungId])
+
   async function fetchLaporan() {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ warung_id: warungId })
+      const params = new URLSearchParams({ warung_id: selectedWarungId })
       const res = await fetch(`/api/laporan/harian?${params}`)
       const result = await res.json()
       if (result.success) setData(result.data)
@@ -92,7 +127,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
   }
 
   async function checkKasirStatus() {
-    const params = new URLSearchParams({ warungId })
+    const params = new URLSearchParams({ warungId: selectedWarungId })
     const res = await fetch(`/api/kasir/status?${params}`)
     const result = await res.json()
     if (!result.success) return
@@ -110,11 +145,11 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
       const res = await fetch('/api/kasir/tutup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ warungId }),
+        body: JSON.stringify({ warungId: selectedWarungId }),
       })
       const result = await res.json()
       if (result.success) {
-        setKasirSesi({ ditutupPada: result.data.ditutupPada, ditutupOleh: warungNama, totalTransaksi: result.data.totalTransaksi, totalPendapatan: result.data.totalPendapatan })
+        setKasirSesi({ ditutupPada: result.data.ditutupPada, ditutupOleh: currentWarungNama, totalTransaksi: result.data.totalTransaksi, totalPendapatan: result.data.totalPendapatan })
         setShowCloseModal(false)
         setFeedback({ type: 'success', message: 'Kasir hari ini telah berhasil ditutup! Anda dapat mencetak laporan penutupan sekarang.' })
         fetchLaporan()
@@ -135,7 +170,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
       const res = await fetch('/api/kasir/buka', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ warungId }),
+        body: JSON.stringify({ warungId: selectedWarungId }),
       })
       const result = await res.json()
       if (result.success) {
@@ -166,7 +201,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
     if (!data) return
     setPrinting(true)
     try {
-      const success = await printer.print(encodeLaporan(data, warungNama, data.warung.alamat ?? null, printerWidth, kasirSesi))
+      const success = await printer.print(encodeLaporan(data, currentWarungNama, data.warung.alamat ?? null, printerWidth, kasirSesi))
       if (success) {
         setFeedback({ type: 'success', message: 'Laporan berhasil dicetak.' })
       } else {
@@ -180,7 +215,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
 
   async function handleExportExcel() {
     try {
-      const params = new URLSearchParams({ warung_id: warungId })
+      const params = new URLSearchParams({ warung_id: selectedWarungId })
       const res = await fetch(`/api/laporan/export?${params}`)
       if (!res.ok) throw new Error('Gagal export')
       const blob = await res.blob()
@@ -198,7 +233,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
 
   async function handleExportPDF() {
     try {
-      const params = new URLSearchParams({ warung_id: warungId })
+      const params = new URLSearchParams({ warung_id: selectedWarungId })
       const res = await fetch(`/api/laporan/export/pdf?${params}`)
       if (!res.ok) throw new Error('Gagal export')
       const blob = await res.blob()
@@ -223,9 +258,32 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Laporan Penjualan Harian</h1>
-          <p className="text-secondary text-sm">{todayStr} • {warungNama}</p>
+          <p className="text-secondary text-sm">{todayStr} • {currentWarungNama}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Owner: toggle ganti cabang */}
+          {!showWarungDropdown && (
+            <button type="button" onClick={() => setShowWarungDropdown(true)} className="btn btn-ghost" style={{ fontSize: '0.8rem' }}>
+              Ganti Cabang
+            </button>
+          )}
+          {showWarungDropdown && (
+            <select
+              className="form-input"
+              style={{ minWidth: '180px', padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+              value={selectedWarungId}
+              onChange={(e) => {
+                const newId = e.target.value
+                setSelectedWarungId(newId)
+                const found = warungs?.find(w => w.id === newId)
+                if (found) setCurrentWarungNama(found.nama)
+              }}
+            >
+              {warungs?.map(w => (
+                <option key={w.id} value={w.id}>{w.nama}</option>
+              ))}
+            </select>
+          )}
           <button type="button" onClick={handleExportExcel} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={16} /> Export Excel
           </button>
@@ -438,7 +496,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
           <div className="print-divider" />
           <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
             <div>Tanggal: {data.tanggal}</div>
-            <div>Dicetak: {new Date().toLocaleTimeString('id-ID')} | Cabang: {warungKode}</div>
+            <div>Dicetak: {new Date().toLocaleTimeString('id-ID')} | Cabang: {currentWarungNama}</div>
             {kasirSesi && (
               <>
                 <div>Status: SUDAH DITUTUP</div>
