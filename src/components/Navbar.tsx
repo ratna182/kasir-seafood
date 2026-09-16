@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { LayoutDashboard, BarChart3, UtensilsCrossed, Users, Plus, History, User, DollarSign } from 'lucide-react'
+import { LayoutDashboard, BarChart3, UtensilsCrossed, Users, Plus, History, User, DollarSign, Activity } from 'lucide-react'
 import LogoutButton from './LogoutButton'
 
 interface NavbarProps {
@@ -12,7 +12,7 @@ interface NavbarProps {
     username: string
     role: string
   }
-  activePage?: 'dashboard' | 'transaksi' | 'menu' | 'laporan' | 'riwayat' | 'kasir' | 'harga-warung'
+  activePage?: 'dashboard' | 'transaksi' | 'menu' | 'laporan' | 'riwayat' | 'kasir' | 'harga-warung' | 'activity-log'
 }
 
 export default function Navbar({ session, activePage }: NavbarProps) {
@@ -72,6 +72,14 @@ export default function Navbar({ session, activePage }: NavbarProps) {
               >
                 <Users size={14} />
                 Kasir
+              </Link>
+              <Link
+                href="/activity-log"
+                className={`btn btn-sm ${activePage === 'activity-log' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+              >
+                <Activity size={14} />
+                Log Activity
               </Link>
               <Link
                 href="/admin/harga-warung"

@@ -23,6 +23,7 @@ model Warung {
   transaksis    Transaksi[]
   kasirSesis    KasirSesi[]
   warungMenus  WarungMenu[]
+  activityLogs  ActivityLog[]
 
   @@map("warungs")
 }
@@ -39,6 +40,7 @@ model User {
 
   warung       Warung?     @relation(fields: [warungId], references: [id])
   kasirSesis   KasirSesi[]
+  activityLogs ActivityLog[]
 
   @@map("users")
 }
@@ -147,6 +149,22 @@ model KasirSesi {
 
   @@index([warungId, tanggal, ditutupPada])
   @@map("kasir_sesis")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  warungId  String?  @map("warung_id")
+  aktivitas String
+  detail    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User    @relation(fields: [userId], references: [id])
+  warung Warung? @relation(fields: [warungId], references: [id])
+
+  @@index([warungId, createdAt])
+  @@index([userId, createdAt])
+  @@map("activity_logs")
 }
 
 enum RoleUser {

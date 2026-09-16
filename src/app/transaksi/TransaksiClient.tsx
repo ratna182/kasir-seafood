@@ -9,6 +9,7 @@ import PrinterStatusBadge from '@/components/PrinterStatus'
 import { printer } from '@/lib/printer/bluetooth'
 import { loadPrinterConfig } from '@/lib/printer/storage'
 import { hitungKembalian, generateQuickAmounts } from '@/lib/payment/cash'
+import { QUICK_TABLES, LESEHAN } from '@/lib/table-layout'
 
 interface Menu {
   id: string
@@ -66,8 +67,6 @@ interface TransaksiClientProps {
   isKasirClosed: boolean
 }
 
-const QUICK_TABLES = ['Meja 1', 'Meja 2', 'Meja 3', 'Meja 4', 'Meja 5', 'Meja 6', 'Meja 7', 'Meja 8', 'Meja 9', 'Meja 10', 'Meja 11', 'Meja 12', 'Meja 13', 'Meja 14', 'Meja 15', 'Meja 16', 'Meja 17', 'Meja 18', 'Meja 19', 'Meja 20', 'Meja 21', 'Meja 22', 'Meja 23', 'Meja 24', 'Meja 25', 'Bungkus']
-const LESEHAN = Array.from({ length: 10 }, (_, index) => `Lesehan ${index + 1}`)
 const TABLE_SECTION_GAP = '__table-section-gap__'
 
 export default function TransaksiClient({ session, menus: initialMenus, initialActiveOrders, isKasirClosed }: TransaksiClientProps) {

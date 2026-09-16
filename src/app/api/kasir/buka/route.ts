@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
 import { getKasirSessionState } from '@/lib/kasir-session'
+import { recordActivity } from '@/lib/activity-log'
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,6 +34,14 @@ export async function POST(request: NextRequest) {
         where: { id: state.latest.id, dibukaKembaliPada: null },
         data: { dibukaKembaliPada: openedAt },
       })
+      if (updated.count === 1) {
+        await recordActivity(tx, {
+          userId: context!.user.id,
+          warungId,
+          aktivitas: 'BUKA_KASIR',
+          detail: 'Sesi kasir dibuka kembali',
+        })
+      }
       return updated.count === 1
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 

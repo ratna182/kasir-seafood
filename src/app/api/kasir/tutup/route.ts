@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
 import { getKasirSessionState } from '@/lib/kasir-session'
+import { recordActivity } from '@/lib/activity-log'
 
 // POST /api/kasir/tutup — tutup kasir hari ini (kasir only)
 export async function POST(request: NextRequest) {
@@ -61,6 +62,13 @@ export async function POST(request: NextRequest) {
           totalTransaksi,
           totalPendapatan,
         },
+      })
+
+      await recordActivity(tx, {
+        userId: context!.user.id,
+        warungId,
+        aktivitas: 'TUTUP_KASIR',
+        detail: `Kasir ditutup, ${totalTransaksi} transaksi, pendapatan Rp ${totalPendapatan.toLocaleString('id-ID')}`,
       })
 
       return { status: 'CLOSED' as const, sesi, totalTransaksi, totalPendapatan, today: state.today }

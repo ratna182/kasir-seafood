@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { encodeSessionToken, SessionUser, COOKIE_OWNER, COOKIE_KASIR } from '@/lib/session'
 import { loginRateLimiter } from '@/lib/rate-limiter'
+import { recordActivity } from '@/lib/activity-log'
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,6 +67,15 @@ export async function POST(request: NextRequest) {
     }
 
     loginRateLimiter.reset(rateLimitKey)
+
+    if (user.role === 'KASIR') {
+      await recordActivity(prisma, {
+        userId: user.id,
+        warungId: user.warungId,
+        aktivitas: 'LOGIN',
+        detail: 'Kasir berhasil login',
+      })
+    }
 
     const sessionUser: SessionUser = {
       id: user.id,

@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
 import { getKasirSessionState } from '@/lib/kasir-session'
+import { VALID_TABLE_NAMES } from '@/lib/table-layout'
 
 type IncomingItem = {
   menuId: string
@@ -34,6 +35,10 @@ export async function POST(request: NextRequest) {
 
     if (!nomorMeja) {
       return NextResponse.json({ success: false, message: 'Nomor meja wajib diisi.' }, { status: 422 })
+    }
+
+    if (!VALID_TABLE_NAMES.has(nomorMeja)) {
+      return NextResponse.json({ success: false, message: 'Nomor meja harus Meja 1-15, Lesehan 1-11, atau Bungkus.' }, { status: 422 })
     }
 
     if (!items || !Array.isArray(items) || items.length === 0) {

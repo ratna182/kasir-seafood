@@ -10,7 +10,7 @@ import { decodeSessionToken, COOKIE_OWNER, COOKIE_KASIR } from '@/lib/session'
 const publicRoutes = ['/login', '/api/auth/login']
 
 // Routes khusus owner
-const ownerOnlyRoutes = ['/menu', '/api/menu']
+const ownerOnlyRoutes = ['/menu', '/api/menu', '/activity-log', '/api/activity-logs']
 
 // Routes yang bisa diakses owner + kasir (kasir terbatas warung sendiri)
 const sharedRoutes = ['/laporan', '/api/laporan']
