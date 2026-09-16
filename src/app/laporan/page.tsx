@@ -12,10 +12,10 @@ export const metadata = {
 interface WarungOption { id: string; nama: string; kode: string }
 
 export default async function LaporanPage() {
-  const defaultWarung = await prisma.warung.findFirst({
-    orderBy: { nama: 'asc' },
-    select: { id: true, nama: true, kode: true },
-  })
+  const [warungs, defaultWarung] = await Promise.all([
+    prisma.warung.findMany({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } }),
+    prisma.warung.findFirst({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } }),
+  ])
 
   if (!defaultWarung) {
     return (
@@ -161,6 +161,8 @@ export default async function LaporanPage() {
           warungId={defaultWarung.id}
           warungNama={defaultWarung.nama}
           warungKode={defaultWarung.kode}
+          warungs={warungs}
+          role={role}
           initialData={laporanData}
           initialKasirSesi={kasirSesi}
         />

@@ -50,15 +50,19 @@ interface KasirSesiInfo {
   totalPendapatan: number
 }
 
+interface WarungOption { id: string; nama: string; kode: string }
+
 interface LaporanClientProps {
   warungId: string
   warungNama: string
   warungKode: string
+  warungs: WarungOption[]
+  role: string
   initialData: LaporanDataLocal | null
   initialKasirSesi: KasirSesiInfo | null
 }
 
-export default function LaporanClient({ warungId, warungNama, warungKode, initialData, initialKasirSesi }: LaporanClientProps) {
+export default function LaporanClient({ warungId, warungNama, warungKode, warungs, role, initialData, initialKasirSesi }: LaporanClientProps) {
   const [data, setData] = useState<LaporanDataLocal | null>(initialData)
   const [loading, setLoading] = useState(!initialData)
   const [kasirSesi, setKasirSesi] = useState<KasirSesiInfo | null>(initialKasirSesi)
@@ -66,11 +70,12 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
   const [closing, setClosing] = useState(false)
   const [opening, setOpening] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const [selectedWarungId] = useState(warungId)
-  const [currentWarungNama] = useState(warungNama)
+  const [selectedWarungId, setSelectedWarungId] = useState(warungId)
+  const [currentWarungNama, setCurrentWarungNama] = useState(warungNama)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [printerWidth, setPrinterWidth] = useState<'58mm' | '80mm'>('80mm')
+  const isOwner = role === 'OWNER'
 
   useEffect(() => {
     const saved = loadPrinterConfig()
@@ -79,6 +84,38 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
       printer.autoReconnect()
     }
   }, [])
+
+  // Refetch data saat owner ganti cabang
+  useEffect(() => {
+    if (!isOwner || selectedWarungId === warungId) return
+    let cancelled = false
+    async function refetch() {
+      setLoading(true)
+      try {
+        const params = new URLSearchParams({ warung_id: selectedWarungId })
+        const [laporanRes, statusRes] = await Promise.all([
+          fetch(`/api/laporan/harian?${params}`),
+          fetch(`/api/kasir/status?${params}`),
+        ])
+        const laporanResult = await laporanRes.json()
+        const statusResult = await statusRes.json()
+        if (cancelled) return
+        if (laporanResult.success) setData(laporanResult.data)
+        if (statusResult.success) {
+          setKasirSesi(statusResult.data.sudahTutup ? {
+            ditutupPada: statusResult.data.ditutupPada,
+            ditutupOleh: 'Kasir',
+            totalTransaksi: statusResult.data.totalTransaksi,
+            totalPendapatan: statusResult.data.totalPendapatan,
+          } : null)
+        }
+      } catch {
+        if (!cancelled) setFeedback({ type: 'error', message: 'Gagal memuat data cabang' })
+      } finally { if (!cancelled) setLoading(false) }
+    }
+    refetch()
+    return () => { cancelled = true }
+  }, [selectedWarungId, warungId, isOwner])
 
   // Polling status kasir tiap 10 detik — realtime
   useEffect(() => {
@@ -250,6 +287,23 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
           <p className="text-secondary text-sm">{todayStr} • {currentWarungNama}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {isOwner && (
+            <select
+              className="form-input"
+              style={{ minWidth: '180px', padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+              value={selectedWarungId}
+              onChange={(e) => {
+                const newId = e.target.value
+                setSelectedWarungId(newId)
+                const found = warungs?.find(w => w.id === newId)
+                if (found) setCurrentWarungNama(found.nama)
+              }}
+            >
+              {warungs?.map(w => (
+                <option key={w.id} value={w.id}>{w.nama}</option>
+              ))}
+            </select>
+          )}
           <button type="button" onClick={handleExportExcel} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={16} /> Export Excel
           </button>
