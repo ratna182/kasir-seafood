@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useEffectEvent } from 'react'
+import { useState, useEffect } from 'react'
 import { FileSpreadsheet, FileText, Printer, Lock, AlertTriangle } from 'lucide-react'
 import PrinterSetup from '@/components/PrinterSetup'
 import PrinterStatusBadge from '@/components/PrinterStatus'
@@ -50,18 +50,15 @@ interface KasirSesiInfo {
   totalPendapatan: number
 }
 
-interface WarungOption { id: string; nama: string; kode: string }
-
 interface LaporanClientProps {
   warungId: string
   warungNama: string
   warungKode: string
-  warungs: WarungOption[]
   initialData: LaporanDataLocal | null
   initialKasirSesi: KasirSesiInfo | null
 }
 
-export default function LaporanClient({ warungId, warungNama, warungKode, warungs, initialData, initialKasirSesi }: LaporanClientProps) {
+export default function LaporanClient({ warungId, warungNama, warungKode, initialData, initialKasirSesi }: LaporanClientProps) {
   const [data, setData] = useState<LaporanDataLocal | null>(initialData)
   const [loading, setLoading] = useState(!initialData)
   const [kasirSesi, setKasirSesi] = useState<KasirSesiInfo | null>(initialKasirSesi)
@@ -69,10 +66,6 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
   const [closing, setClosing] = useState(false)
   const [opening, setOpening] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const [selectedWarungId, setSelectedWarungId] = useState(warungId)
-  const [currentWarungNama, setCurrentWarungNama] = useState(warungNama)
-  const isOwner = true
-  const [showWarungDropdown, setShowWarungDropdown] = useState(false)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [printerWidth, setPrinterWidth] = useState<'58mm' | '80mm'>('80mm')
@@ -85,41 +78,11 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
     }
   }, [])
 
-  const refreshSelectedWarung = useEffectEvent(() => {
-    fetchLaporan()
-    checkKasirStatus()
-  })
-
-  const prevWarungIdRef = useRef(warungId)
-
-  useEffect(() => {
-    // Skip if warung hasn't changed (initial load — data sudah ada dari server)
-    if (prevWarungIdRef.current === selectedWarungId) return
-    prevWarungIdRef.current = selectedWarungId
-    refreshSelectedWarung()
-  }, [selectedWarungId])
-
-  async function checkKasirStatus() {
-    const params = isOwner ? `?warungId=${encodeURIComponent(selectedWarungId)}` : ''
-    const res = await fetch(`/api/kasir/status${params}`)
-    const result = await res.json()
-    if (!result.success) return
-
-    setKasirSesi(result.data.sudahTutup ? {
-      ditutupPada: result.data.ditutupPada,
-      ditutupOleh: 'Kasir',
-      totalTransaksi: result.data.totalTransaksi,
-      totalPendapatan: result.data.totalPendapatan,
-    } : null)
-  }
-
   async function fetchLaporan() {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
-      if (isOwner && selectedWarungId) params.set('warung_id', selectedWarungId)
-      const qs = params.toString()
-      const res = await fetch(`/api/laporan/harian${qs ? '?' + qs : ''}`)
+      const params = new URLSearchParams({ warung_id: warungId })
+      const res = await fetch(`/api/laporan/harian?${params}`)
       const result = await res.json()
       if (result.success) setData(result.data)
       else setFeedback({ type: 'error', message: result.message || 'Gagal memuat laporan' })
@@ -128,17 +91,30 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
     } finally { setLoading(false) }
   }
 
+  async function checkKasirStatus() {
+    const params = new URLSearchParams({ warungId })
+    const res = await fetch(`/api/kasir/status?${params}`)
+    const result = await res.json()
+    if (!result.success) return
+    setKasirSesi(result.data.sudahTutup ? {
+      ditutupPada: result.data.ditutupPada,
+      ditutupOleh: 'Kasir',
+      totalTransaksi: result.data.totalTransaksi,
+      totalPendapatan: result.data.totalPendapatan,
+    } : null)
+  }
+
   async function handleTutupKasir() {
     setClosing(true)
     try {
       const res = await fetch('/api/kasir/tutup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ warungId: selectedWarungId }),
+        body: JSON.stringify({ warungId }),
       })
       const result = await res.json()
       if (result.success) {
-        setKasirSesi({ ditutupPada: result.data.ditutupPada, ditutupOleh: currentWarungNama, totalTransaksi: result.data.totalTransaksi, totalPendapatan: result.data.totalPendapatan })
+        setKasirSesi({ ditutupPada: result.data.ditutupPada, ditutupOleh: warungNama, totalTransaksi: result.data.totalTransaksi, totalPendapatan: result.data.totalPendapatan })
         setShowCloseModal(false)
         setFeedback({ type: 'success', message: 'Kasir hari ini telah berhasil ditutup! Anda dapat mencetak laporan penutupan sekarang.' })
         fetchLaporan()
@@ -159,7 +135,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
       const res = await fetch('/api/kasir/buka', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ warungId: selectedWarungId }),
+        body: JSON.stringify({ warungId }),
       })
       const result = await res.json()
       if (result.success) {
@@ -179,62 +155,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
     if (printWindow) {
       const receiptEl = document.querySelector('.print-receipt')
       const receiptHTML = receiptEl ? receiptEl.outerHTML : ''
-      
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>Cetak Laporan</title>
-          <style>
-            @page { size: auto; margin: 0; }
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            html, body { width: 100%; margin: 0; padding: 0; }
-            body {
-              width: 100%; margin: 0; padding: 0 2mm;
-              font-family: 'Helvetica', 'Arial', sans-serif;
-              font-size: 15px; font-weight: bold;
-              color: black; background: white;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            .print-receipt { width: 100%; padding: 0 2mm; text-align: center; }
-            .print-header { text-align: center; margin-bottom: 3px; }
-            .receipt-logo { display: block; width: 1.7cm; height: 1.7cm; object-fit: contain; margin: 0 auto 3px; }
-            .receipt-socials { text-align: center; }
-            .receipt-socials p { display: block; margin: 0; text-align: center; }
-            .print-header h2 { font-size: 18px; text-transform: uppercase; margin: 0 0 2px; line-height: 1.3; }
-            .print-header p { font-size: 14px; margin: 0; line-height: 1.3; }
-            .print-divider { border: none; border-top: 1px dashed black; margin: 3px 0; }
-            .receipt-meta { text-align: center; margin: 2px 0; line-height: 1.4; }
-            .receipt-meta div { margin: 0; }
-            .receipt-items { text-align: center; }
-            .receipt-item-block { margin: 2px 0; text-align: center; }
-            .receipt-item-row { display: flex; justify-content: space-between; text-align: center; }
-            .receipt-item-detail { font-size: 14px; text-align: center; line-height: 1.4; }
-            .receipt-item-note { font-size: 13px; font-style: italic; text-align: center; }
-            .receipt-summary { margin-top: 3px; }
-            .receipt-row { display: flex; justify-content: space-between; text-align: center; padding: 1px 0; line-height: 1.4; }
-            .receipt-grand { font-size: 17px; }
-            .print-footer { text-align: center; margin-top: 3px; margin-bottom: 0; padding-bottom: 0; font-size: 14px; line-height: 1.4; }
-            .print-footer p { margin: 0; line-height: 1.4; }
-            .print-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 2px; }
-            .print-table { page-break-inside: auto; }
-            .print-table thead { display: table-header-group; }
-            .print-table tr { page-break-inside: avoid; break-inside: avoid; }
-            .print-table th, .print-table td { padding: 1px 0; line-height: 1.4; overflow-wrap: anywhere; }
-            .print-table th { border-bottom: 1px dashed black; font-size: 13px; }
-            .text-right { text-align: right; }
-            .print-total { margin-top: 3px; border-top: 1px dashed black; padding-top: 3px; }
-            .print-total-row { display: flex; justify-content: space-between; font-size: 14px; line-height: 1.4; }
-            .print-total-row.grand { font-size: 17px; font-weight: 800; margin-top: 1px; }
-            @media print { body { width: 100%; } .print-receipt { width: 100%; } }
-          </style>
-        </head>
-        <body>${receiptHTML}</body>
-        </html>
-      `)
+      printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cetak Laporan</title><style>@page{size:auto;margin:0}*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;margin:0;padding:0}body{width:100%;margin:0;padding:0 2mm;font-family:'Helvetica','Arial',sans-serif;font-size:15px;font-weight:bold;color:black;background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact}.print-receipt{width:100%;padding:0 2mm;text-align:center}.print-header{text-align:center;margin-bottom:3px}.receipt-logo{display:block;width:1.7cm;height:1.7cm;object-fit:contain;margin:0 auto 3px}.receipt-socials{text-align:center}.receipt-socials p{display:block;margin:0;text-align:center}.print-header h2{font-size:18px;text-transform:uppercase;margin:0 0 2px;line-height:1.3}.print-header p{font-size:14px;margin:0;line-height:1.3}.print-divider{border:none;border-top:1px dashed black;margin:3px 0}.print-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:2px}.print-table{page-break-inside:auto}.print-table thead{display:table-header-group}.print-table tr{page-break-inside:avoid;break-inside:avoid}.print-table th,.print-table td{padding:1px 0;line-height:1.4;overflow-wrap:anywhere}.print-table th{border-bottom:1px dashed black;font-size:13px}.text-right{text-align:right}.print-total{margin-top:3px;border-top:1px dashed black;padding-top:3px}.print-total-row{display:flex;justify-content:space-between;font-size:14px;line-height:1.4}.print-total-row.grand{font-size:17px;font-weight:800;margin-top:1px}.print-footer{text-align:center;margin-top:3px;margin-bottom:0;padding-bottom:0;font-size:14px;line-height:1.4}.print-footer p{margin:0;line-height:1.4}@media print{body{width:100%}.print-receipt{width:100%}}</style></head><body>${receiptHTML}</body></html>`)
       printWindow.document.close()
       printWindow.focus()
       setTimeout(() => { printWindow.print() }, 300)
@@ -245,13 +166,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
     if (!data) return
     setPrinting(true)
     try {
-      const success = await printer.print(encodeLaporan(
-        data,
-        currentWarungNama,
-        data.warung.alamat ?? null,
-        printerWidth,
-        kasirSesi,
-      ))
+      const success = await printer.print(encodeLaporan(data, warungNama, data.warung.alamat ?? null, printerWidth, kasirSesi))
       if (success) {
         setFeedback({ type: 'success', message: 'Laporan berhasil dicetak.' })
       } else {
@@ -260,17 +175,13 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
       }
     } catch {
       setFeedback({ type: 'error', message: 'Gagal mencetak laporan.' })
-    } finally {
-      setPrinting(false)
-    }
+    } finally { setPrinting(false) }
   }
 
   async function handleExportExcel() {
     try {
-      const params = new URLSearchParams()
-      if (isOwner && selectedWarungId) params.set('warung_id', selectedWarungId)
-      const qs = params.toString()
-      const res = await fetch(`/api/laporan/export${qs ? '?' + qs : ''}`)
+      const params = new URLSearchParams({ warung_id: warungId })
+      const res = await fetch(`/api/laporan/export?${params}`)
       if (!res.ok) throw new Error('Gagal export')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
@@ -287,10 +198,8 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
 
   async function handleExportPDF() {
     try {
-      const params = new URLSearchParams()
-      if (selectedWarungId) params.set('warung_id', selectedWarungId)
-      const qs = params.toString()
-      const res = await fetch(`/api/laporan/export/pdf${qs ? '?' + qs : ''}`)
+      const params = new URLSearchParams({ warung_id: warungId })
+      const res = await fetch(`/api/laporan/export/pdf?${params}`)
       if (!res.ok) throw new Error('Gagal export')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
@@ -310,44 +219,20 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
 
   return (
     <div>
+      {/* Header */}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Laporan Penjualan Harian</h1>
-          <p className="text-secondary text-sm">
-            {todayStr}
-            {isOwner ? (selectedWarungId && data?.warung ? ` • ${data.warung.nama}` : '') : ` • Cabang: ${warungKode}`}
-          </p>
+          <p className="text-secondary text-sm">{todayStr} • {warungNama}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          {isOwner && !showWarungDropdown && (
-            <button type="button" onClick={() => setShowWarungDropdown(true)} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              Ganti Cabang
-            </button>
-          )}
-          {isOwner && showWarungDropdown && (
-            <select
-              className="form-input"
-              style={{ minWidth: '200px', padding: '0.5rem' }}
-              value={selectedWarungId}
-              onChange={(e) => {
-                const newId = e.target.value
-                setSelectedWarungId(newId)
-                const found = warungs?.find(w => w.id === newId)
-                if (found) setCurrentWarungNama(found.nama)
-              }}
-            >
-              {warungs?.map(w => (
-                <option key={w.id} value={w.id}>{w.nama}</option>
-              ))}
-            </select>
-          )}
-          <button type="button" id="btn-export-excel" onClick={handleExportExcel} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button type="button" onClick={handleExportExcel} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={16} /> Export Excel
           </button>
-          <button type="button" id="btn-export-pdf" onClick={handleExportPDF} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button type="button" onClick={handleExportPDF} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={16} /> Export PDF
           </button>
-          <button type="button" id="btn-cetak-laporan" onClick={handlePrintThermal} disabled={loading || !data || data.rekap.length === 0 || printing} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button type="button" onClick={handlePrintThermal} disabled={loading || !data || data.rekap.length === 0 || printing} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <Printer size={16} /> {printing ? 'Mencetak...' : 'Cetak Laporan'}
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -359,23 +244,25 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
           </div>
           <PrinterStatusBadge onSetupClick={() => setShowPrinterSetup(true)} />
           {!kasirSesi ? (
-            <button type="button" id="btn-tutup-kasir" onClick={() => setShowCloseModal(true)} disabled={loading} className="btn btn-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button type="button" onClick={() => setShowCloseModal(true)} disabled={loading} className="btn btn-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
               <Lock size={16} /> Tutup Kasir Hari Ini
             </button>
           ) : (
-            <button type="button" id="btn-buka-kasir" onClick={handleBukaKasir} disabled={opening} className="btn btn-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button type="button" onClick={handleBukaKasir} disabled={opening} className="btn btn-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
               <Lock size={16} /> {opening ? 'Membuka...' : 'Buka Kasir Lagi'}
             </button>
           )}
         </div>
       </div>
 
+      {/* Feedback */}
       {feedback && (
         <div className={`alert no-print ${feedback.type === 'success' ? 'alert-success' : 'alert-error'}`} style={{ marginBottom: '1.25rem' }}>
           <div>{feedback.message}</div>
         </div>
       )}
 
+      {/* Status Kasir */}
       {kasirSesi ? (
         <div className="alert alert-warning no-print" style={{ marginBottom: '1.5rem' }}>
           <div>
@@ -396,6 +283,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
         </div>
       )}
 
+      {/* Summary Cards */}
       <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
         <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-brand)', fontFamily: "var(--font-fraunces), serif" }}>
@@ -417,6 +305,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
         </div>
       </div>
 
+      {/* Payment Method Cards */}
       <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="card" style={{ textAlign: 'center', padding: '1rem', borderLeft: '3px solid var(--color-success)' }}>
           <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif" }}>
@@ -438,6 +327,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
         </div>
       </div>
 
+      {/* Table */}
       <div className="no-print">
         {loading ? (
           <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
@@ -522,7 +412,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setShowCloseModal(false)} disabled={closing} className="btn btn-ghost">Batal</button>
-              <button type="button" id="btn-confirm-tutup-kasir" onClick={handleTutupKasir} disabled={closing} className="btn btn-danger" style={{ minWidth: '130px', justifyContent: 'center' }}>
+              <button type="button" onClick={handleTutupKasir} disabled={closing} className="btn btn-danger" style={{ minWidth: '130px', justifyContent: 'center' }}>
                 {closing ? 'Memproses...' : 'Ya, Tutup Kasir'}
               </button>
             </div>
@@ -530,6 +420,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
         </div>
       )}
 
+      {/* Print Receipt */}
       {data && (
         <div className="print-only print-receipt">
           <div className="print-header">
@@ -547,7 +438,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
           <div className="print-divider" />
           <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
             <div>Tanggal: {data.tanggal}</div>
-            <div>Dicetak: {new Date().toLocaleTimeString('id-ID')} | Kasir: {currentWarungNama}</div>
+            <div>Dicetak: {new Date().toLocaleTimeString('id-ID')} | Cabang: {warungKode}</div>
             {kasirSesi && (
               <>
                 <div>Status: SUDAH DITUTUP</div>

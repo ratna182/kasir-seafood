@@ -7,16 +7,14 @@ export const metadata = {
   description: 'Rekapitulasi penjualan harian dan penutupan shift kasir.',
 }
 
-interface WarungOption { id: string; nama: string; kode: string }
-
 export default async function LaporanPage() {
-  // Ambil semua warung + warung pertama sebagai default
-  const [warungs, defaultWarung] = await Promise.all([
-    prisma.warung.findMany({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } }),
-    prisma.warung.findFirst({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } }),
-  ])
+  // Tanpa login — langsung query warung pertama dari DB
+  const warung = await prisma.warung.findFirst({
+    orderBy: { nama: 'asc' },
+    select: { id: true, nama: true, kode: true },
+  })
 
-  if (!defaultWarung) {
+  if (!warung) {
     return (
       <div className="app-container">
         <div className="content-area" style={{ padding: '3rem', textAlign: 'center' }}>
@@ -30,13 +28,13 @@ export default async function LaporanPage() {
   today.setHours(0, 0, 0, 0)
 
   // Ambil status kasir hari ini
-  const state = await getKasirSessionState(prisma, defaultWarung.id)
+  const state = await getKasirSessionState(prisma, warung.id)
   let sessionStart = state.sessionStart
 
   if (state.isClosed && state.latest) {
     const previousSession = await prisma.kasirSesi.findFirst({
       where: {
-        warungId: defaultWarung.id,
+        warungId: warung.id,
         tanggal: state.today,
         ditutupPada: { lt: state.latest.ditutupPada },
       },
@@ -48,7 +46,7 @@ export default async function LaporanPage() {
   // Ambil data laporan
   const transaksis = await prisma.transaksi.findMany({
     where: {
-      warungId: defaultWarung.id,
+      warungId: warung.id,
       createdAt: { gte: sessionStart, lt: state.tomorrow },
       status: 'SELESAI',
     },
@@ -57,7 +55,7 @@ export default async function LaporanPage() {
 
   const aktivitasKasir = await prisma.activityLog.findMany({
     where: {
-      warungId: defaultWarung.id,
+      warungId: warung.id,
       createdAt: { gte: state.today, lt: state.tomorrow },
       aktivitas: { in: ['LOGIN', 'BUKA_KASIR', 'TUTUP_KASIR'] },
     },
@@ -67,7 +65,7 @@ export default async function LaporanPage() {
 
   const uniqueMenuIds = [...new Set(transaksis.flatMap(t => t.items.map(i => i.menuId)))]
   const menuCategories = await prisma.menu.findMany({
-    where: { id: { in: uniqueMenuIds }, warungId: defaultWarung.id },
+    where: { id: { in: uniqueMenuIds }, warungId: warung.id },
     select: { id: true, category: { select: { nama: true } } },
   })
   const kategoriMap = new Map(menuCategories.map(m => [m.id, m.category?.nama || 'Lainnya']))
@@ -108,7 +106,7 @@ export default async function LaporanPage() {
 
   const laporanData = {
     tanggal: state.today.toISOString().split('T')[0],
-    warung: { id: defaultWarung.id, nama: defaultWarung.nama, kode: defaultWarung.kode, alamat: null },
+    warung: { id: warung.id, nama: warung.nama, kode: warung.kode, alamat: null },
     rekap,
     transaksi: transaksis.map(t => ({
       nomorMeja: t.nomorMeja,
@@ -143,10 +141,9 @@ export default async function LaporanPage() {
     <div className="app-container">
       <div className="content-area">
         <LaporanClient
-          warungId={defaultWarung.id}
-          warungNama={defaultWarung.nama}
-          warungKode={defaultWarung.kode}
-          warungs={warungs}
+          warungId={warung.id}
+          warungNama={warung.nama}
+          warungKode={warung.kode}
           initialData={laporanData}
           initialKasirSesi={kasirSesi}
         />
