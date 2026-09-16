@@ -86,9 +86,11 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
   })
 
   useEffect(() => {
+    // Skip initial fetch — data sudah ada dari server-side render
+    if (initialData) return
     if (isOwner && !selectedWarungId) return
     refreshSelectedWarung()
-  }, [isOwner, selectedWarungId])
+  }, [isOwner, selectedWarungId, initialData])
 
   async function checkKasirStatus() {
     const params = isOwner ? `?warungId=${encodeURIComponent(selectedWarungId)}` : ''

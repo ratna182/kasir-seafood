@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
+import { getAuthContext, requireKasirAccess } from '@/lib/auth'
 import { getKasirSessionState } from '@/lib/kasir-session'
 import { recordActivity } from '@/lib/activity-log'
 

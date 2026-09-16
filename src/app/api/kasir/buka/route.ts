@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getAuthContext, getKasirWarungId, requireKasirAccess } from '@/lib/auth'
+import { getAuthContext, requireKasirAccess } from '@/lib/auth'
 import { getKasirSessionState } from '@/lib/kasir-session'
 import { recordActivity } from '@/lib/activity-log'
 
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       const authError = await requireKasirAccess(context)
       if (authError) return authError
       if (context.user.role === 'KASIR') {
-        warungId = await getKasirWarungId(context)
+        warungId = context.warungId ?? warungId
       }
     }
 
