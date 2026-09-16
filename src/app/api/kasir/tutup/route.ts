@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       if (authError) return authError
     }
 
-    // Ambil userId untuk pencatatan activity
+    // Ambil userId untuk pencatatan activity — fallback ke user mana pun di warung ini
     const userId = context?.user.id ?? (
-      await prisma.user.findFirst({ where: { role: 'KASIR', warungId }, select: { id: true } })
+      await prisma.user.findFirst({ where: { warungId }, select: { id: true } })
     )?.id
 
     const closedAt = new Date()
