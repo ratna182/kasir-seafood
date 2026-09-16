@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, requireRole } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
@@ -99,6 +100,12 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: 'User berhasil dihapus.' })
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      return NextResponse.json({
+        success: false,
+        message: 'Tidak dapat menghapus user yang memiliki riwayat aktivitas. Nonaktifkan saja.',
+      }, { status: 409 })
+    }
     console.error('[DELETE /api/users/:id]', error)
     return NextResponse.json({ success: false, message: 'Gagal menghapus user.' }, { status: 500 })
   }
