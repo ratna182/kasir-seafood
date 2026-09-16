@@ -24,9 +24,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
     }
 
-    // Ambil userId untuk pencatatan activity — fallback ke user mana pun di warung ini
+    // Ambil userId untuk pencatatan activity — fallback ke user mana pun
     const userId = context?.user.id ?? (
       await prisma.user.findFirst({ where: { warungId }, select: { id: true } })
+    )?.id ?? (
+      await prisma.user.findFirst({ select: { id: true } })
     )?.id
 
     const openedAt = new Date()
