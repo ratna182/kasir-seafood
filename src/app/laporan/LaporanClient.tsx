@@ -72,6 +72,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
   const [selectedWarungId, setSelectedWarungId] = useState(warungId)
   const [currentWarungNama, setCurrentWarungNama] = useState(warungNama)
   const isOwner = true
+  const [showWarungDropdown, setShowWarungDropdown] = useState(false)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [printerWidth, setPrinterWidth] = useState<'58mm' | '80mm'>('80mm')
@@ -318,7 +319,12 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          {isOwner && (
+          {isOwner && !showWarungDropdown && (
+            <button type="button" onClick={() => setShowWarungDropdown(true)} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              Ganti Cabang
+            </button>
+          )}
+          {isOwner && showWarungDropdown && (
             <select
               className="form-input"
               style={{ minWidth: '200px', padding: '0.5rem' }}
