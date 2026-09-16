@@ -117,21 +117,28 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
     return () => { cancelled = true }
   }, [selectedWarungId, warungId, isOwner])
 
-  // Polling status kasir tiap 10 detik — realtime
+  // Polling status kasir + aktivitas tiap 10 detik — realtime
   useEffect(() => {
     let cancelled = false
     const poll = async () => {
       try {
-        const params = new URLSearchParams({ warungId: selectedWarungId })
-        const res = await fetch(`/api/kasir/status?${params}`)
-        const result = await res.json()
-        if (cancelled || !result.success) return
-        setKasirSesi(result.data.sudahTutup ? {
-          ditutupPada: result.data.ditutupPada,
-          ditutupOleh: 'Kasir',
-          totalTransaksi: result.data.totalTransaksi,
-          totalPendapatan: result.data.totalPendapatan,
-        } : null)
+        const params = new URLSearchParams({ warung_id: selectedWarungId })
+        const [statusRes, laporanRes] = await Promise.all([
+          fetch(`/api/kasir/status?${new URLSearchParams({ warungId: selectedWarungId })}`),
+          fetch(`/api/laporan/harian?${params}`),
+        ])
+        if (cancelled) return
+        const statusResult = await statusRes.json()
+        const laporanResult = await laporanRes.json()
+        if (statusResult.success) {
+          setKasirSesi(statusResult.data.sudahTutup ? {
+            ditutupPada: statusResult.data.ditutupPada,
+            ditutupOleh: 'Kasir',
+            totalTransaksi: statusResult.data.totalTransaksi,
+            totalPendapatan: statusResult.data.totalPendapatan,
+          } : null)
+        }
+        if (laporanResult.success) setData(laporanResult.data)
       } catch { /* silent */ }
     }
     poll()
@@ -547,11 +554,11 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
             <tbody>
               <tr>
                 <td style={{ fontWeight: 'bold' }}>Buka Kasir</td>
-                <td className="text-right">{(() => { const a = data.aktivitasKasir.findLast(x => x.aktivitas === 'BUKA_KASIR'); return a ? new Date(a.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-' })()}</td>
+                <td className="text-right">{(() => { const a = data.aktivitasKasir.filter(x => x.aktivitas === 'BUKA_KASIR').pop(); return a ? new Date(a.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-' })()}</td>
               </tr>
               <tr>
                 <td style={{ fontWeight: 'bold' }}>Tutup Kasir</td>
-                <td className="text-right">{(() => { const a = data.aktivitasKasir.findLast(x => x.aktivitas === 'TUTUP_KASIR'); return a ? new Date(a.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-' })()}</td>
+                <td className="text-right">{(() => { const a = data.aktivitasKasir.filter(x => x.aktivitas === 'TUTUP_KASIR').pop(); return a ? new Date(a.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-' })()}</td>
               </tr>
             </tbody>
           </table>
