@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useEffectEvent } from 'react'
+import { useState, useEffect, useRef, useEffectEvent } from 'react'
 import { FileSpreadsheet, FileText, Printer, Lock, AlertTriangle } from 'lucide-react'
 import PrinterSetup from '@/components/PrinterSetup'
 import PrinterStatusBadge from '@/components/PrinterStatus'
@@ -50,15 +50,18 @@ interface KasirSesiInfo {
   totalPendapatan: number
 }
 
+interface WarungOption { id: string; nama: string; kode: string }
+
 interface LaporanClientProps {
   warungId: string
   warungNama: string
   warungKode: string
+  warungs: WarungOption[]
   initialData: LaporanDataLocal | null
   initialKasirSesi: KasirSesiInfo | null
 }
 
-export default function LaporanClient({ warungId, warungNama, warungKode, initialData, initialKasirSesi }: LaporanClientProps) {
+export default function LaporanClient({ warungId, warungNama, warungKode, warungs, initialData, initialKasirSesi }: LaporanClientProps) {
   const [data, setData] = useState<LaporanDataLocal | null>(initialData)
   const [loading, setLoading] = useState(!initialData)
   const [kasirSesi, setKasirSesi] = useState<KasirSesiInfo | null>(initialKasirSesi)
@@ -67,6 +70,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
   const [opening, setOpening] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [selectedWarungId, setSelectedWarungId] = useState(warungId)
+  const [currentWarungNama, setCurrentWarungNama] = useState(warungNama)
   const isOwner = true
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
@@ -85,12 +89,14 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
     checkKasirStatus()
   })
 
+  const prevWarungIdRef = useRef(warungId)
+
   useEffect(() => {
-    // Skip initial fetch — data sudah ada dari server-side render
-    if (initialData) return
-    if (isOwner && !selectedWarungId) return
+    // Skip if warung hasn't changed (initial load — data sudah ada dari server)
+    if (prevWarungIdRef.current === selectedWarungId) return
+    prevWarungIdRef.current = selectedWarungId
     refreshSelectedWarung()
-  }, [isOwner, selectedWarungId, initialData])
+  }, [selectedWarungId])
 
   async function checkKasirStatus() {
     const params = isOwner ? `?warungId=${encodeURIComponent(selectedWarungId)}` : ''
@@ -131,7 +137,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
       })
       const result = await res.json()
       if (result.success) {
-        setKasirSesi({ ditutupPada: result.data.ditutupPada, ditutupOleh: warungNama, totalTransaksi: result.data.totalTransaksi, totalPendapatan: result.data.totalPendapatan })
+        setKasirSesi({ ditutupPada: result.data.ditutupPada, ditutupOleh: currentWarungNama, totalTransaksi: result.data.totalTransaksi, totalPendapatan: result.data.totalPendapatan })
         setShowCloseModal(false)
         setFeedback({ type: 'success', message: 'Kasir hari ini telah berhasil ditutup! Anda dapat mencetak laporan penutupan sekarang.' })
         fetchLaporan()
@@ -240,7 +246,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
     try {
       const success = await printer.print(encodeLaporan(
         data,
-        warungNama,
+        currentWarungNama,
         data.warung.alamat ?? null,
         printerWidth,
         kasirSesi,
@@ -313,9 +319,21 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {isOwner && (
-            <span className="form-input" style={{ minWidth: '200px', padding: '0.5rem' }}>
-              {data?.warung?.nama || warungNama}
-            </span>
+            <select
+              className="form-input"
+              style={{ minWidth: '200px', padding: '0.5rem' }}
+              value={selectedWarungId}
+              onChange={(e) => {
+                const newId = e.target.value
+                setSelectedWarungId(newId)
+                const found = warungs?.find(w => w.id === newId)
+                if (found) setCurrentWarungNama(found.nama)
+              }}
+            >
+              {warungs?.map(w => (
+                <option key={w.id} value={w.id}>{w.nama}</option>
+              ))}
+            </select>
           )}
           <button type="button" id="btn-export-excel" onClick={handleExportExcel} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={16} /> Export Excel
@@ -523,7 +541,7 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
           <div className="print-divider" />
           <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
             <div>Tanggal: {data.tanggal}</div>
-            <div>Dicetak: {new Date().toLocaleTimeString('id-ID')} | Kasir: {warungNama}</div>
+            <div>Dicetak: {new Date().toLocaleTimeString('id-ID')} | Kasir: {currentWarungNama}</div>
             {kasirSesi && (
               <>
                 <div>Status: SUDAH DITUTUP</div>

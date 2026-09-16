@@ -32,21 +32,47 @@ export async function POST(request: NextRequest) {
     const openedAt = new Date()
     const result = await prisma.$transaction(async (tx) => {
       const state = await getKasirSessionState(tx, warungId, openedAt)
-      if (!state.latest || !state.isClosed) return false
 
-      const updated = await tx.kasirSesi.updateMany({
-        where: { id: state.latest.id, dibukaKembaliPada: null },
-        data: { dibukaKembaliPada: openedAt },
+      // Kasus 1: Sudah ada sesi yang ditutup → buka kembali
+      if (state.latest && state.isClosed) {
+        const updated = await tx.kasirSesi.updateMany({
+          where: { id: state.latest.id, dibukaKembaliPada: null },
+          data: { dibukaKembaliPada: openedAt },
+        })
+        if (updated.count === 1 && userId) {
+          await recordActivity(tx, {
+            userId,
+            warungId,
+            aktivitas: 'BUKA_KASIR',
+            detail: 'Sesi kasir dibuka kembali',
+          })
+        }
+        return updated.count === 1
+      }
+
+      // Kasus 2: Sudah ada sesi yang terbuka → tidak bisa buka lagi
+      if (state.latest && !state.isClosed) return false
+
+      // Kasus 3: Belum ada sesi hari ini → buat sesi baru
+      await tx.kasirSesi.create({
+        data: {
+          warungId,
+          tanggal: state.today,
+          dibukaKembaliPada: openedAt,
+          ditutupOleh: userId!,
+          totalTransaksi: 0,
+          totalPendapatan: 0,
+        },
       })
-      if (updated.count === 1 && userId) {
+      if (userId) {
         await recordActivity(tx, {
           userId,
           warungId,
           aktivitas: 'BUKA_KASIR',
-          detail: 'Sesi kasir dibuka kembali',
+          detail: 'Sesi kasir baru dibuka',
         })
       }
-      return updated.count === 1
+      return true
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
     if (!result) {
