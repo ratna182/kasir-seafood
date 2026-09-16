@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { getKasirSessionState } from '@/lib/kasir-session'
-import Navbar from '@/components/Navbar'
 import LaporanClient from './LaporanClient'
 
 export const metadata = {
@@ -142,16 +141,6 @@ export default async function LaporanPage() {
 
   return (
     <div className="app-container">
-      <Navbar
-        session={{
-          warungNama: defaultWarung.nama,
-          warungKode: defaultWarung.kode,
-          namaLengkap: defaultWarung.nama,
-          username: defaultWarung.kode,
-          role: 'OWNER',
-        }}
-        activePage="laporan"
-      />
       <div className="content-area">
         <LaporanClient
           warungId={defaultWarung.id}
