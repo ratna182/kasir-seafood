@@ -61,6 +61,16 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    const aktivitasKasir = await prisma.activityLog.findMany({
+      where: {
+        warungId,
+        createdAt: { gte: state.today, lt: state.tomorrow },
+        aktivitas: { in: ['BUKA_KASIR', 'TUTUP_KASIR'] },
+      },
+      include: { user: { select: { namaLengkap: true, username: true } } },
+      orderBy: { createdAt: 'asc' },
+    })
+
     // Ambil info warung
     const warung = await prisma.warung.findUnique({
       where: { id: warungId },
@@ -142,6 +152,12 @@ export async function GET(request: NextRequest) {
         totalCash,
         totalQRIS,
         totalTransfer,
+        aktivitasKasir: aktivitasKasir.map((aktivitas) => ({
+          waktu: aktivitas.createdAt.toISOString(),
+          kasir: aktivitas.user.namaLengkap || aktivitas.user.username,
+          aktivitas: aktivitas.aktivitas,
+          detail: aktivitas.detail,
+        })),
       },
     })
   } catch (error) {

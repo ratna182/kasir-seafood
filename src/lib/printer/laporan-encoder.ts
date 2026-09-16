@@ -26,6 +26,13 @@ export interface LaporanTransaksi {
   createdAt: string
 }
 
+export interface LaporanAktivitasKasir {
+  waktu: string
+  kasir: string
+  aktivitas: string
+  detail: string | null
+}
+
 export interface LaporanData {
   tanggal: string
   warung: { id: string; nama: string; kode: string; alamat?: string | null }
@@ -37,6 +44,7 @@ export interface LaporanData {
   totalCash: number
   totalQRIS: number
   totalTransfer: number
+  aktivitasKasir: LaporanAktivitasKasir[]
 }
 
 function centerText(text: string, width: number): string {
@@ -92,6 +100,20 @@ export function encodeLaporan(
   if (kasirSesi) {
     parts.push(encodeLine('Status  : SUDAH DITUTUP', true))
     parts.push(encodeLine(`Pkl     : ${new Date(kasirSesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`, true))
+  }
+
+  parts.push(encodeLine(drawLine(w), true))
+  parts.push(encodeLine(centerText('AKTIVITAS KASIR', w), true, 'center'))
+  parts.push(encodeLine(drawLine(w), true))
+  if (data.aktivitasKasir.length === 0) {
+    parts.push(encodeLine('Tidak ada aktivitas', true))
+  } else {
+    for (const aktivitas of data.aktivitasKasir) {
+      const jenis = aktivitas.aktivitas === 'BUKA_KASIR' ? 'BUKA KASIR' : 'TUTUP KASIR'
+      parts.push(encodeLine(`${new Date(aktivitas.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} ${jenis}`, true))
+      parts.push(encodeLine(`Kasir: ${aktivitas.kasir}`, true))
+      if (aktivitas.detail) parts.push(encodeLine(aktivitas.detail, true))
+    }
   }
 
   parts.push(encodeLine(drawLine(w), true))

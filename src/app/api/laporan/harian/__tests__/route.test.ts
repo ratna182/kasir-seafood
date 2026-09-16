@@ -5,6 +5,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     kasirSesi: { findFirst: vi.fn() },
     transaksi: { findMany: vi.fn() },
+    activityLog: { findMany: vi.fn() },
     warung: { findUnique: vi.fn() },
     menu: { findMany: vi.fn() },
   },
@@ -33,6 +34,7 @@ describe('Current cashier session report', () => {
       createdAt: new Date(),
     })
     vi.mocked(prisma.menu.findMany).mockResolvedValue([])
+    vi.mocked(prisma.activityLog.findMany).mockResolvedValue([])
   })
 
   it('starts every total at zero after cashier reopens', async () => {
@@ -65,5 +67,38 @@ describe('Current cashier session report', () => {
     expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ createdAt: expect.objectContaining({ gte: reopenedAt }) }),
     }))
+  })
+
+  it('includes all cashier open and close activities', async () => {
+    vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.transaksi.findMany).mockResolvedValue([])
+    vi.mocked(prisma.activityLog.findMany).mockResolvedValue([
+      {
+        id: 'log-1',
+        userId: 'kasir1',
+        warungId: 'warung1',
+        aktivitas: 'TUTUP_KASIR',
+        detail: 'Kasir ditutup',
+        createdAt: new Date('2026-09-14T10:00:00.000Z'),
+        user: { namaLengkap: 'Kasir Satu', username: 'kasir1' },
+      },
+      {
+        id: 'log-2',
+        userId: 'kasir2',
+        warungId: 'warung1',
+        aktivitas: 'BUKA_KASIR',
+        detail: 'Sesi kasir dibuka kembali',
+        createdAt: new Date('2026-09-14T11:00:00.000Z'),
+        user: { namaLengkap: null, username: 'kasir2' },
+      },
+    ] as never)
+
+    const response = await GET(new NextRequest('http://localhost/api/laporan/harian'))
+    const result = await response.json()
+
+    expect(result.data.aktivitasKasir).toEqual([
+      expect.objectContaining({ aktivitas: 'TUTUP_KASIR', kasir: 'Kasir Satu' }),
+      expect.objectContaining({ aktivitas: 'BUKA_KASIR', kasir: 'kasir2' }),
+    ])
   })
 })

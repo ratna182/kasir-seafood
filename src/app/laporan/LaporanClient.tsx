@@ -22,6 +22,13 @@ interface TransaksiItem {
   createdAt: string
 }
 
+interface AktivitasKasirItem {
+  waktu: string
+  kasir: string
+  aktivitas: string
+  detail: string | null
+}
+
 interface LaporanDataLocal {
   tanggal: string
   warung: { id: string; nama: string; kode: string; alamat?: string | null }
@@ -33,6 +40,7 @@ interface LaporanDataLocal {
   totalCash: number
   totalQRIS: number
   totalTransfer: number
+  aktivitasKasir: AktivitasKasirItem[]
 }
 
 interface KasirSesiInfo {
@@ -549,6 +557,25 @@ export default function LaporanClient({ session, warungs, initialKasirSesi }: La
               ))}
             </tbody>
           </table>
+          <div className="print-divider" />
+          <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>AKTIVITAS KASIR</div>
+          <div className="print-divider" />
+          {data.aktivitasKasir.length === 0 ? (
+            <div style={{ fontSize: '13px', fontWeight: 'bold' }}>Tidak ada aktivitas buka/tutup kasir</div>
+          ) : (
+            <table className="print-table">
+              <thead><tr><th>WAKTU</th><th>AKTIVITAS</th><th>KASIR</th></tr></thead>
+              <tbody>
+                {data.aktivitasKasir.map((aktivitas, idx) => (
+                  <tr key={idx}>
+                    <td>{new Date(aktivitas.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>{aktivitas.aktivitas === 'BUKA_KASIR' ? 'BUKA KASIR' : 'TUTUP KASIR'}</td>
+                    <td>{aktivitas.kasir}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
           <div className="print-divider" />
           <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', marginBottom: '2px' }}>REKAP MENU</div>
           <div className="print-divider" />
