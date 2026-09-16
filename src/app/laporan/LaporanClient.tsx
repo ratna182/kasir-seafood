@@ -80,6 +80,28 @@ export default function LaporanClient({ warungId, warungNama, warungKode, initia
     }
   }, [])
 
+  // Polling status kasir tiap 10 detik — realtime
+  useEffect(() => {
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const params = new URLSearchParams({ warungId: selectedWarungId })
+        const res = await fetch(`/api/kasir/status?${params}`)
+        const result = await res.json()
+        if (cancelled || !result.success) return
+        setKasirSesi(result.data.sudahTutup ? {
+          ditutupPada: result.data.ditutupPada,
+          ditutupOleh: 'Kasir',
+          totalTransaksi: result.data.totalTransaksi,
+          totalPendapatan: result.data.totalPendapatan,
+        } : null)
+      } catch { /* silent */ }
+    }
+    poll()
+    const interval = setInterval(poll, 10_000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [selectedWarungId])
+
   async function fetchLaporan() {
     setLoading(true)
     try {
