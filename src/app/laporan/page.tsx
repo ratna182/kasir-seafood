@@ -1,7 +1,5 @@
-import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
-import Navbar from '@/components/Navbar'
+import { getKasirSessionState } from '@/lib/kasir-session'
 import LaporanClient from './LaporanClient'
 
 export const metadata = {
@@ -10,60 +8,144 @@ export const metadata = {
 }
 
 export default async function LaporanPage() {
-  const session = await getSession()
-  if (!session) redirect('/login')
+  // Tanpa login — langsung query warung dari DB
+  const warung = await prisma.warung.findFirst({
+    orderBy: { nama: 'asc' },
+    select: { id: true, nama: true, kode: true },
+  })
 
-  const isOwner = session.role === 'OWNER'
+  if (!warung) {
+    return (
+      <div className="app-container">
+        <div className="content-area" style={{ padding: '3rem', textAlign: 'center' }}>
+          <p>Warung tidak ditemukan.</p>
+        </div>
+      </div>
+    )
+  }
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const [kasirSesiRaw, warungs] = await Promise.all([
-    session.warungId
-      ? prisma.$queryRawUnsafe<
-      Array<{
-        ditutup_pada: Date
-        total_transaksi: number
-        total_pendapatan: number
-        nama_lengkap: string | null
-        username: string
-      }>
-    >(
-      `SELECT ks.ditutup_pada, ks.total_transaksi, ks.total_pendapatan,
-              u.nama_lengkap, u.username
-       FROM kasir_sesis ks
-       JOIN users u ON u.id = ks.ditutup_oleh
-       WHERE ks.warung_id = $1 AND ks.tanggal = $2
-         AND ks.dibuka_kembali_pada IS NULL
-       ORDER BY ks.ditutup_pada DESC
-       LIMIT 1`,
-          session.warungId,
-          today
-        )
-      : Promise.resolve([]),
-    isOwner
-      ? prisma.warung.findMany({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } })
-      : Promise.resolve([]),
-  ])
-  const kasirSesi = kasirSesiRaw[0] ?? null
+  // Ambil status kasir hari ini
+  const state = await getKasirSessionState(prisma, warung.id)
+  let sessionStart = state.sessionStart
+
+  if (state.isClosed && state.latest) {
+    const previousSession = await prisma.kasirSesi.findFirst({
+      where: {
+        warungId: warung.id,
+        tanggal: state.today,
+        ditutupPada: { lt: state.latest.ditutupPada },
+      },
+      orderBy: { ditutupPada: 'desc' },
+    })
+    sessionStart = previousSession?.dibukaKembaliPada ?? state.today
+  }
+
+  // Ambil data laporan
+  const transaksis = await prisma.transaksi.findMany({
+    where: {
+      warungId: warung.id,
+      createdAt: { gte: sessionStart, lt: state.tomorrow },
+      status: 'SELESAI',
+    },
+    include: { items: true },
+  })
+
+  const aktivitasKasir = await prisma.activityLog.findMany({
+    where: {
+      warungId: warung.id,
+      createdAt: { gte: state.today, lt: state.tomorrow },
+      aktivitas: { in: ['LOGIN', 'BUKA_KASIR', 'TUTUP_KASIR'] },
+    },
+    include: { user: { select: { namaLengkap: true, username: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  const uniqueMenuIds = [...new Set(transaksis.flatMap(t => t.items.map(i => i.menuId)))]
+  const menuCategories = await prisma.menu.findMany({
+    where: { id: { in: uniqueMenuIds }, warungId: warung.id },
+    select: { id: true, category: { select: { nama: true } } },
+  })
+  const kategoriMap = new Map(menuCategories.map(m => [m.id, m.category?.nama || 'Lainnya']))
+
+  const rekapMap = new Map<string, { namaMenu: string; kategori: string; qtyTotal: number; pendapatanTotal: number }>()
+  let grandTotalQty = 0
+  let grandTotalPendapatan = 0
+  let totalCash = 0
+  let totalQRIS = 0
+  let totalTransfer = 0
+
+  for (const transaksi of transaksis) {
+    grandTotalPendapatan += transaksi.total
+    if (transaksi.metodePembayaran === 'QRIS') totalQRIS += transaksi.total
+    else if (transaksi.metodePembayaran === 'TRANSFER') totalTransfer += transaksi.total
+    else totalCash += transaksi.total
+    for (const item of transaksi.items) {
+      grandTotalQty += item.qty
+      const existing = rekapMap.get(item.namaMenu)
+      if (existing) {
+        existing.qtyTotal += item.qty
+        existing.pendapatanTotal += item.subtotal
+      } else {
+        rekapMap.set(item.namaMenu, {
+          namaMenu: item.namaMenu,
+          kategori: kategoriMap.get(item.menuId) || 'MAKANAN',
+          qtyTotal: item.qty,
+          pendapatanTotal: item.subtotal,
+        })
+      }
+    }
+  }
+
+  const rekap = Array.from(rekapMap.values()).sort((a, b) => {
+    if (a.kategori !== b.kategori) return a.kategori === 'MAKANAN' ? -1 : 1
+    return a.namaMenu.localeCompare(b.namaMenu)
+  })
+
+  const laporanData = {
+    tanggal: state.today.toISOString().split('T')[0],
+    warung: { id: warung.id, nama: warung.nama, kode: warung.kode, alamat: null },
+    rekap,
+    transaksi: transaksis.map(t => ({
+      nomorMeja: t.nomorMeja,
+      total: t.total,
+      metodePembayaran: t.metodePembayaran || 'CASH',
+      createdAt: t.createdAt.toISOString(),
+    })),
+    grandTotalQty,
+    grandTotalPendapatan,
+    jumlahTransaksi: transaksis.length,
+    totalCash,
+    totalQRIS,
+    totalTransfer,
+    aktivitasKasir: aktivitasKasir.map((a) => ({
+      waktu: a.createdAt.toISOString(),
+      kasir: a.user.namaLengkap || a.user.username,
+      aktivitas: a.aktivitas,
+      detail: a.detail,
+    })),
+  }
+
+  const kasirSesi = state.isClosed && state.latest
+    ? {
+        ditutupPada: state.latest.ditutupPada.toISOString(),
+        ditutupOleh: 'Kasir',
+        totalTransaksi: state.latest.totalTransaksi,
+        totalPendapatan: state.latest.totalPendapatan,
+      }
+    : null
 
   return (
     <div className="app-container">
-      <Navbar session={session} activePage="laporan" />
       <div className="content-area">
         <LaporanClient
-          session={session}
-          warungs={warungs}
-          initialKasirSesi={
-            kasirSesi
-              ? {
-                  ditutupPada: kasirSesi.ditutup_pada.toISOString(),
-                  ditutupOleh:
-                    kasirSesi.nama_lengkap || kasirSesi.username,
-                  totalTransaksi: kasirSesi.total_transaksi,
-                  totalPendapatan: kasirSesi.total_pendapatan,
-                }
-              : null
-          }
+          warungId={warung.id}
+          warungNama={warung.nama}
+          warungKode={warung.kode}
+          initialData={laporanData}
+          initialKasirSesi={kasirSesi}
         />
       </div>
     </div>

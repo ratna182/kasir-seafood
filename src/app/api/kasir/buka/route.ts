@@ -9,21 +9,25 @@ export async function POST(request: NextRequest) {
   try {
     const context = getAuthContext(request)
     
-    const authError = await requireKasirAccess(context)
-    if (authError) return authError
-
     const body = await request.json().catch(() => ({}))
     let warungId = body.warungId
 
-    if (context?.user.role === 'KASIR') {
-      warungId = await getKasirWarungId(context)
-    } else if (!warungId) {
-      return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
+    if (context) {
+      const authError = await requireKasirAccess(context)
+      if (authError) return authError
+      if (context.user.role === 'KASIR') {
+        warungId = await getKasirWarungId(context)
+      }
     }
 
     if (!warungId) {
-      return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
+      return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
     }
+
+    // Ambil userId untuk pencatatan activity
+    const userId = context?.user.id ?? (
+      await prisma.user.findFirst({ where: { role: 'KASIR', warungId }, select: { id: true } })
+    )?.id
 
     const openedAt = new Date()
     const result = await prisma.$transaction(async (tx) => {
@@ -34,9 +38,9 @@ export async function POST(request: NextRequest) {
         where: { id: state.latest.id, dibukaKembaliPada: null },
         data: { dibukaKembaliPada: openedAt },
       })
-      if (updated.count === 1) {
+      if (updated.count === 1 && userId) {
         await recordActivity(tx, {
-          userId: context!.user.id,
+          userId,
           warungId,
           aktivitas: 'BUKA_KASIR',
           detail: 'Sesi kasir dibuka kembali',

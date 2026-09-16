@@ -8,32 +8,32 @@ import ExcelJS from 'exceljs'
 export async function GET(request: NextRequest) {
   try {
     const context = getAuthContext(request)
-    if (!context) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
 
     const { searchParams } = new URL(request.url)
     const warungIdParam = searchParams.get('warung_id')
     const startDateParam = searchParams.get('start_date')
     const endDateParam = searchParams.get('end_date')
 
-    // Tentukan warung_id berdasarkan role
     let warungId: string
-    if (isOwner(context)) {
-      // Owner harus specify warung_id
-      if (!warungIdParam) {
-        return NextResponse.json({ success: false, message: 'warung_id wajib diisi untuk owner.' }, { status: 400 })
+
+    if (context) {
+      if (isOwner(context)) {
+        if (!warungIdParam) {
+          return NextResponse.json({ success: false, message: 'warung_id wajib diisi untuk owner.' }, { status: 400 })
+        }
+        const warungAccessError = requireWarungAccess(context, warungIdParam)
+        if (warungAccessError) return warungAccessError
+        warungId = warungIdParam
+      } else {
+        warungId = context.warungId ?? ''
+        if (!warungId) {
+          return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
+        }
       }
-      // Validasi akses warung
-      const warungAccessError = requireWarungAccess(context, warungIdParam)
-      if (warungAccessError) return warungAccessError
+    } else if (warungIdParam) {
       warungId = warungIdParam
     } else {
-      // Kasir hanya bisa lihat warungnya sendiri
-      warungId = context.warungId ?? ''
-      if (!warungId) {
-        return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
-      }
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
 
     // Parse tanggal

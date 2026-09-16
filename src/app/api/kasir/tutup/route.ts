@@ -10,17 +10,22 @@ export async function POST(request: NextRequest) {
   try {
     const context = getAuthContext(request)
     
-    // Hanya kasir yang boleh tutup kasir
-    const authError = await requireKasirAccess(context)
-    if (authError) return authError
-
     const body = await request.json().catch(() => ({}))
-    const warungId = context?.user.role === 'OWNER'
-      ? body.warungId?.toString()
-      : await getKasirWarungId(context)
+    const warungId = body.warungId?.toString()
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
     }
+
+    // Jika ada session, validasi akses kasir
+    if (context) {
+      const authError = await requireKasirAccess(context)
+      if (authError) return authError
+    }
+
+    // Ambil userId untuk pencatatan activity
+    const userId = context?.user.id ?? (
+      await prisma.user.findFirst({ where: { role: 'KASIR', warungId }, select: { id: true } })
+    )?.id
 
     const closedAt = new Date()
     const result = await prisma.$transaction(async (tx) => {
@@ -57,19 +62,21 @@ export async function POST(request: NextRequest) {
         data: {
           warungId,
           tanggal: state.today,
-          ditutupOleh: context!.user.id,
+          ditutupOleh: userId!,
           ditutupPada: closedAt,
           totalTransaksi,
           totalPendapatan,
         },
       })
 
-      await recordActivity(tx, {
-        userId: context!.user.id,
-        warungId,
-        aktivitas: 'TUTUP_KASIR',
-        detail: `Kasir ditutup, ${totalTransaksi} transaksi, pendapatan Rp ${totalPendapatan.toLocaleString('id-ID')}`,
-      })
+      if (userId) {
+        await recordActivity(tx, {
+          userId,
+          warungId,
+          aktivitas: 'TUTUP_KASIR',
+          detail: `Kasir ditutup, ${totalTransaksi} transaksi, pendapatan Rp ${totalPendapatan.toLocaleString('id-ID')}`,
+        })
+      }
 
       return { status: 'CLOSED' as const, sesi, totalTransaksi, totalPendapatan, today: state.today }
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })

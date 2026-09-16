@@ -9,19 +9,28 @@ export async function GET(request: NextRequest) {
 
     let warungId: string | null = null
 
-    if (requireRole(context, 'OWNER') === null) {
+    if (context) {
+      if (requireRole(context, 'OWNER') === null) {
+        const { searchParams } = new URL(request.url)
+        warungId = searchParams.get('warungId')
+        if (!warungId) {
+          return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
+        }
+      } else if (requireRole(context, 'KASIR') === null) {
+        warungId = context?.warungId ?? null
+        if (!warungId) {
+          return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
+        }
+      } else {
+        return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 })
+      }
+    } else {
+      // Tanpa login — gunakan warungId dari query param
       const { searchParams } = new URL(request.url)
       warungId = searchParams.get('warungId')
       if (!warungId) {
         return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
       }
-    } else if (requireRole(context, 'KASIR') === null) {
-      warungId = context?.warungId ?? null
-      if (!warungId) {
-        return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
-      }
-    } else {
-      return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 })
     }
 
     const state = await getKasirSessionState(prisma, warungId!)

@@ -13,7 +13,7 @@ const publicRoutes = ['/login', '/api/auth/login']
 const ownerOnlyRoutes = ['/menu', '/api/menu', '/activity-log', '/api/activity-logs']
 
 // Routes yang bisa diakses owner + kasir (kasir terbatas warung sendiri)
-const sharedRoutes = ['/laporan', '/api/laporan']
+const sharedRoutes = ['/api/laporan']
 
 // Routes khusus kasir
 const kasirOnlyRoutes = ['/transaksi', '/api/transaksi', '/api/kasir', '/riwayat']
@@ -114,6 +114,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|laporan).*)',
   ],
 }
