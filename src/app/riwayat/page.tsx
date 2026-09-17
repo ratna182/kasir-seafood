@@ -5,8 +5,8 @@ import Navbar from '@/components/Navbar'
 import RiwayatClient from './RiwayatClient'
 
 export const metadata = {
-  title: 'Riwayat Keuangan — Kasir Vian Jaya 08',
-  description: 'Riwayat sesi kasir (buka/tutup) dan transaksi harian.',
+  title: 'Riwayat Sesi Kasir — Kasir Vian Jaya 08',
+  description: 'Riwayat sesi kasir (buka/tutup) dan laporan keuangan harian.',
 }
 
 export const dynamic = 'force-dynamic'
@@ -26,46 +26,17 @@ export default async function RiwayatPage({
 
   const tanggalFilter = startDate || endDate ? { ...(startDate ? { gte: startDate } : {}), ...(endDate ? { lte: endDate } : {}) } : undefined
 
-  const [transaksis, kasirSesis] = await Promise.all([
-    prisma.transaksi.findMany({
-      where: {
-        warungId: session.warungId ?? undefined,
-        ...(tanggalFilter ? { tanggal: tanggalFilter } : {}),
-        status: 'SELESAI',
-      },
-      include: { items: { orderBy: { createdAt: 'asc' } } },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.kasirSesi.findMany({
-      where: {
-        warungId: session.warungId ?? undefined,
-        ...(tanggalFilter ? { tanggal: tanggalFilter } : {}),
-      },
-      include: {
-        user: { select: { namaLengkap: true, username: true } },
-        warung: { select: { nama: true, kode: true } },
-      },
-      orderBy: [{ tanggal: 'desc' }, { ditutupPada: 'desc' }],
-    }),
-  ])
-
-  const serialized = transaksis.map((transaksi) => ({
-    id: transaksi.id,
-    nomorMeja: transaksi.nomorMeja,
-    total: transaksi.total,
-    metodePembayaran: transaksi.metodePembayaran,
-    tanggal: transaksi.tanggal.toISOString(),
-    createdAt: transaksi.createdAt.toISOString(),
-    items: transaksi.items.map((item) => ({
-      id: item.id,
-      namaMenu: item.namaMenu,
-      hargaSatuan: item.hargaSatuan,
-      diskonSatuan: item.diskonSatuan,
-      catatan: item.catatan,
-      qty: item.qty,
-      subtotal: item.subtotal,
-    })),
-  }))
+  const kasirSesis = await prisma.kasirSesi.findMany({
+    where: {
+      warungId: session.warungId ?? undefined,
+      ...(tanggalFilter ? { tanggal: tanggalFilter } : {}),
+    },
+    include: {
+      user: { select: { namaLengkap: true, username: true } },
+      warung: { select: { nama: true, kode: true, alamat: true } },
+    },
+    orderBy: [{ tanggal: 'desc' }, { ditutupPada: 'desc' }],
+  })
 
   const serializedSesis = await Promise.all(kasirSesis.map(async (s) => {
     const sessionStart = s.dibukaKembaliPada ?? s.tanggal
@@ -130,6 +101,7 @@ export default async function RiwayatPage({
       totalPendapatan: s.totalPendapatan,
       warungNama: s.warung.nama,
       warungKode: s.warung.kode,
+      warungAlamat: s.warung.alamat,
       detail: {
         rekap,
         transaksi: transaksisSesi.map(t => ({
@@ -147,13 +119,11 @@ export default async function RiwayatPage({
     }
   }))
 
-  const warung = session.warungId ? await prisma.warung.findUnique({ where: { id: session.warungId }, select: { alamat: true } }) : null
-
   return (
     <div className="app-container">
       <Navbar session={session} activePage="riwayat" />
       <div className="content-area">
-        <RiwayatClient session={session} warungAlamat={warung?.alamat ?? null} initialTransaksis={serialized} initialKasirSesis={serializedSesis} initialStartDate={mulai} initialEndDate={sampai} />
+        <RiwayatClient session={session} initialKasirSesis={serializedSesis} initialStartDate={mulai} initialEndDate={sampai} />
       </div>
     </div>
   )
