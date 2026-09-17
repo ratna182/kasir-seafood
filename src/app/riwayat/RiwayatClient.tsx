@@ -303,38 +303,37 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
                       {/* Expanded detail */}
                       {isExpanded && d && (
                         <div style={{ borderTop: '1px solid var(--color-border)', padding: '1.25rem', background: 'var(--color-surface-raised)' }}>
-                          {/* Summary cards */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-brand)', fontFamily: "var(--font-fraunces), serif" }}>{d.jumlahTransaksi}</div>
-                              <div className="text-xs text-muted">Transaksi</div>
-                            </div>
-                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif" }}>{d.grandTotalQty}</div>
-                              <div className="text-xs text-muted">Total Item</div>
-                            </div>
-                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalCash.toLocaleString('id-ID')}</div>
-                              <div className="text-xs text-muted">Cash</div>
-                            </div>
-                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-warning)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalQRIS.toLocaleString('id-ID')}</div>
-                              <div className="text-xs text-muted">QRIS</div>
-                            </div>
-                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-info)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalTransfer.toLocaleString('id-ID')}</div>
-                              <div className="text-xs text-muted">Transfer</div>
+                          {/* Info sesi */}
+                          <div style={{ marginBottom: '1rem', fontSize: '0.85rem', lineHeight: '1.6' }}>
+                            <div><strong>Tanggal:</strong> {tanggalStr}</div>
+                            <div><strong>Cabang:</strong> {sesi.warungNama} ({sesi.warungKode})</div>
+                            <div><strong>Ditutup oleh:</strong> {sesi.ditutupOleh} pada {ditutupStr}</div>
+                            {dibukaStr && <div><strong>Dibuka kembali:</strong> {dibukaStr}</div>}
+                          </div>
+
+                          {/* Detail Kasir */}
+                          <div style={{ marginBottom: '1rem' }}>
+                            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-text-primary)', textAlign: 'center' }}>DETAIL KASIR</h4>
+                            <div style={{ borderTop: '1px dashed var(--color-border)', borderBottom: '1px dashed var(--color-border)', padding: '0.5rem 0' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                                <strong>Buka Kasir</strong>
+                                <span>{dibukaStr || '-'}</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                                <strong>Tutup Kasir</strong>
+                                <span>{ditutupStr}</span>
+                              </div>
                             </div>
                           </div>
 
                           {/* Daftar Transaksi */}
                           {d.transaksi.length > 0 && (
-                            <div style={{ marginBottom: '1.25rem' }}>
-                              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>Daftar Transaksi</h4>
-                              <div style={{ overflowX: 'auto' }}>
+                            <div style={{ marginBottom: '1rem' }}>
+                              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-text-primary)', textAlign: 'center' }}>DAFTAR TRANSAKSI</h4>
+                              <div style={{ borderTop: '1px dashed var(--color-border)', overflowX: 'auto' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                                   <thead>
-                                    <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                    <tr style={{ borderBottom: '1px dashed var(--color-border)' }}>
                                       <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>MEJA</th>
                                       <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>WAKTU</th>
                                       <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>METODE</th>
@@ -362,14 +361,13 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
 
                           {/* Rekap Menu */}
                           {d.rekap.length > 0 && (
-                            <div>
-                              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>Rekap Menu</h4>
-                              <div style={{ overflowX: 'auto' }}>
+                            <div style={{ marginBottom: '1rem' }}>
+                              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-text-primary)', textAlign: 'center' }}>REKAP MENU</h4>
+                              <div style={{ borderTop: '1px dashed var(--color-border)', overflowX: 'auto' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                                   <thead>
-                                    <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                    <tr style={{ borderBottom: '1px dashed var(--color-border)' }}>
                                       <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>MENU</th>
-                                      <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>KATEGORI</th>
                                       <th style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--color-text-muted)' }}>QTY</th>
                                       <th style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--color-text-muted)' }}>TOTAL</th>
                                     </tr>
@@ -378,11 +376,6 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
                                     {d.rekap.map((item, idx) => (
                                       <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                         <td style={{ padding: '0.5rem', fontWeight: 600 }}>{item.namaMenu}</td>
-                                        <td style={{ padding: '0.5rem' }}>
-                                          <span className="badge" style={{ background: item.kategori === 'MAKANAN' ? 'var(--color-brand-light)' : 'var(--color-success-light)', color: item.kategori === 'MAKANAN' ? 'var(--color-brand)' : 'var(--color-success)', fontSize: '0.7rem' }}>
-                                            {item.kategori === 'MAKANAN' ? 'Makanan' : 'Minuman'}
-                                          </span>
-                                        </td>
                                         <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{item.qtyTotal}</td>
                                         <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 700, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
                                           Rp {item.pendapatanTotal.toLocaleString('id-ID')}
@@ -390,19 +383,49 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
                                       </tr>
                                     ))}
                                   </tbody>
-                                  <tfoot>
-                                    <tr style={{ borderTop: '2px solid var(--color-border)', fontWeight: 800 }}>
-                                      <td colSpan={2} style={{ padding: '0.5rem', fontSize: '0.85rem' }}>GRAND TOTAL</td>
-                                      <td style={{ padding: '0.5rem', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.grandTotalQty}</td>
-                                      <td style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
-                                        Rp {sesi.totalPendapatan.toLocaleString('id-ID')}
-                                      </td>
-                                    </tr>
-                                  </tfoot>
                                 </table>
                               </div>
                             </div>
                           )}
+
+                          {/* Total Per Metode Bayar */}
+                          <div style={{ marginBottom: '1rem' }}>
+                            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-text-primary)', textAlign: 'center' }}>TOTAL PER METODE BAYAR</h4>
+                            <div style={{ borderTop: '1px dashed var(--color-border)', borderBottom: '1px dashed var(--color-border)', padding: '0.5rem 0' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                                <span>CASH</span>
+                                <strong style={{ fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalCash.toLocaleString('id-ID')}</strong>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                                <span>QRIS</span>
+                                <strong style={{ fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalQRIS.toLocaleString('id-ID')}</strong>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                                <span>TRANSFER</span>
+                                <strong style={{ fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalTransfer.toLocaleString('id-ID')}</strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Summary */}
+                          <div>
+                            <div style={{ borderTop: '1px dashed var(--color-border)', padding: '0.5rem 0' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                                <span>Total Qty:</span>
+                                <strong>{d.grandTotalQty} item</strong>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                                <span>Total Transaksi:</span>
+                                <strong>{d.jumlahTransaksi} transaksi</strong>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, padding: '0.5rem 0', borderTop: '2px solid var(--color-border)', marginTop: '0.25rem' }}>
+                                <span>GRAND TOTAL:</span>
+                                <strong style={{ color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
+                                  Rp {sesi.totalPendapatan.toLocaleString('id-ID')}
+                                </strong>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
