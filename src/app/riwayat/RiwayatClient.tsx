@@ -1,14 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Printer, X } from 'lucide-react'
-import Receipt, { type PrinterWidth, type ReceiptTransaction } from '@/components/Receipt'
+import { Search, Printer, X, Clock, TrendingUp } from 'lucide-react'
+import Receipt, { type PrinterWidth } from '@/components/Receipt'
 import PrinterSetup from '@/components/PrinterSetup'
 import PrinterStatusBadge from '@/components/PrinterStatus'
 import { printer } from '@/lib/printer/bluetooth'
 import { loadPrinterConfig } from '@/lib/printer/storage'
-import { encodeReceipt } from '@/lib/printer/receipt-encoder'
-import type { PrinterConfig } from '@/lib/printer/types'
 
 interface TransaksiItem {
   id: string
@@ -30,6 +28,18 @@ interface Transaksi {
   items: TransaksiItem[]
 }
 
+interface KasirSesi {
+  id: string
+  tanggal: string
+  ditutupPada: string
+  dibukaKembaliPada: string | null
+  ditutupOleh: string
+  totalTransaksi: number
+  totalPendapatan: number
+  warungNama: string
+  warungKode: string
+}
+
 interface RiwayatClientProps {
   session: {
     warungNama: string | null
@@ -41,23 +51,25 @@ interface RiwayatClientProps {
   }
   warungAlamat?: string | null
   initialTransaksis: Transaksi[]
+  initialKasirSesis: KasirSesi[]
   initialStartDate?: string
   initialEndDate?: string
 }
 
-export default function RiwayatClient({ session, warungAlamat, initialTransaksis, initialStartDate, initialEndDate }: RiwayatClientProps) {
+export default function RiwayatClient({ session, warungAlamat, initialTransaksis, initialKasirSesis, initialStartDate, initialEndDate }: RiwayatClientProps) {
   const [transaksis] = useState<Transaksi[]>(initialTransaksis)
+  const [kasirSesis] = useState<KasirSesi[]>(initialKasirSesis)
   const [search, setSearch] = useState('')
   const [selectedTransaksi, setSelectedTransaksi] = useState<Transaksi | null>(null)
   const [printerWidth, setPrinterWidth] = useState<PrinterWidth>('80mm')
-  const [printerConfig, setPrinterConfig] = useState<PrinterConfig | null>(null)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [activeTab, setActiveTab] = useState<'sesi' | 'transaksi'>('sesi')
 
   useEffect(() => {
     const saved = loadPrinterConfig()
     if (saved) {
-      setPrinterConfig(saved)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPrinterWidth(saved.width)
       printer.autoReconnect()
     }
@@ -137,12 +149,26 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
     }
   }
 
+  const filteredSesis = kasirSesis.filter((s) => {
+    if (!search) return true
+    const q = search.toLowerCase()
+    return (
+      s.warungNama.toLowerCase().includes(q) ||
+      s.warungKode.toLowerCase().includes(q) ||
+      s.ditutupOleh.toLowerCase().includes(q) ||
+      s.tanggal.includes(q)
+    )
+  })
+
+  const totalPendapatanKeseluruhan = kasirSesis.reduce((sum, s) => sum + s.totalPendapatan, 0)
+  const totalTransaksiKeseluruhan = kasirSesis.reduce((sum, s) => sum + s.totalTransaksi, 0)
+
   return (
     <div>
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Riwayat Penjualan</h1>
-          <p className="text-secondary text-sm">{transaksis.length} transaksi selesai • {session.role === 'OWNER' ? 'Semua cabang' : `Cabang: ${session.warungKode}`}</p>
+          <h1 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>Riwayat Keuangan</h1>
+          <p className="text-secondary text-sm">{kasirSesis.length} sesi kasir • {transaksis.length} transaksi selesai • {session.role === 'OWNER' ? 'Semua cabang' : `Cabang: ${session.warungKode}`}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <form style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -157,7 +183,7 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
             <input
               type="text"
               className="form-input"
-              placeholder="Cari meja, menu, atau ID..."
+              placeholder="Cari kasir, warung, atau tanggal..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{ width: '100%', paddingLeft: '36px' }}
@@ -166,62 +192,157 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
         </div>
       </div>
 
+      {/* Tab Buttons */}
+      <div className="no-print" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('sesi')}
+          className={`btn btn-sm ${activeTab === 'sesi' ? 'btn-primary' : 'btn-ghost'}`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+        >
+          <Clock size={14} /> Sesi Kasir ({kasirSesis.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('transaksi')}
+          className={`btn btn-sm ${activeTab === 'transaksi' ? 'btn-primary' : 'btn-ghost'}`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+        >
+          <TrendingUp size={14} /> Transaksi ({transaksis.length})
+        </button>
+      </div>
+
       <div className="no-print">
-        {transaksis.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
-            <h3>Belum Ada Transaksi</h3>
-            <p className="text-secondary text-sm">Transaksi selesai dari semua waktu akan tersimpan dan dapat dicetak ulang di halaman ini.</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
-            <p className="text-secondary">Tidak ada transaksi yang cocok dengan &quot;{search}&quot;.</p>
-            <button onClick={() => setSearch('')} className="btn btn-ghost btn-sm" style={{ marginTop: '0.75rem' }}>
-              Reset Pencarian
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {filtered.map((trx) => {
-              const timeStr = new Date(trx.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-              return (
-                <div key={trx.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ flex: '1 1 300px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '6px' }}>
-                      <span className="badge badge-brand" style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}>
-                        {trx.nomorMeja}
-                      </span>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{timeStr}</span>
-                      <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>
-                        #{trx.id.slice(0, 8).toUpperCase()}
-                      </span>
-                      <span className={`badge ${trx.metodePembayaran === 'QRIS' ? 'badge-warning' : trx.metodePembayaran === 'TRANSFER' ? 'badge-info' : 'badge-success'}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
-                        {trx.metodePembayaran === 'QRIS' ? 'QRIS' : trx.metodePembayaran === 'TRANSFER' ? 'Transfer' : 'Cash'}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
-                      {trx.items.map((it, idx) => (
-                        <span key={it.id}>
-                          {it.namaMenu} <strong style={{ color: 'var(--color-text-primary)' }}>({it.qty})</strong>
-                          {idx < trx.items.length - 1 ? ' • ' : ''}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', justifyContent: 'flex-end' }}>
-                    <div style={{ textAlign: 'right' }}>
-                      <div className="text-xs text-muted">Total Pembayaran</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
-                        Rp {trx.total.toLocaleString('id-ID')}
+        {activeTab === 'sesi' ? (
+          <>
+            {/* Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-brand)', fontFamily: "var(--font-fraunces), serif" }}>
+                  {kasirSesis.length}
+                </div>
+                <div className="text-sm text-muted">Total Sesi Kasir</div>
+              </div>
+              <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif" }}>
+                  {totalTransaksiKeseluruhan}
+                </div>
+                <div className="text-sm text-muted">Total Transaksi</div>
+              </div>
+              <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
+                  Rp {totalPendapatanKeseluruhan.toLocaleString('id-ID')}
+                </div>
+                <div className="text-sm text-muted">Total Pendapatan</div>
+              </div>
+            </div>
+
+            {kasirSesis.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                <h3>Belum Ada Sesi Kasir</h3>
+                <p className="text-secondary text-sm">Riwayat sesi kasir (buka/tutup) akan muncul di sini.</p>
+              </div>
+            ) : filteredSesis.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                <p className="text-secondary">Tidak ada sesi kasir yang cocok dengan &quot;{search}&quot;.</p>
+                <button onClick={() => setSearch('')} className="btn btn-ghost btn-sm" style={{ marginTop: '0.75rem' }}>
+                  Reset Pencarian
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {filteredSesis.map((sesi) => {
+                  const tanggal = new Date(sesi.tanggal + 'T00:00:00')
+                  const tanggalStr = tanggal.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                  const ditutupStr = new Date(sesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                  const dibukaStr = sesi.dibukaKembaliPada ? new Date(sesi.dibukaKembaliPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
+                  return (
+                    <div key={sesi.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ flex: '1 1 300px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '6px' }}>
+                          <span className="badge badge-brand" style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}>
+                            {sesi.warungKode}
+                          </span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{tanggalStr}</span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
+                          <div>Ditutup oleh: <strong style={{ color: 'var(--color-text-primary)' }}>{sesi.ditutupOleh}</strong> pada {ditutupStr}</div>
+                          {dibukaStr && <div>Dibuka kembali: {dibukaStr}</div>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', justifyContent: 'flex-end' }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div className="text-xs text-muted">{sesi.totalTransaksi} transaksi</div>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
+                            Rp {sesi.totalPendapatan.toLocaleString('id-ID')}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <button type="button" onClick={() => setSelectedTransaksi(trx)} className="btn btn-ghost btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <Printer size={14} /> Cetak Struk
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {transaksis.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                <h3>Belum Ada Transaksi</h3>
+                <p className="text-secondary text-sm">Transaksi selesai dari semua waktu akan tersimpan dan dapat dicetak ulang di halaman ini.</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                <p className="text-secondary">Tidak ada transaksi yang cocok dengan &quot;{search}&quot;.</p>
+                <button onClick={() => setSearch('')} className="btn btn-ghost btn-sm" style={{ marginTop: '0.75rem' }}>
+                  Reset Pencarian
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {filtered.map((trx) => {
+                  const timeStr = new Date(trx.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                  return (
+                    <div key={trx.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ flex: '1 1 300px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '6px' }}>
+                          <span className="badge badge-brand" style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}>
+                            {trx.nomorMeja}
+                          </span>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{timeStr}</span>
+                          <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>
+                            #{trx.id.slice(0, 8).toUpperCase()}
+                          </span>
+                          <span className={`badge ${trx.metodePembayaran === 'QRIS' ? 'badge-warning' : trx.metodePembayaran === 'TRANSFER' ? 'badge-info' : 'badge-success'}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
+                            {trx.metodePembayaran === 'QRIS' ? 'QRIS' : trx.metodePembayaran === 'TRANSFER' ? 'Transfer' : 'Cash'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
+                          {trx.items.map((it, idx) => (
+                            <span key={it.id}>
+                              {it.namaMenu} <strong style={{ color: 'var(--color-text-primary)' }}>({it.qty})</strong>
+                              {idx < trx.items.length - 1 ? ' • ' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', justifyContent: 'flex-end' }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div className="text-xs text-muted">Total Pembayaran</div>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
+                            Rp {trx.total.toLocaleString('id-ID')}
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => setSelectedTransaksi(trx)} className="btn btn-ghost btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Printer size={14} /> Cetak Struk
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -254,7 +375,7 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
         </div>
       )}
 
-      <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { setPrinterConfig(config); if (config) setPrinterWidth(config.width) }} />
+      <PrinterSetup open={showPrinterSetup} onClose={() => setShowPrinterSetup(false)} onConfigured={(config) => { if (config) setPrinterWidth(config.width) }} />
 
       {selectedTransaksi && <Receipt transaction={selectedTransaksi} cashier={session.namaLengkap || session.username} username={session.username} warungKode={session.warungKode} warungNama={session.warungNama} warungAlamat={warungAlamat} width={printerWidth} reprint />}
     </div>
