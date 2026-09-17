@@ -28,9 +28,6 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
         }
       }
-    } else if (warungIdParam) {
-      // Tanpa login — gunakan warung_id dari query param
-      warungId = warungIdParam
     } else {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
