@@ -38,29 +38,49 @@ export default async function RiwayatPage({
   })
 
   const serializedSesis = await Promise.all(kasirSesis.map(async (s) => {
-    // Find previous session for the same warung+day to determine effective start
-    // (same logic as getKasirSessionState in laporan page)
-    const previousSession = await prisma.kasirSesi.findFirst({
-      where: {
-        warungId: s.warungId,
-        tanggal: s.tanggal,
-        ditutupPada: { lt: s.ditutupPada },
-      },
-      orderBy: { ditutupPada: 'desc' },
-    })
+    // Determine the effective time range for this session's transactions.
+    //
+    // Data model:
+    // - Buka-created sesi: ditutupPada = now() (default), totalTransaksi/totalPendapatan = 0
+    //   → represents the "kasir opened" event, not a real session with transactions
+    // - Tutup-created sesi: ditutupPada = actual close time, has real totals
+    //   → this is a real session; dibukaKembaliPada is set by the NEXT buka call
+    //
+    // For a tutup-created sesi S:
+    //   Start = the dibukaKembaliPada of the session BEFORE S
+    //          (which marks when THIS session was opened)
+    //   End   = S.ditutupPada (when THIS session was closed)
 
-    // Effective start = previous session's dibukaKembaliPada, or this session's
-    // dibukaKembaliPada (if it marks when this session opened), or tanggal
-    const effectiveStart = previousSession?.dibukaKembaliPada ?? s.dibukaKembaliPada ?? s.tanggal
+    const isTutupSesi = s.totalTransaksi > 0 || s.totalPendapatan > 0
 
-    // End of this session's day (same as laporan: lt tomorrow)
-    const tomorrow = new Date(s.tanggal)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    let effectiveStart: Date
+    let effectiveEnd: Date
+
+    if (isTutupSesi) {
+      // Find the immediately previous sesi for same warung+day
+      const previousSesi = await prisma.kasirSesi.findFirst({
+        where: {
+          warungId: s.warungId,
+          tanggal: s.tanggal,
+          ditutupPada: { lt: s.ditutupPada },
+        },
+        orderBy: { ditutupPada: 'desc' },
+      })
+      // Start = previous sesi's dibukaKembaliPada (marks when THIS session opened)
+      // Fall back to tanggal if no previous sesi
+      effectiveStart = previousSesi?.dibukaKembaliPada ?? s.tanggal
+      // End = this session's ditutupPada (exact close time)
+      effectiveEnd = s.ditutupPada
+    } else {
+      // Buka-only sesi (no transactions yet) — show empty
+      effectiveStart = s.ditutupPada
+      effectiveEnd = s.ditutupPada
+    }
 
     const transaksisSesi = await prisma.transaksi.findMany({
       where: {
         warungId: s.warungId,
-        createdAt: { gte: effectiveStart, lt: tomorrow },
+        createdAt: { gte: effectiveStart, lte: effectiveEnd },
         status: 'SELESAI',
       },
       include: { items: true },
@@ -108,18 +128,14 @@ export default async function RiwayatPage({
       return a.namaMenu.localeCompare(b.namaMenu)
     })
 
-    // Use stored totals if recalculated is 0 (e.g. first buka session with no transactions yet)
-    const finalTotalPendapatan = grandTotalPendapatan > 0 ? grandTotalPendapatan : s.totalPendapatan
-    const finalTotalTransaksi = transaksisSesi.length > 0 ? transaksisSesi.length : s.totalTransaksi
-
     return {
       id: s.id,
       tanggal: s.tanggal.toISOString().split('T')[0],
       ditutupPada: s.ditutupPada.toISOString(),
       dibukaKembaliPada: s.dibukaKembaliPada?.toISOString() ?? null,
       ditutupOleh: s.user.namaLengkap || s.user.username,
-      totalTransaksi: finalTotalTransaksi,
-      totalPendapatan: finalTotalPendapatan,
+      totalTransaksi: transaksisSesi.length > 0 ? transaksisSesi.length : s.totalTransaksi,
+      totalPendapatan: grandTotalPendapatan > 0 ? grandTotalPendapatan : s.totalPendapatan,
       warungNama: s.warung.nama,
       warungKode: s.warung.kode,
       warungAlamat: s.warung.alamat,
