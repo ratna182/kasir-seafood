@@ -67,16 +67,84 @@ export default async function RiwayatPage({
     })),
   }))
 
-  const serializedSesis = kasirSesis.map((s) => ({
-    id: s.id,
-    tanggal: s.tanggal.toISOString().split('T')[0],
-    ditutupPada: s.ditutupPada.toISOString(),
-    dibukaKembaliPada: s.dibukaKembaliPada?.toISOString() ?? null,
-    ditutupOleh: s.user.namaLengkap || s.user.username,
-    totalTransaksi: s.totalTransaksi,
-    totalPendapatan: s.totalPendapatan,
-    warungNama: s.warung.nama,
-    warungKode: s.warung.kode,
+  const serializedSesis = await Promise.all(kasirSesis.map(async (s) => {
+    const sessionStart = s.dibukaKembaliPada ?? s.tanggal
+    const sessionEnd = s.ditutupPada
+
+    const transaksisSesi = await prisma.transaksi.findMany({
+      where: {
+        warungId: session.warungId ?? undefined,
+        createdAt: { gte: sessionStart, lte: sessionEnd },
+        status: 'SELESAI',
+      },
+      include: { items: true },
+    })
+
+    const uniqueMenuIds = [...new Set(transaksisSesi.flatMap(t => t.items.map(i => i.menuId)))]
+    const menuCategories = await prisma.menu.findMany({
+      where: { id: { in: uniqueMenuIds }, warungId: session.warungId ?? undefined },
+      select: { id: true, category: { select: { nama: true } } },
+    })
+    const kategoriMap = new Map(menuCategories.map(m => [m.id, m.category?.nama || 'Lainnya']))
+
+    const rekapMap = new Map<string, { namaMenu: string; kategori: string; qtyTotal: number; pendapatanTotal: number }>()
+    let grandTotalQty = 0
+    let totalCash = 0
+    let totalQRIS = 0
+    let totalTransfer = 0
+
+    for (const tx of transaksisSesi) {
+      if (tx.metodePembayaran === 'QRIS') totalQRIS += tx.total
+      else if (tx.metodePembayaran === 'TRANSFER') totalTransfer += tx.total
+      else totalCash += tx.total
+
+      for (const item of tx.items) {
+        grandTotalQty += item.qty
+        const existing = rekapMap.get(item.namaMenu)
+        if (existing) {
+          existing.qtyTotal += item.qty
+          existing.pendapatanTotal += item.subtotal
+        } else {
+          rekapMap.set(item.namaMenu, {
+            namaMenu: item.namaMenu,
+            kategori: kategoriMap.get(item.menuId) || 'MAKANAN',
+            qtyTotal: item.qty,
+            pendapatanTotal: item.subtotal,
+          })
+        }
+      }
+    }
+
+    const rekap = Array.from(rekapMap.values()).sort((a, b) => {
+      if (a.kategori !== b.kategori) return a.kategori === 'MAKANAN' ? -1 : 1
+      return a.namaMenu.localeCompare(b.namaMenu)
+    })
+
+    return {
+      id: s.id,
+      tanggal: s.tanggal.toISOString().split('T')[0],
+      ditutupPada: s.ditutupPada.toISOString(),
+      dibukaKembaliPada: s.dibukaKembaliPada?.toISOString() ?? null,
+      ditutupOleh: s.user.namaLengkap || s.user.username,
+      totalTransaksi: s.totalTransaksi,
+      totalPendapatan: s.totalPendapatan,
+      warungNama: s.warung.nama,
+      warungKode: s.warung.kode,
+      detail: {
+        rekap,
+        transaksi: transaksisSesi.map(t => ({
+          nomorMeja: t.nomorMeja,
+          total: t.total,
+          metodePembayaran: t.metodePembayaran || 'CASH',
+          createdAt: t.createdAt.toISOString(),
+        })),
+        grandTotalQty,
+        totalCash,
+        totalQRIS,
+        totalTransfer,
+        jumlahTransaksi: transaksisSesi.length,
+      },
+    }
   }))
 
   const warung = session.warungId ? await prisma.warung.findUnique({ where: { id: session.warungId }, select: { alamat: true } }) : null

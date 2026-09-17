@@ -41,21 +41,90 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         user: { select: { namaLengkap: true, username: true } },
-        warung: { select: { nama: true, kode: true } },
+        warung: { select: { nama: true, kode: true, alamat: true } },
       },
       orderBy: [{ tanggal: 'desc' }, { ditutupPada: 'desc' }],
     })
 
-    const data = sessions.map((s) => ({
-      id: s.id,
-      tanggal: s.tanggal.toISOString().split('T')[0],
-      ditutupPada: s.ditutupPada.toISOString(),
-      dibukaKembaliPada: s.dibukaKembaliPada?.toISOString() ?? null,
-      ditutupOleh: s.user.namaLengkap || s.user.username,
-      totalTransaksi: s.totalTransaksi,
-      totalPendapatan: s.totalPendapatan,
-      warungNama: s.warung.nama,
-      warungKode: s.warung.kode,
+    const data = await Promise.all(sessions.map(async (s) => {
+      const sessionStart = s.dibukaKembaliPada ?? s.tanggal
+      const sessionEnd = s.ditutupPada
+
+      const transaksis = await prisma.transaksi.findMany({
+        where: {
+          warungId,
+          createdAt: { gte: sessionStart, lte: sessionEnd },
+          status: 'SELESAI',
+        },
+        include: { items: true },
+      })
+
+      const uniqueMenuIds = [...new Set(transaksis.flatMap(t => t.items.map(i => i.menuId)))]
+      const menuCategories = await prisma.menu.findMany({
+        where: { id: { in: uniqueMenuIds }, warungId },
+        select: { id: true, category: { select: { nama: true } } },
+      })
+      const kategoriMap = new Map(menuCategories.map(m => [m.id, m.category?.nama || 'Lainnya']))
+
+      const rekapMap = new Map<string, { namaMenu: string; kategori: string; qtyTotal: number; pendapatanTotal: number }>()
+      let grandTotalQty = 0
+      let totalCash = 0
+      let totalQRIS = 0
+      let totalTransfer = 0
+
+      for (const tx of transaksis) {
+        if (tx.metodePembayaran === 'QRIS') totalQRIS += tx.total
+        else if (tx.metodePembayaran === 'TRANSFER') totalTransfer += tx.total
+        else totalCash += tx.total
+
+        for (const item of tx.items) {
+          grandTotalQty += item.qty
+          const existing = rekapMap.get(item.namaMenu)
+          if (existing) {
+            existing.qtyTotal += item.qty
+            existing.pendapatanTotal += item.subtotal
+          } else {
+            rekapMap.set(item.namaMenu, {
+              namaMenu: item.namaMenu,
+              kategori: kategoriMap.get(item.menuId) || 'MAKANAN',
+              qtyTotal: item.qty,
+              pendapatanTotal: item.subtotal,
+            })
+          }
+        }
+      }
+
+      const rekap = Array.from(rekapMap.values()).sort((a, b) => {
+        if (a.kategori !== b.kategori) return a.kategori === 'MAKANAN' ? -1 : 1
+        return a.namaMenu.localeCompare(b.namaMenu)
+      })
+
+      return {
+        id: s.id,
+        tanggal: s.tanggal.toISOString().split('T')[0],
+        ditutupPada: s.ditutupPada.toISOString(),
+        dibukaKembaliPada: s.dibukaKembaliPada?.toISOString() ?? null,
+        ditutupOleh: s.user.namaLengkap || s.user.username,
+        totalTransaksi: s.totalTransaksi,
+        totalPendapatan: s.totalPendapatan,
+        warungNama: s.warung.nama,
+        warungKode: s.warung.kode,
+        warungAlamat: s.warung.alamat,
+        detail: {
+          rekap,
+          transaksi: transaksis.map(t => ({
+            nomorMeja: t.nomorMeja,
+            total: t.total,
+            metodePembayaran: t.metodePembayaran || 'CASH',
+            createdAt: t.createdAt.toISOString(),
+          })),
+          grandTotalQty,
+          totalCash,
+          totalQRIS,
+          totalTransfer,
+          jumlahTransaksi: transaksis.length,
+        },
+      }
     }))
 
     return NextResponse.json({ success: true, data })

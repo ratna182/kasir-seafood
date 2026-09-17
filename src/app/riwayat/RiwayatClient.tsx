@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Printer, X, Clock, TrendingUp } from 'lucide-react'
+import { Search, Printer, X, Clock, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react'
 import Receipt, { type PrinterWidth } from '@/components/Receipt'
 import PrinterSetup from '@/components/PrinterSetup'
 import PrinterStatusBadge from '@/components/PrinterStatus'
@@ -38,6 +38,16 @@ interface KasirSesi {
   totalPendapatan: number
   warungNama: string
   warungKode: string
+  warungAlamat?: string | null
+  detail?: {
+    rekap: { namaMenu: string; kategori: string; qtyTotal: number; pendapatanTotal: number }[]
+    transaksi: { nomorMeja: string; total: number; metodePembayaran: string; createdAt: string }[]
+    grandTotalQty: number
+    totalCash: number
+    totalQRIS: number
+    totalTransfer: number
+    jumlahTransaksi: number
+  }
 }
 
 interface RiwayatClientProps {
@@ -65,6 +75,7 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [activeTab, setActiveTab] = useState<'sesi' | 'transaksi'>('sesi')
+  const [expandedSesi, setExpandedSesi] = useState<string | null>(null)
 
   useEffect(() => {
     const saved = loadPrinterConfig()
@@ -256,28 +267,144 @@ export default function RiwayatClient({ session, warungAlamat, initialTransaksis
                   const tanggalStr = tanggal.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
                   const ditutupStr = new Date(sesi.ditutupPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                   const dibukaStr = sesi.dibukaKembaliPada ? new Date(sesi.dibukaKembaliPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
+                  const isExpanded = expandedSesi === sesi.id
+                  const d = sesi.detail
                   return (
-                    <div key={sesi.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ flex: '1 1 300px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '6px' }}>
-                          <span className="badge badge-brand" style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}>
-                            {sesi.warungKode}
-                          </span>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{tanggalStr}</span>
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
-                          <div>Ditutup oleh: <strong style={{ color: 'var(--color-text-primary)' }}>{sesi.ditutupOleh}</strong> pada {ditutupStr}</div>
-                          {dibukaStr && <div>Dibuka kembali: {dibukaStr}</div>}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', justifyContent: 'flex-end' }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <div className="text-xs text-muted">{sesi.totalTransaksi} transaksi</div>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
-                            Rp {sesi.totalPendapatan.toLocaleString('id-ID')}
+                    <div key={sesi.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                      {/* Header - clickable */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSesi(isExpanded ? null : sesi.id)}
+                        style={{ width: '100%', padding: '1.25rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                      >
+                        <div style={{ flex: '1 1 300px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '6px' }}>
+                            {isExpanded ? <ChevronDown size={16} style={{ color: 'var(--color-text-muted)' }} /> : <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />}
+                            <span className="badge badge-brand" style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}>
+                              {sesi.warungKode}
+                            </span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{tanggalStr}</span>
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: '1.5', marginLeft: '1.5rem' }}>
+                            <div>Ditutup oleh: <strong style={{ color: 'var(--color-text-primary)' }}>{sesi.ditutupOleh}</strong> pada {ditutupStr}</div>
+                            {dibukaStr && <div>Dibuka kembali: {dibukaStr}</div>}
                           </div>
                         </div>
-                      </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', justifyContent: 'flex-end' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="text-xs text-muted">{sesi.totalTransaksi} transaksi</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
+                              Rp {sesi.totalPendapatan.toLocaleString('id-ID')}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Expanded detail */}
+                      {isExpanded && d && (
+                        <div style={{ borderTop: '1px solid var(--color-border)', padding: '1.25rem', background: 'var(--color-surface-raised)' }}>
+                          {/* Summary cards */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-brand)', fontFamily: "var(--font-fraunces), serif" }}>{d.jumlahTransaksi}</div>
+                              <div className="text-xs text-muted">Transaksi</div>
+                            </div>
+                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif" }}>{d.grandTotalQty}</div>
+                              <div className="text-xs text-muted">Total Item</div>
+                            </div>
+                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalCash.toLocaleString('id-ID')}</div>
+                              <div className="text-xs text-muted">Cash</div>
+                            </div>
+                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-warning)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalQRIS.toLocaleString('id-ID')}</div>
+                              <div className="text-xs text-muted">QRIS</div>
+                            </div>
+                            <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-info)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>Rp {d.totalTransfer.toLocaleString('id-ID')}</div>
+                              <div className="text-xs text-muted">Transfer</div>
+                            </div>
+                          </div>
+
+                          {/* Daftar Transaksi */}
+                          {d.transaksi.length > 0 && (
+                            <div style={{ marginBottom: '1.25rem' }}>
+                              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>Daftar Transaksi</h4>
+                              <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                      <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>MEJA</th>
+                                      <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>WAKTU</th>
+                                      <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>METODE</th>
+                                      <th style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--color-text-muted)' }}>TOTAL</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {d.transaksi.map((tx, idx) => (
+                                      <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                        <td style={{ padding: '0.5rem', fontWeight: 600 }}>{tx.nomorMeja}</td>
+                                        <td style={{ padding: '0.5rem', color: 'var(--color-text-secondary)' }}>{new Date(tx.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
+                                        <td style={{ padding: '0.5rem' }}>
+                                          <span className={`badge ${tx.metodePembayaran === 'QRIS' ? 'badge-warning' : tx.metodePembayaran === 'TRANSFER' ? 'badge-info' : 'badge-success'}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
+                                            {tx.metodePembayaran === 'QRIS' ? 'QRIS' : tx.metodePembayaran === 'TRANSFER' ? 'TRSF' : 'CASH'}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{tx.total.toLocaleString('id-ID')}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Rekap Menu */}
+                          {d.rekap.length > 0 && (
+                            <div>
+                              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>Rekap Menu</h4>
+                              <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                      <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>MENU</th>
+                                      <th style={{ padding: '0.5rem', textAlign: 'left', color: 'var(--color-text-muted)' }}>KATEGORI</th>
+                                      <th style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--color-text-muted)' }}>QTY</th>
+                                      <th style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--color-text-muted)' }}>TOTAL</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {d.rekap.map((item, idx) => (
+                                      <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                        <td style={{ padding: '0.5rem', fontWeight: 600 }}>{item.namaMenu}</td>
+                                        <td style={{ padding: '0.5rem' }}>
+                                          <span className="badge" style={{ background: item.kategori === 'MAKANAN' ? 'var(--color-brand-light)' : 'var(--color-success-light)', color: item.kategori === 'MAKANAN' ? 'var(--color-brand)' : 'var(--color-success)', fontSize: '0.7rem' }}>
+                                            {item.kategori === 'MAKANAN' ? 'Makanan' : 'Minuman'}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{item.qtyTotal}</td>
+                                        <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 700, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
+                                          Rp {item.pendapatanTotal.toLocaleString('id-ID')}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr style={{ borderTop: '2px solid var(--color-border)', fontWeight: 800 }}>
+                                      <td colSpan={2} style={{ padding: '0.5rem', fontSize: '0.85rem' }}>GRAND TOTAL</td>
+                                      <td style={{ padding: '0.5rem', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.grandTotalQty}</td>
+                                      <td style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>
+                                        Rp {sesi.totalPendapatan.toLocaleString('id-ID')}
+                                      </td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
