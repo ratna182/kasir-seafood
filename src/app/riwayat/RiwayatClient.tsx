@@ -237,7 +237,6 @@ function LaporanCard({ sesi }: { sesi: KasirSesi }) {
               <thead>
                 <tr>
                   <th style={{ padding: '0.2rem 0', textAlign: 'left' }}>MENU</th>
-                  <th style={{ padding: '0.2rem 0', textAlign: 'center' }}>KATEGORI</th>
                   <th style={{ padding: '0.2rem 0', textAlign: 'right' }}>QTY</th>
                   <th style={{ padding: '0.2rem 0', textAlign: 'right' }}>TOTAL</th>
                 </tr>
@@ -246,11 +245,6 @@ function LaporanCard({ sesi }: { sesi: KasirSesi }) {
                 {d.rekap.map((item, i) => (
                   <tr key={i}>
                     <td style={{ padding: '0.15rem 0' }}>{item.namaMenu}</td>
-                    <td style={{ padding: '0.15rem 0', textAlign: 'center' }}>
-                      <span style={{ display: 'inline-block', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, background: item.kategori === 'MAKANAN' ? 'var(--color-brand-light)' : 'var(--color-success-light)', color: item.kategori === 'MAKANAN' ? 'var(--color-brand)' : 'var(--color-success)' }}>
-                        {item.kategori === 'MAKANAN' ? 'Makanan' : 'Minuman'}
-                      </span>
-                    </td>
                     <td style={{ padding: '0.15rem 0', textAlign: 'right' }}>{item.qtyTotal}</td>
                     <td style={{ padding: '0.15rem 0', textAlign: 'right' }}>{item.pendapatanTotal.toLocaleString('id-ID')}</td>
                   </tr>
