@@ -122,6 +122,8 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
     })
   }, [menus, search, activeCategoryId])
 
+  const cartByMenuId = useMemo(() => new Map(cart.map((item) => [item.menuId, item])), [cart])
+
   const categories = useMemo(() => {
     const seen = new Map<string, { id: string; nama: string; count: number }>()
     for (const menu of menus) {
@@ -526,7 +528,7 @@ export default function TransaksiClient({ session, menus: initialMenus, initialA
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
                     {catMenus.map((menu) => {
-                      const inCart = cart.find((item) => item.menuId === menu.id)
+                      const inCart = cartByMenuId.get(menu.id)
                       return (
                         <div
                           key={menu.id}

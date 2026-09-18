@@ -29,7 +29,19 @@ export async function GET(request: NextRequest) {
         createdAt: { gte: state.sessionStart },
         ...(nomorMeja ? { nomorMeja } : {}),
       },
-      include: { items: { orderBy: { createdAt: 'asc' } } },
+      select: {
+        id: true,
+        nomorMeja: true,
+        total: true,
+        metodePembayaran: true,
+        tanggal: true,
+        createdAt: true,
+        updatedAt: true,
+        items: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, namaMenu: true, hargaSatuan: true, diskonSatuan: true, catatan: true, qty: true, subtotal: true },
+        },
+      },
       orderBy: { updatedAt: 'desc' },
     })
 

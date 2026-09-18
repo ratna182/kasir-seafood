@@ -47,26 +47,36 @@ export async function GET(request: NextRequest) {
       orderBy: [{ tanggal: 'desc' }, { ditutupPada: 'desc' }],
     })
 
-    const data = await Promise.all(sessions.map(async (s) => {
+    if (sessions.length === 0) {
+      return NextResponse.json({ success: true, data: [] })
+    }
+
+    const transaksis = await prisma.transaksi.findMany({
+      where: {
+        warungId,
+        status: 'SELESAI',
+        OR: sessions.map((session) => ({
+          kasirId: session.ditutupOleh,
+          createdAt: { gte: session.tanggal, lte: session.ditutupPada },
+        })),
+      },
+      include: { items: true },
+    })
+    const uniqueMenuIds = [...new Set(transaksis.flatMap((transaction) => transaction.items.map((item) => item.menuId)))]
+    const menuCategories = await prisma.menu.findMany({
+      where: { id: { in: uniqueMenuIds }, warungId },
+      select: { id: true, category: { select: { nama: true } } },
+    })
+    const kategoriMap = new Map(menuCategories.map((menu) => [menu.id, menu.category?.nama || 'Lainnya']))
+
+    const data = sessions.map((s) => {
       const sessionStart = s.tanggal
       const sessionEnd = s.ditutupPada
-
-      const transaksis = await prisma.transaksi.findMany({
-        where: {
-          warungId,
-          kasirId: s.ditutupOleh,
-          createdAt: { gte: sessionStart, lte: sessionEnd },
-          status: 'SELESAI',
-        },
-        include: { items: true },
-      })
-
-      const uniqueMenuIds = [...new Set(transaksis.flatMap(t => t.items.map(i => i.menuId)))]
-      const menuCategories = await prisma.menu.findMany({
-        where: { id: { in: uniqueMenuIds }, warungId },
-        select: { id: true, category: { select: { nama: true } } },
-      })
-      const kategoriMap = new Map(menuCategories.map(m => [m.id, m.category?.nama || 'Lainnya']))
+      const sessionTransaksis = transaksis.filter((transaction) =>
+        transaction.kasirId === s.ditutupOleh &&
+        transaction.createdAt >= sessionStart &&
+        transaction.createdAt <= sessionEnd,
+      )
 
       const rekapMap = new Map<string, { namaMenu: string; kategori: string; qtyTotal: number; pendapatanTotal: number }>()
       let grandTotalQty = 0
@@ -74,7 +84,7 @@ export async function GET(request: NextRequest) {
       let totalQRIS = 0
       let totalTransfer = 0
 
-      for (const tx of transaksis) {
+      for (const tx of sessionTransaksis) {
         if (tx.metodePembayaran === 'QRIS') totalQRIS += tx.total
         else if (tx.metodePembayaran === 'TRANSFER') totalTransfer += tx.total
         else totalCash += tx.total
@@ -114,7 +124,7 @@ export async function GET(request: NextRequest) {
         warungAlamat: s.warung.alamat,
         detail: {
           rekap,
-          transaksi: transaksis.map(t => ({
+          transaksi: sessionTransaksis.map(t => ({
             nomorMeja: t.nomorMeja,
             total: t.total,
             metodePembayaran: t.metodePembayaran || 'CASH',
@@ -124,10 +134,10 @@ export async function GET(request: NextRequest) {
           totalCash,
           totalQRIS,
           totalTransfer,
-          jumlahTransaksi: transaksis.length,
+          jumlahTransaksi: sessionTransaksis.length,
         },
       }
-    }))
+    })
 
     return NextResponse.json({ success: true, data })
   } catch (error) {

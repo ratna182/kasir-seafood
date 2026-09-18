@@ -85,20 +85,34 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
     }
   }, [])
 
-  // Refetch data saat owner ganti cabang
+  // Refresh the report on branch changes; polling only needs cashier status.
   useEffect(() => {
-    if (!isOwner || selectedWarungId === warungId) return
     let cancelled = false
-    async function refetch() {
+    const updateStatus = async () => {
+      try {
+        const statusRes = await fetch(`/api/kasir/status?${new URLSearchParams({ warungId: selectedWarungId })}`)
+        if (cancelled) return
+        const statusResult = await statusRes.json()
+        if (statusResult.success) {
+          setKasirSesi(statusResult.data.sudahTutup ? {
+            ditutupPada: statusResult.data.ditutupPada,
+            ditutupOleh: 'Kasir',
+            totalTransaksi: statusResult.data.totalTransaksi,
+            totalPendapatan: statusResult.data.totalPendapatan,
+          } : null)
+        }
+      } catch { /* silent */ }
+    }
+
+    const loadBranch = async () => {
       setLoading(true)
       try {
         const params = new URLSearchParams({ warung_id: selectedWarungId })
         const [laporanRes, statusRes] = await Promise.all([
           fetch(`/api/laporan/harian?${params}`),
-          fetch(`/api/kasir/status?${params}`),
+          fetch(`/api/kasir/status?${new URLSearchParams({ warungId: selectedWarungId })}`),
         ])
-        const laporanResult = await laporanRes.json()
-        const statusResult = await statusRes.json()
+        const [laporanResult, statusResult] = await Promise.all([laporanRes.json(), statusRes.json()])
         if (cancelled) return
         if (laporanResult.success) setData(laporanResult.data)
         if (statusResult.success) {
@@ -113,38 +127,12 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
         if (!cancelled) setFeedback({ type: 'error', message: 'Gagal memuat data cabang' })
       } finally { if (!cancelled) setLoading(false) }
     }
-    refetch()
-    return () => { cancelled = true }
-  }, [selectedWarungId, warungId, isOwner])
 
-  // Polling status kasir + aktivitas tiap 10 detik — realtime
-  useEffect(() => {
-    let cancelled = false
-    const poll = async () => {
-      try {
-        const params = new URLSearchParams({ warung_id: selectedWarungId })
-        const [statusRes, laporanRes] = await Promise.all([
-          fetch(`/api/kasir/status?${new URLSearchParams({ warungId: selectedWarungId })}`),
-          fetch(`/api/laporan/harian?${params}`),
-        ])
-        if (cancelled) return
-        const statusResult = await statusRes.json()
-        const laporanResult = await laporanRes.json()
-        if (statusResult.success) {
-          setKasirSesi(statusResult.data.sudahTutup ? {
-            ditutupPada: statusResult.data.ditutupPada,
-            ditutupOleh: 'Kasir',
-            totalTransaksi: statusResult.data.totalTransaksi,
-            totalPendapatan: statusResult.data.totalPendapatan,
-          } : null)
-        }
-        if (laporanResult.success) setData(laporanResult.data)
-      } catch { /* silent */ }
-    }
-    poll()
-    const interval = setInterval(poll, 10_000)
+    if (isOwner && selectedWarungId !== warungId) void loadBranch()
+    else void updateStatus()
+    const interval = setInterval(() => void updateStatus(), 10_000)
     return () => { cancelled = true; clearInterval(interval) }
-  }, [selectedWarungId])
+  }, [selectedWarungId, warungId, isOwner])
 
   async function fetchLaporan() {
     setLoading(true)
@@ -249,7 +237,6 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
         setFeedback({ type: 'success', message: 'Laporan berhasil dicetak.' })
       } else {
         handlePrint()
-        setFeedback({ type: 'error', message: 'Printer belum terhubung. Jendela print dibuka.' })
       }
     } catch {
       setFeedback({ type: 'error', message: 'Gagal mencetak laporan.' })

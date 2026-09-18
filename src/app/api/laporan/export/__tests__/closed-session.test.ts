@@ -8,7 +8,7 @@ vi.mock('@/lib/prisma', () => ({
     kasirSesi: { findFirst: vi.fn() },
     warung: { findUnique: vi.fn() },
     transaksi: { findMany: vi.fn() },
-    menu: { findFirst: vi.fn() },
+    menu: { findFirst: vi.fn(), findMany: vi.fn() },
   },
 }))
 
@@ -42,6 +42,7 @@ describe('Financial report export', () => {
     vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue(openSession)
     vi.mocked(prisma.warung.findUnique).mockResolvedValue({ id: 'warung1', nama: 'Seafood 08', kode: 'VJ08-1', alamat: null, createdAt: new Date() })
     vi.mocked(prisma.menu.findFirst).mockResolvedValue({ category: { nama: 'MAKANAN' } } as never)
+    vi.mocked(prisma.menu.findMany).mockResolvedValue([{ id: 'menu1', category: { nama: 'MAKANAN' } }] as never)
   })
 
   it.each([

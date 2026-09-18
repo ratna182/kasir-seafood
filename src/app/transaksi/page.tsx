@@ -39,6 +39,7 @@ export default async function TransaksiPage() {
     }),
     prisma.warungMenu.findMany({
       where: { warungId: activeSession.warungId },
+      select: { menuId: true, harga: true },
     }),
     prisma.transaksi.findMany({
       where: {
@@ -47,7 +48,19 @@ export default async function TransaksiPage() {
         status: 'OPEN',
         createdAt: { gte: kasirState.sessionStart },
       },
-      include: { items: { orderBy: { createdAt: 'asc' } } },
+      select: {
+        id: true,
+        nomorMeja: true,
+        total: true,
+        metodePembayaran: true,
+        tanggal: true,
+        createdAt: true,
+        updatedAt: true,
+        items: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, namaMenu: true, hargaSatuan: true, diskonSatuan: true, catatan: true, qty: true, subtotal: true },
+        },
+      },
       orderBy: { updatedAt: 'desc' },
     }),
   ])

@@ -181,7 +181,6 @@ function LaporanCard({ sesi, printerWidth }: { sesi: KasirSesi; printerWidth: '5
         alert('Laporan berhasil dicetak.')
       } else {
         handlePrint()
-        alert('Printer belum terhubung. Jendela print dibuka.')
       }
     } catch {
       alert('Gagal mencetak laporan.')
