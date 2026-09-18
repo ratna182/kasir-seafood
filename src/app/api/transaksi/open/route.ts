@@ -13,9 +13,10 @@ export async function GET(request: NextRequest) {
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
+    const kasirId = context!.user.id
 
     const nomorMeja = request.nextUrl.searchParams.get('nomorMeja')?.trim()
-    const state = await getKasirSessionState(prisma, warungId)
+    const state = await getKasirSessionState(prisma, warungId, kasirId)
     if (state.isClosed) {
       return NextResponse.json({ success: true, data: nomorMeja ? null : [] })
     }
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
     const transaksis = await prisma.transaksi.findMany({
       where: {
         warungId,
+        kasirId,
         status: 'OPEN',
         createdAt: { gte: state.sessionStart },
         ...(nomorMeja ? { nomorMeja } : {}),

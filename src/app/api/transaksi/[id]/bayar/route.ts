@@ -34,13 +34,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!metodePembayaran) {
       return NextResponse.json({ success: false, message: 'Metode bayar wajib dipilih.' }, { status: 422 })
     }
+    const kasirId = context!.user.id
 
     const transaksi = await prisma.$transaction(async (tx) => {
-      const state = await getKasirSessionState(tx, warungId)
+      const state = await getKasirSessionState(tx, warungId, kasirId)
       if (state.isClosed) return 'CLOSED'
 
       const openOrder = await tx.transaksi.findFirst({
-        where: { id, warungId, status: 'OPEN', createdAt: { gte: state.sessionStart } },
+        where: { id, warungId, kasirId, status: 'OPEN', createdAt: { gte: state.sessionStart } },
         include: { items: { orderBy: { createdAt: 'asc' } } },
       })
 
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const completedToday = await tx.transaksi.count({
         where: {
           warungId,
+          kasirId,
           status: 'SELESAI',
           createdAt: { gte: state.sessionStart, lt: state.tomorrow },
         },

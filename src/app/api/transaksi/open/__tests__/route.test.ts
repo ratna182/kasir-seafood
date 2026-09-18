@@ -40,6 +40,7 @@ describe('Current-session open orders', () => {
     expect(response.status).toBe(200)
     expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
+        kasirId: 'kasir1',
         createdAt: { gte: session.dibukaKembaliPada },
         status: 'OPEN',
       }),

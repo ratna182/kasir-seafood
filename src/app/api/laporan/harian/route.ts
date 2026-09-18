@@ -32,26 +32,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
 
-    const state = await getKasirSessionState(prisma, warungId)
-    let sessionStart = state.sessionStart
+    const kasirId = context.user.id
+    const state = await getKasirSessionState(prisma, warungId, kasirId)
 
-    if (state.isClosed && state.latest) {
-      const previousSession = await prisma.kasirSesi.findFirst({
-        where: {
-          warungId,
-          tanggal: state.today,
-          ditutupPada: { lt: state.latest.ditutupPada },
-        },
-        orderBy: { ditutupPada: 'desc' },
-      })
-      sessionStart = previousSession?.dibukaKembaliPada ?? state.today
-    }
-
-    // Laporan layar mengikuti sesi kasir; laporan ekspor tetap menyimpan seluruh histori tanggal.
     const transaksis = await prisma.transaksi.findMany({
       where: {
         warungId,
-        createdAt: { gte: sessionStart, lt: state.tomorrow },
+        kasirId,
+        createdAt: { gte: state.sessionStart, lte: state.sessionEnd },
         status: 'SELESAI',
       },
       include: {
@@ -62,6 +50,7 @@ export async function GET(request: NextRequest) {
     const aktivitasKasir = await prisma.activityLog.findMany({
       where: {
         warungId,
+        userId: kasirId,
         createdAt: { gte: state.today, lt: state.tomorrow },
         aktivitas: { in: ['LOGIN', 'BUKA_KASIR', 'TUTUP_KASIR'] },
       },

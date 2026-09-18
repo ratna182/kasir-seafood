@@ -90,7 +90,7 @@ describe('Cashier session lifecycle', () => {
       where: expect.objectContaining({ createdAt: expect.objectContaining({ gte: reopenedAt }) }),
     }))
     expect(updateMany).toHaveBeenCalledWith({
-      where: { warungId: 'warung1', status: 'OPEN', createdAt: { lt: reopenedAt } },
+      where: { warungId: 'warung1', kasirId: 'kasir1', status: 'OPEN', createdAt: { lt: reopenedAt } },
       data: { status: 'BATAL' },
     })
   })

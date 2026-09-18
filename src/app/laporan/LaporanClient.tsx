@@ -163,13 +163,15 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
     const params = new URLSearchParams({ warungId: selectedWarungId })
     const res = await fetch(`/api/kasir/status?${params}`)
     const result = await res.json()
-    if (!result.success) return
-    setKasirSesi(result.data.sudahTutup ? {
+    if (!result.success) return false
+    const closedSession = result.data.sudahTutup ? {
       ditutupPada: result.data.ditutupPada,
       ditutupOleh: 'Kasir',
       totalTransaksi: result.data.totalTransaksi,
       totalPendapatan: result.data.totalPendapatan,
-    } : null)
+    } : null
+    setKasirSesi(closedSession)
+    return Boolean(closedSession)
   }
 
   async function handleTutupKasir() {
@@ -219,6 +221,10 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
   }
 
   function handlePrint() {
+    if (!kasirSesi) {
+      setFeedback({ type: 'error', message: 'Tutup kasir terlebih dahulu sebelum mencetak laporan.' })
+      return
+    }
     const printWindow = window.open('', '_blank', 'width=280,height=500')
     if (printWindow) {
       const receiptEl = document.querySelector('.print-receipt')
@@ -232,6 +238,10 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
 
   async function handlePrintThermal() {
     if (!data) return
+    if (!kasirSesi || !await checkKasirStatus()) {
+      setFeedback({ type: 'error', message: 'Tutup kasir terlebih dahulu sebelum mencetak laporan.' })
+      return
+    }
     setPrinting(true)
     try {
       const success = await printer.print(encodeLaporan(data, currentWarungNama, data.warung.alamat ?? null, printerWidth, kasirSesi))
@@ -247,6 +257,10 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
   }
 
   async function handleExportExcel() {
+    if (!kasirSesi) {
+      setFeedback({ type: 'error', message: 'Tutup kasir terlebih dahulu sebelum mencetak laporan.' })
+      return
+    }
     try {
       const params = new URLSearchParams({ warung_id: selectedWarungId })
       const res = await fetch(`/api/laporan/export?${params}`)
@@ -265,6 +279,10 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
   }
 
   async function handleExportPDF() {
+    if (!kasirSesi) {
+      setFeedback({ type: 'error', message: 'Tutup kasir terlebih dahulu sebelum mencetak laporan.' })
+      return
+    }
     try {
       const params = new URLSearchParams({ warung_id: selectedWarungId })
       const res = await fetch(`/api/laporan/export/pdf?${params}`)
@@ -311,13 +329,13 @@ export default function LaporanClient({ warungId, warungNama, warungKode, warung
               ))}
             </select>
           )}
-          <button type="button" onClick={handleExportExcel} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button type="button" onClick={handleExportExcel} disabled={loading || !data || data.rekap.length === 0 || !kasirSesi} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={16} /> Export Excel
           </button>
-          <button type="button" onClick={handleExportPDF} disabled={loading || !data || data.rekap.length === 0} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button type="button" onClick={handleExportPDF} disabled={loading || !data || data.rekap.length === 0 || !kasirSesi} className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={16} /> Export PDF
           </button>
-          <button type="button" onClick={handlePrintThermal} disabled={loading || !data || data.rekap.length === 0 || printing} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button type="button" onClick={handlePrintThermal} disabled={loading || !data || data.rekap.length === 0 || printing || !kasirSesi} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <Printer size={16} /> {printing ? 'Mencetak...' : 'Cetak Laporan'}
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>

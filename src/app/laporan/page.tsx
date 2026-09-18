@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getKasirSessionState } from '@/lib/kasir-session'
 import { getSession } from '@/lib/session'
+import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import LaporanClient from './LaporanClient'
 
@@ -9,13 +10,16 @@ export const metadata = {
   description: 'Rekapitulasi penjualan harian dan penutupan shift kasir.',
 }
 
-interface WarungOption { id: string; nama: string; kode: string }
-
 export default async function LaporanPage() {
-  const [warungs, defaultWarung] = await Promise.all([
-    prisma.warung.findMany({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } }),
-    prisma.warung.findFirst({ orderBy: { nama: 'asc' }, select: { id: true, nama: true, kode: true } }),
-  ])
+  const session = await getSession()
+  if (!session) redirect('/login')
+
+  const warungs = await prisma.warung.findMany({
+    where: session.role === 'KASIR' ? { id: session.warungId ?? undefined } : undefined,
+    orderBy: { nama: 'asc' },
+    select: { id: true, nama: true, kode: true },
+  })
+  const defaultWarung = warungs[0]
 
   if (!defaultWarung) {
     return (
@@ -27,30 +31,15 @@ export default async function LaporanPage() {
     )
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   // Ambil status kasir hari ini
-  const state = await getKasirSessionState(prisma, defaultWarung.id)
-  let sessionStart = state.sessionStart
-
-  if (state.isClosed && state.latest) {
-    const previousSession = await prisma.kasirSesi.findFirst({
-      where: {
-        warungId: defaultWarung.id,
-        tanggal: state.today,
-        ditutupPada: { lt: state.latest.ditutupPada },
-      },
-      orderBy: { ditutupPada: 'desc' },
-    })
-    sessionStart = previousSession?.dibukaKembaliPada ?? state.today
-  }
+  const state = await getKasirSessionState(prisma, defaultWarung.id, session.id)
 
   // Ambil data laporan
   const transaksis = await prisma.transaksi.findMany({
     where: {
       warungId: defaultWarung.id,
-      createdAt: { gte: sessionStart, lt: state.tomorrow },
+      kasirId: session.id,
+      createdAt: { gte: state.sessionStart, lte: state.sessionEnd },
       status: 'SELESAI',
     },
     include: { items: true },
@@ -59,6 +48,7 @@ export default async function LaporanPage() {
   const aktivitasKasir = await prisma.activityLog.findMany({
     where: {
       warungId: defaultWarung.id,
+      userId: session.id,
       createdAt: { gte: state.today, lt: state.tomorrow },
       aktivitas: { in: ['LOGIN', 'BUKA_KASIR', 'TUTUP_KASIR'] },
     },
@@ -140,8 +130,6 @@ export default async function LaporanPage() {
       }
     : null
 
-  // Deteksi role dari session cookie — owner tetap dapat navbar lengkap
-  const session = await getSession()
   const role = session?.role === 'OWNER' ? 'OWNER' : 'KASIR'
 
   return (

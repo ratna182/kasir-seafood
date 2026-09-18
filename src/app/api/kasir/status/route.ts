@@ -24,16 +24,9 @@ export async function GET(request: NextRequest) {
       } else {
         return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 })
       }
-    } else {
-      // Tanpa login — gunakan warungId dari query param
-      const { searchParams } = new URL(request.url)
-      warungId = searchParams.get('warungId')
-      if (!warungId) {
-        return NextResponse.json({ success: false, message: 'warungId wajib diisi.' }, { status: 400 })
-      }
-    }
+    } else return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 })
 
-    const state = await getKasirSessionState(prisma, warungId!)
+    const state = await getKasirSessionState(prisma, warungId!, context!.user.id)
     const sesi = state.latest
 
     return NextResponse.json({

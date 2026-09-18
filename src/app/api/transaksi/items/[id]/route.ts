@@ -13,6 +13,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
+    const kasirId = context!.user.id
 
     const { id } = await params
     const body = await request.json()
@@ -23,11 +24,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const transaksi = await prisma.$transaction(async (tx) => {
-      const state = await getKasirSessionState(tx, warungId)
+      const state = await getKasirSessionState(tx, warungId, kasirId)
       if (state.isClosed) return 'CLOSED'
 
       const item = await tx.transaksiItem.findFirst({
-        where: { id, transaksi: { warungId, status: 'OPEN', createdAt: { gte: state.sessionStart } } },
+        where: { id, transaksi: { warungId, kasirId, status: 'OPEN', createdAt: { gte: state.sessionStart } } },
       })
 
       if (!item) return null
@@ -74,14 +75,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
+    const kasirId = context!.user.id
 
     const { id } = await params
     const transaksi = await prisma.$transaction(async (tx) => {
-      const state = await getKasirSessionState(tx, warungId)
+      const state = await getKasirSessionState(tx, warungId, kasirId)
       if (state.isClosed) return 'CLOSED'
 
       const item = await tx.transaksiItem.findFirst({
-        where: { id, transaksi: { warungId, status: 'OPEN', createdAt: { gte: state.sessionStart } } },
+        where: { id, transaksi: { warungId, kasirId, status: 'OPEN', createdAt: { gte: state.sessionStart } } },
       })
 
       if (!item) return null

@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     if (!nomorMeja) {
       return NextResponse.json({ success: false, message: 'Nomor meja wajib diisi.' }, { status: 422 })
     }
+    const kasirId = context!.user.id
 
     if (!VALID_TABLE_NAMES.has(nomorMeja)) {
       return NextResponse.json({ success: false, message: 'Nomor meja harus Meja 1-15, Lesehan 1-11, atau Bungkus.' }, { status: 422 })
@@ -95,17 +96,18 @@ export async function POST(request: NextRequest) {
     const addedTotal = processedItems.reduce((sum, item) => sum + item.subtotal, 0)
 
     const transaksi = await prisma.$transaction(async (tx) => {
-      const state = await getKasirSessionState(tx, warungId)
+      const state = await getKasirSessionState(tx, warungId, kasirId)
       if (state.isClosed) return 'CLOSED' as const
 
       const existing = await tx.transaksi.findFirst({
-        where: { warungId, nomorMeja, status: 'OPEN', createdAt: { gte: state.sessionStart } },
+        where: { warungId, kasirId, nomorMeja, status: 'OPEN', createdAt: { gte: state.sessionStart } },
       })
 
       if (!existing) {
         return tx.transaksi.create({
           data: {
             warungId,
+            kasirId,
             nomorMeja,
             status: 'OPEN',
             total: addedTotal,
@@ -162,8 +164,9 @@ export async function GET(request: NextRequest) {
     if (!warungId) {
       return NextResponse.json({ success: false, message: 'Kasir tidak terdaftar di warung.' }, { status: 403 })
     }
+    const kasirId = context!.user.id
 
-    const state = await getKasirSessionState(prisma, warungId)
+    const state = await getKasirSessionState(prisma, warungId, kasirId)
     if (state.isClosed) {
       return NextResponse.json({ success: true, data: [] })
     }
@@ -171,6 +174,7 @@ export async function GET(request: NextRequest) {
     const transaksis = await prisma.transaksi.findMany({
       where: {
         warungId,
+        kasirId,
         createdAt: { gte: state.sessionStart, lt: state.tomorrow },
         status: 'SELESAI',
       },

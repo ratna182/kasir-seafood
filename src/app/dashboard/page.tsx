@@ -189,15 +189,15 @@ export default async function DashboardPage() {
   // Dashboard KASIR
   const warungId = session.warungId as string
 
-  const kasirState = await getKasirSessionState(prisma, warungId)
+  const kasirState = await getKasirSessionState(prisma, warungId, session.id)
   const [jumlahTransaksiHariIni, totalPendapatan] = kasirState.isClosed
     ? [kasirState.latest!.totalTransaksi, kasirState.latest!.totalPendapatan]
     : await Promise.all([
         prisma.transaksi.count({
-          where: { warungId, createdAt: { gte: kasirState.sessionStart }, status: 'SELESAI' },
+          where: { warungId, kasirId: session.id, createdAt: { gte: kasirState.sessionStart }, status: 'SELESAI' },
         }),
         prisma.transaksi.aggregate({
-          where: { warungId, createdAt: { gte: kasirState.sessionStart }, status: 'SELESAI' },
+          where: { warungId, kasirId: session.id, createdAt: { gte: kasirState.sessionStart }, status: 'SELESAI' },
           _sum: { total: true },
         }).then((result) => result._sum.total || 0),
       ])

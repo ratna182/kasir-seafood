@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const where: Record<string, unknown> = { warungId }
+    if (context?.user.role === 'KASIR') where.ditutupOleh = context.user.id
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(mulai || '') || /^\d{4}-\d{2}-\d{2}$/.test(sampai || '')) {
       const tanggalFilter: Record<string, Date> = {}
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
       const transaksis = await prisma.transaksi.findMany({
         where: {
           warungId,
+          kasirId: s.ditutupOleh,
           createdAt: { gte: sessionStart, lte: sessionEnd },
           status: 'SELESAI',
         },

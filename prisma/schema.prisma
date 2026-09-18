@@ -40,6 +40,7 @@ model User {
 
   warung       Warung?     @relation(fields: [warungId], references: [id])
   kasirSesis   KasirSesi[]
+  transaksis   Transaksi[]
   activityLogs ActivityLog[]
 
   @@map("users")
@@ -98,6 +99,7 @@ model MenuCategory {
 model Transaksi {
   id               String             @id @default(uuid())
   warungId         String             @map("warung_id")
+  kasirId          String?            @map("kasir_id")
   nomorMeja        String             @map("nomor_meja")
   status           StatusTransaksi    @default(OPEN)
   metodePembayaran MetodePembayaran?  @map("metode_pembayaran")
@@ -108,9 +110,11 @@ model Transaksi {
   printedAt        DateTime?          @map("printed_at")
 
   warung  Warung          @relation(fields: [warungId], references: [id])
+  kasir   User?           @relation(fields: [kasirId], references: [id])
   items   TransaksiItem[]
 
   @@index([warungId, nomorMeja, status])
+  @@index([kasirId, createdAt])
   @@map("transaksis")
 }
 

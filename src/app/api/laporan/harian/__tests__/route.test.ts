@@ -69,6 +69,40 @@ describe('Current cashier session report', () => {
     }))
   })
 
+  it('reports only the latest cycle after repeated open and close', async () => {
+    const reopenedAt = new Date('2026-09-14T11:00:00.000Z')
+    const closedAt = new Date('2026-09-14T15:00:00.000Z')
+    vi.mocked(prisma.kasirSesi.findFirst)
+      .mockResolvedValueOnce({
+        id: 'session3',
+        warungId: 'warung1',
+        tanggal: new Date('2026-09-14'),
+        ditutupOleh: 'kasir2',
+        ditutupPada: closedAt,
+        dibukaKembaliPada: null,
+        totalTransaksi: 1,
+        totalPendapatan: 25000,
+      })
+      .mockResolvedValueOnce({
+        id: 'session2',
+        warungId: 'warung1',
+        tanggal: new Date('2026-09-14'),
+        ditutupOleh: 'kasir1',
+        ditutupPada: new Date('2026-09-14T10:00:00.000Z'),
+        dibukaKembaliPada: reopenedAt,
+        totalTransaksi: 2,
+        totalPendapatan: 50000,
+      })
+    vi.mocked(prisma.transaksi.findMany).mockResolvedValue([])
+
+    const response = await GET(new NextRequest('http://localhost/api/laporan/harian'))
+
+    expect(response.status).toBe(200)
+    expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ createdAt: { gte: reopenedAt, lte: closedAt } }),
+    }))
+  })
+
   it('includes all cashier open and close activities', async () => {
     vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.transaksi.findMany).mockResolvedValue([])

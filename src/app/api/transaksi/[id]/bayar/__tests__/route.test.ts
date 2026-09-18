@@ -44,10 +44,11 @@ describe('Bayar order API', () => {
   })
 
   it('finalizes open order before receipt is rendered', async () => {
+    const findFirst = vi.fn().mockResolvedValue({ id: 'trx1', total: 25000, items: [{ id: 'item1' }] })
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
       kasirSesi: { findFirst: vi.fn().mockResolvedValue(null) },
       transaksi: {
-        findFirst: vi.fn().mockResolvedValue({ id: 'trx1', total: 25000, items: [{ id: 'item1' }] }),
+        findFirst,
         count: vi.fn().mockResolvedValue(0),
         update: vi.fn().mockResolvedValue({ id: 'trx1', status: 'SELESAI', metodePembayaran: 'CASH', total: 25000, items: [{ id: 'item1' }] }),
       },
@@ -63,6 +64,7 @@ describe('Bayar order API', () => {
 
     expect(response.status).toBe(200)
     expect(data.data.status).toBe('SELESAI')
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ kasirId: 'kasir1' }) }))
   })
 
   it('rejects invalid payment method', async () => {

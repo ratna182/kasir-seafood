@@ -28,6 +28,7 @@ export default async function RiwayatPage({
   const kasirSesis = await prisma.kasirSesi.findMany({
     where: {
       warungId: session.warungId ?? undefined,
+      ...(session.role === 'KASIR' ? { ditutupOleh: session.id } : {}),
       ...(tanggalFilter ? { tanggal: tanggalFilter } : {}),
     },
     include: {
@@ -61,6 +62,7 @@ export default async function RiwayatPage({
       const previousSesi = await prisma.kasirSesi.findFirst({
         where: {
           warungId: s.warungId,
+          ditutupOleh: s.ditutupOleh,
           tanggal: s.tanggal,
           ditutupPada: { lt: s.ditutupPada },
         },
@@ -80,6 +82,7 @@ export default async function RiwayatPage({
     const transaksisSesi = await prisma.transaksi.findMany({
       where: {
         warungId: s.warungId,
+        kasirId: s.ditutupOleh,
         createdAt: { gte: effectiveStart, lte: effectiveEnd },
         status: 'SELESAI',
       },

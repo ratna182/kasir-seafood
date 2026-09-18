@@ -76,11 +76,12 @@ describe('Transaksi held order API', () => {
 
   it('creates an open order when table has no active order', async () => {
     vi.mocked(prisma.menu.findMany).mockResolvedValue([menu])
+    const create = vi.fn().mockResolvedValue({ id: 'trx1', nomorMeja: 'Meja 1', status: 'OPEN', total: 25000, items: [] })
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
       kasirSesi: { findFirst: vi.fn().mockResolvedValue(null) },
       transaksi: {
         findFirst: vi.fn().mockResolvedValue(null),
-        create: vi.fn().mockResolvedValue({ id: 'trx1', nomorMeja: 'Meja 1', status: 'OPEN', total: 25000, items: [] }),
+        create,
       },
     } as never))
 
@@ -94,6 +95,7 @@ describe('Transaksi held order API', () => {
 
     expect(response.status).toBe(201)
     expect(data.data.status).toBe('OPEN')
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ kasirId: 'kasir1' }) }))
   })
 
   it('keeps finished transaction list limited to paid orders', async () => {
@@ -105,7 +107,7 @@ describe('Transaksi held order API', () => {
     expect(response.status).toBe(200)
     expect(data.data).toEqual([])
     expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ status: 'SELESAI', createdAt: expect.any(Object) }),
+      where: expect.objectContaining({ kasirId: 'kasir1', status: 'SELESAI', createdAt: expect.any(Object) }),
     }))
   })
 

@@ -29,7 +29,7 @@ export default async function TransaksiPage() {
   const warung = !ownerWarung ? await prisma.warung.findUnique({ where: { id: activeSession.warungId }, select: { alamat: true } }) : null
   const warungAlamat = ownerWarung?.alamat ?? warung?.alamat ?? null
 
-  const kasirState = await getKasirSessionState(prisma, activeSession.warungId)
+  const kasirState = await getKasirSessionState(prisma, activeSession.warungId, activeSession.id)
 
   const [menus, warungMenus, activeOrders] = await Promise.all([
     prisma.menu.findMany({
@@ -43,6 +43,7 @@ export default async function TransaksiPage() {
     prisma.transaksi.findMany({
       where: {
         warungId: activeSession.warungId,
+        kasirId: activeSession.id,
         status: 'OPEN',
         createdAt: { gte: kasirState.sessionStart },
       },

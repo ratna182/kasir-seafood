@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext, isOwner, requireWarungAccess } from '@/lib/auth'
+import { getKasirSessionState } from '@/lib/kasir-session'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
 // GET /api/laporan/export/pdf — export laporan ke PDF
-// Query params: warung_id (required untuk owner), start_date, end_date
+// Query params: warung_id (required untuk owner)
 export async function GET(request: NextRequest) {
   try {
     const context = getAuthContext(request)
 
     const { searchParams } = new URL(request.url)
     const warungIdParam = searchParams.get('warung_id')
-    const startDateParam = searchParams.get('start_date')
-    const endDateParam = searchParams.get('end_date')
 
     let warungId: string
 
@@ -34,20 +33,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
 
-    // Parse tanggal
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    const startDate = startDateParam ? new Date(startDateParam) : today
-    startDate.setHours(0, 0, 0, 0)
-    
-    const endDate = endDateParam ? new Date(endDateParam) : today
-    endDate.setHours(23, 59, 59, 999)
-
-    // Validasi tanggal
-    if (startDate > endDate) {
-      return NextResponse.json({ success: false, message: 'Tanggal awal tidak boleh lebih besar dari tanggal akhir.' }, { status: 400 })
+    const kasirId = context.user.id
+    const state = await getKasirSessionState(prisma, warungId, kasirId)
+    if (!state.isClosed) {
+      return NextResponse.json({ success: false, message: 'Tutup kasir terlebih dahulu sebelum mencetak laporan.' }, { status: 409 })
     }
+
+    const startDate = state.sessionStart
+    const endDate = state.sessionEnd
 
     // Ambil info warung
     const warung = await prisma.warung.findUnique({
@@ -55,11 +48,12 @@ export async function GET(request: NextRequest) {
       select: { nama: true, kode: true },
     })
 
-    // Ambil semua transaksi SELESAI pada rentang tanggal
+    // Export hanya untuk siklus kasir yang baru ditutup.
     const transaksis = await prisma.transaksi.findMany({
       where: {
         warungId,
-        tanggal: { gte: startDate, lte: endDate },
+        kasirId,
+        createdAt: { gte: state.sessionStart, lte: state.sessionEnd },
         status: 'SELESAI',
       },
       include: { items: true },

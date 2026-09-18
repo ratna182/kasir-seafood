@@ -10,18 +10,26 @@ export function getTodayRange(now = new Date()) {
   return { today, tomorrow }
 }
 
-export async function getKasirSessionState(db: KasirSessionDb, warungId: string, now = new Date()) {
+export async function getKasirSessionState(db: KasirSessionDb, warungId: string, kasirId: string, now = new Date()) {
   const { today, tomorrow } = getTodayRange(now)
   const latest = await db.kasirSesi.findFirst({
-    where: { warungId, tanggal: today },
+    where: { warungId, ditutupOleh: kasirId, tanggal: today },
     orderBy: { ditutupPada: 'desc' },
   })
+  const isClosed = Boolean(latest && !latest.dibukaKembaliPada)
+  const previous = isClosed && latest
+    ? await db.kasirSesi.findFirst({
+        where: { warungId, ditutupOleh: kasirId, tanggal: today, ditutupPada: { lt: latest.ditutupPada } },
+        orderBy: { ditutupPada: 'desc' },
+      })
+    : null
 
   return {
     today,
     tomorrow,
     latest,
-    isClosed: Boolean(latest && !latest.dibukaKembaliPada),
-    sessionStart: latest?.dibukaKembaliPada ?? today,
+    isClosed,
+    sessionStart: latest?.dibukaKembaliPada ?? previous?.dibukaKembaliPada ?? today,
+    sessionEnd: isClosed ? latest!.ditutupPada : now,
   }
 }
