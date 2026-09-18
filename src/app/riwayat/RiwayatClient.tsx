@@ -157,6 +157,38 @@ function LaporanCard({ sesi }: { sesi: KasirSesi }) {
             <div>Pkl: {tutupStr}</div>
           </div>
 
+          {/* RINGKASAN */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <div style={{ textAlign: 'center', padding: '0.5rem', background: 'var(--color-surface-raised)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-brand)', fontFamily: "var(--font-fraunces), serif" }}>{d.jumlahTransaksi}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Transaksi</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '0.5rem', background: 'var(--color-surface-raised)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: "var(--font-fraunces), serif" }}>{d.grandTotalQty}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Total Porsi</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '0.5rem', background: 'var(--color-surface-raised)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif", fontVariantNumeric: 'tabular-nums' }}>Rp {sesi.totalPendapatan.toLocaleString('id-ID')}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Total Pendapatan</div>
+            </div>
+          </div>
+
+          {/* PAYMENT METHOD CARDS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <div style={{ textAlign: 'center', padding: '0.4rem', borderLeft: '3px solid var(--color-success)', background: 'var(--color-surface-raised)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-success)', fontFamily: "var(--font-fraunces), serif" }}>Rp {d.totalCash.toLocaleString('id-ID')}</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Cash</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '0.4rem', borderLeft: '3px solid var(--color-warning)', background: 'var(--color-surface-raised)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-warning)', fontFamily: "var(--font-fraunces), serif" }}>Rp {d.totalQRIS.toLocaleString('id-ID')}</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>QRIS</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '0.4rem', borderLeft: '3px solid var(--color-info)', background: 'var(--color-surface-raised)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-info)', fontFamily: "var(--font-fraunces), serif" }}>Rp {d.totalTransfer.toLocaleString('id-ID')}</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Transfer</div>
+            </div>
+          </div>
+
           {/* DAFTAR TRANSAKSI */}
           <div style={{ marginBottom: '0.75rem' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, textAlign: 'center', marginBottom: '2px' }}>DAFTAR TRANSAKSI</div>
@@ -205,6 +237,7 @@ function LaporanCard({ sesi }: { sesi: KasirSesi }) {
               <thead>
                 <tr>
                   <th style={{ padding: '0.2rem 0', textAlign: 'left' }}>MENU</th>
+                  <th style={{ padding: '0.2rem 0', textAlign: 'center' }}>KATEGORI</th>
                   <th style={{ padding: '0.2rem 0', textAlign: 'right' }}>QTY</th>
                   <th style={{ padding: '0.2rem 0', textAlign: 'right' }}>TOTAL</th>
                 </tr>
@@ -213,6 +246,11 @@ function LaporanCard({ sesi }: { sesi: KasirSesi }) {
                 {d.rekap.map((item, i) => (
                   <tr key={i}>
                     <td style={{ padding: '0.15rem 0' }}>{item.namaMenu}</td>
+                    <td style={{ padding: '0.15rem 0', textAlign: 'center' }}>
+                      <span style={{ display: 'inline-block', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, background: item.kategori === 'MAKANAN' ? 'var(--color-brand-light)' : 'var(--color-success-light)', color: item.kategori === 'MAKANAN' ? 'var(--color-brand)' : 'var(--color-success)' }}>
+                        {item.kategori === 'MAKANAN' ? 'Makanan' : 'Minuman'}
+                      </span>
+                    </td>
                     <td style={{ padding: '0.15rem 0', textAlign: 'right' }}>{item.qtyTotal}</td>
                     <td style={{ padding: '0.15rem 0', textAlign: 'right' }}>{item.pendapatanTotal.toLocaleString('id-ID')}</td>
                   </tr>
