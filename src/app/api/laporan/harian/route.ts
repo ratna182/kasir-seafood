@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       where: {
         warungId,
         kasirId,
-        createdAt: { gte: state.sessionStart, lte: state.sessionEnd },
+        createdAt: { gte: state.today, lte: state.sessionEnd },
         status: 'SELESAI',
       },
       include: {

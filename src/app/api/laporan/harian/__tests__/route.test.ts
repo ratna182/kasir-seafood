@@ -37,12 +37,14 @@ describe('Current cashier session report', () => {
     vi.mocked(prisma.activityLog.findMany).mockResolvedValue([])
   })
 
-  it('starts every total at zero after cashier reopens', async () => {
+  it('includes all transactions for the day even after cashier reopens', async () => {
     const reopenedAt = new Date('2026-09-14T05:00:00.000Z')
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     vi.mocked(prisma.kasirSesi.findFirst).mockResolvedValue({
       id: 'session1',
       warungId: 'warung1',
-      tanggal: new Date('2026-09-14'),
+      tanggal: today,
       ditutupOleh: 'kasir1',
       ditutupPada: new Date('2026-09-14T04:00:00.000Z'),
       dibukaKembaliPada: reopenedAt,
@@ -65,18 +67,20 @@ describe('Current cashier session report', () => {
       rekap: [],
     }))
     expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ createdAt: expect.objectContaining({ gte: reopenedAt }) }),
+      where: expect.objectContaining({ createdAt: expect.objectContaining({ gte: today }) }),
     }))
   })
 
-  it('reports only the latest cycle after repeated open and close', async () => {
+  it('reports all transactions for the day across repeated open and close cycles', async () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     const reopenedAt = new Date('2026-09-14T11:00:00.000Z')
     const closedAt = new Date('2026-09-14T15:00:00.000Z')
     vi.mocked(prisma.kasirSesi.findFirst)
       .mockResolvedValueOnce({
         id: 'session3',
         warungId: 'warung1',
-        tanggal: new Date('2026-09-14'),
+        tanggal: today,
         ditutupOleh: 'kasir2',
         ditutupPada: closedAt,
         dibukaKembaliPada: null,
@@ -86,7 +90,7 @@ describe('Current cashier session report', () => {
       .mockResolvedValueOnce({
         id: 'session2',
         warungId: 'warung1',
-        tanggal: new Date('2026-09-14'),
+        tanggal: today,
         ditutupOleh: 'kasir1',
         ditutupPada: new Date('2026-09-14T10:00:00.000Z'),
         dibukaKembaliPada: reopenedAt,
@@ -99,7 +103,7 @@ describe('Current cashier session report', () => {
 
     expect(response.status).toBe(200)
     expect(prisma.transaksi.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ createdAt: { gte: reopenedAt, lte: closedAt } }),
+      where: expect.objectContaining({ createdAt: { gte: today, lte: closedAt } }),
     }))
   })
 

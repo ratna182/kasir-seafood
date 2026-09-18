@@ -39,7 +39,7 @@ export default async function LaporanPage() {
     where: {
       warungId: defaultWarung.id,
       kasirId: session.id,
-      createdAt: { gte: state.sessionStart, lte: state.sessionEnd },
+      createdAt: { gte: state.today, lte: state.sessionEnd },
       status: 'SELESAI',
     },
     include: { items: true },
