@@ -81,7 +81,6 @@ export default async function RiwayatPage({
     const transaksisSesi = await prisma.transaksi.findMany({
       where: {
         warungId: s.warungId,
-        kasirId: s.ditutupOleh,
         createdAt: { gte: effectiveStart, lte: effectiveEnd },
         status: 'SELESAI',
       },
