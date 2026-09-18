@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     })
 
     const data = await Promise.all(sessions.map(async (s) => {
-      const sessionStart = s.dibukaKembaliPada ?? s.tanggal
+      const sessionStart = s.tanggal
       const sessionEnd = s.ditutupPada
 
       const transaksis = await prisma.transaksi.findMany({
