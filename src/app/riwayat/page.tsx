@@ -68,8 +68,8 @@ export default async function RiwayatPage({
         },
         orderBy: { ditutupPada: 'desc' },
       })
-      // Start = tanggal (midnight) to include ALL transactions for the day
-      effectiveStart = s.tanggal
+      // Start = when this session was opened (dibukaKembaliPada of previous sesi, or midnight for first session)
+      effectiveStart = previousSesi?.dibukaKembaliPada ?? s.tanggal
       // End = this session's ditutupPada (exact close time)
       effectiveEnd = s.ditutupPada
     } else {
