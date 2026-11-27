@@ -1,6 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
-const serverUrl = process.env.CAPACITOR_SERVER_URL
+const serverUrl =
+  process.env.CAPACITOR_SERVER_URL ||
+  'https://kasir-seafood-experiment.vrtx-lab.workers.dev/login'
 
 if (serverUrl && !/^https:\/\//.test(serverUrl)) {
   throw new Error('CAPACITOR_SERVER_URL harus menggunakan HTTPS')

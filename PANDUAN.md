@@ -2,7 +2,7 @@
 
 ## 1. Login
 
-1. Buka aplikasi di browser: `kasir-seafood.vercel.app/login`
+1. Buka aplikasi di browser: `kasir-seafood-experiment.vrtx-lab.workers.dev/login`
 2. Masukkan **Username** dan **Password** yang telah didaftarkan
 3. Klik **Masuk**
 4. Akan diarahkan ke halaman sesuai role:
